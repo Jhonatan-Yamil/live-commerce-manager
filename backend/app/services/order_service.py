@@ -2,7 +2,20 @@ from decimal import Decimal
 from sqlalchemy.orm import Session, joinedload
 from app.models.order import Order, OrderItem, OrderStatus
 from app.models.payment import Payment, PaymentStatus
+from app.models.product import Product
 from app.schemas.order import OrderCreate
+
+
+def get_or_create_product(db: Session, name: str, price: Decimal) -> Product:
+    product = db.query(Product).filter(
+        Product.name == name,
+        Product.is_active == True
+    ).first()
+    if not product:
+        product = Product(name=name, price=price, stock=0)
+        db.add(product)
+        db.flush()
+    return product
 
 
 def create_order(db: Session, data: OrderCreate) -> Order:
@@ -11,10 +24,11 @@ def create_order(db: Session, data: OrderCreate) -> Order:
     db.flush()
     total = Decimal("0")
     for item_data in data.items:
+        product = get_or_create_product(db, item_data.product_name, item_data.unit_price)
         subtotal = item_data.unit_price * item_data.quantity
         item = OrderItem(
             order_id=order.id,
-            product_id=item_data.product_id,
+            product_id=product.id,
             quantity=item_data.quantity,
             unit_price=item_data.unit_price,
             subtotal=subtotal,

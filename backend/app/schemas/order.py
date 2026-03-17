@@ -6,7 +6,7 @@ from app.schemas.client import ClientOut
 
 
 class OrderItemCreate(BaseModel):
-    product_id: int
+    product_name: str
     quantity: int
     unit_price: Decimal
 
