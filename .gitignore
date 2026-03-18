@@ -19,3 +19,7 @@ frontend/.env.local
 .vscode/
 .idea/
 *.swp
+
+# Archivos subidos por usuarios
+backend/uploads/*
+!backend/uploads/.gitkeep

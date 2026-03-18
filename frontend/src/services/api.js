@@ -48,10 +48,13 @@ export const ordersApi = {
 export const paymentsApi = {
   list: () => api.get("/payments"),
   updateStatus: (id, data) => api.patch(`/payments/${id}/status`, data),
-  uploadVoucher: (orderId, voucherPath) =>
-    api.patch(`/payments/order/${orderId}/voucher`, null, {
-      params: { voucher_path: voucherPath },
-    }),
+  uploadVoucher: (orderId, file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return api.post(`/payments/order/${orderId}/voucher`, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
 };
 
 export const logisticsApi = {

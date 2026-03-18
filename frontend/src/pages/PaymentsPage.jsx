@@ -16,8 +16,9 @@ const STATUS_LABELS_NEXT = {
 
 export default function PaymentsPage() {
   const [payments, setPayments] = useState([]);
-  const [vouchers, setVouchers] = useState({});
   const [notes, setNotes] = useState({});
+  const [files, setFiles] = useState({});
+  const [uploading, setUploading] = useState({});
 
   const load = () => paymentsApi.list().then((r) => setPayments(r.data));
   useEffect(() => { load(); }, []);
@@ -27,11 +28,23 @@ export default function PaymentsPage() {
     load();
   };
 
+  const handleFileChange = (orderId, file) => {
+    setFiles({ ...files, [orderId]: file });
+  };
+
   const uploadVoucher = async (orderId) => {
-    const path = vouchers[orderId];
-    if (!path) return alert("Ingresa la referencia del comprobante");
-    await paymentsApi.uploadVoucher(orderId, path);
-    load();
+    const file = files[orderId];
+    if (!file) return alert("Selecciona un archivo primero");
+    setUploading({ ...uploading, [orderId]: true });
+    try {
+      await paymentsApi.uploadVoucher(orderId, file);
+      setFiles({ ...files, [orderId]: null });
+      load();
+    } catch {
+      alert("Error al subir el comprobante");
+    } finally {
+      setUploading({ ...uploading, [orderId]: false });
+    }
   };
 
   const inputStyle = {
@@ -62,8 +75,16 @@ export default function PaymentsPage() {
                     </span>
                   </div>
                   {p.voucher_path && (
-                    <div style={{ fontSize: 13, color: "#666" }}>
-                      Comprobante: <strong>{p.voucher_path}</strong>
+                    <div style={{ fontSize: 13, color: "#666", marginTop: 4 }}>
+                      Comprobante:{" "}
+                      <a
+                        href={`http://localhost:8000/uploads/${p.voucher_path}`}
+                        target="_blank"
+                        rel="noreferrer"
+                        style={{ color: "#4f46e5", fontWeight: 600 }}
+                      >
+                        Ver comprobante
+                      </a>
                     </div>
                   )}
                   {p.notes && (
@@ -75,23 +96,44 @@ export default function PaymentsPage() {
                     </div>
                   )}
                 </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 260 }}>
+
+                <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 280 }}>
                   {p.status === "pending" && (
-                    <div style={{ display: "flex", gap: 8 }}>
+                    <div style={{ background: "#f8f9fc", borderRadius: 8, padding: 12 }}>
+                      <label style={{ display: "block", marginBottom: 6, fontWeight: 500, fontSize: 13, color: "#555" }}>
+                        Subir comprobante (imagen o PDF)
+                      </label>
                       <input
-                        placeholder="Referencia del comprobante"
-                        value={vouchers[p.order_id] || ""}
-                        onChange={(e) => setVouchers({ ...vouchers, [p.order_id]: e.target.value })}
-                        style={{ ...inputStyle, flex: 1 }}
+                        type="file"
+                        accept=".jpg,.jpeg,.png,.pdf"
+                        onChange={(e) => handleFileChange(p.order_id, e.target.files[0])}
+                        style={{ width: "100%", marginBottom: 8, fontSize: 13 }}
                       />
+                      {files[p.order_id] && (
+                        <div style={{ fontSize: 12, color: "#666", marginBottom: 8 }}>
+                          📎 {files[p.order_id].name}
+                        </div>
+                      )}
                       <button
                         onClick={() => uploadVoucher(p.order_id)}
-                        style={{ padding: "6px 12px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 13, whiteSpace: "nowrap" }}
+                        disabled={!files[p.order_id] || uploading[p.order_id]}
+                        style={{
+                          width: "100%",
+                          padding: "8px",
+                          background: files[p.order_id] ? "#4f46e5" : "#e0e0e0",
+                          color: files[p.order_id] ? "#fff" : "#aaa",
+                          border: "none",
+                          borderRadius: 6,
+                          cursor: files[p.order_id] ? "pointer" : "not-allowed",
+                          fontSize: 13,
+                          fontWeight: 600,
+                        }}
                       >
-                        Registrar
+                        {uploading[p.order_id] ? "Subiendo..." : "Registrar comprobante"}
                       </button>
                     </div>
                   )}
+
                   {s.next.length > 0 && (
                     <div>
                       <input
