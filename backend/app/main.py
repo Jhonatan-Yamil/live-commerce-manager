@@ -1,3 +1,5 @@
+from fastapi.staticfiles import StaticFiles
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -13,6 +15,9 @@ app = FastAPI(
     description="Sistema de gestión de ventas para comercio electrónico en transmisiones en vivo",
     version="1.0.0",
 )
+
+os.makedirs("uploads", exist_ok=True)
+app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 app.add_middleware(
     CORSMiddleware,
