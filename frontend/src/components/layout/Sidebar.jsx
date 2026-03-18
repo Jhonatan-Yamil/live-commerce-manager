@@ -4,10 +4,11 @@ import { useAuth } from "../../context/AuthContext";
 const navItems = [
   { to: "/", label: "Dashboard", icon: "📊", exact: true },
   { to: "/pedidos", label: "Pedidos", icon: "📦" },
+  { to: "/lotes", label: "Lotes", icon: "🏭" },
   { to: "/pagos", label: "Pagos", icon: "💳" },
   { to: "/logistica", label: "Logística", icon: "🚚" },
   { to: "/clientes", label: "Clientes", icon: "👥" },
-  { to: "/productos", label: "Productos", icon: "🏷️" },
+  { to: "/productos", label: "Ventas", icon: "📊" },
 ];
 
 export default function Sidebar() {

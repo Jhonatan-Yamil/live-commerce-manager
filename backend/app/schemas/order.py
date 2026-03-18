@@ -9,11 +9,13 @@ class OrderItemCreate(BaseModel):
     product_name: str
     quantity: int
     unit_price: Decimal
+    lot_id: int | None = None
 
 
 class OrderItemOut(BaseModel):
     id: int
     product_id: int
+    lot_id: int | None
     quantity: int
     unit_price: Decimal
     subtotal: Decimal

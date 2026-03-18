@@ -59,3 +59,9 @@ export const logisticsApi = {
   create: (d) => api.post("/logistics", d),
   update: (id, d) => api.put(`/logistics/${id}`, d),
 };
+
+export const lotsApi = {
+  list: () => api.get("/lots"),
+  create: (d) => api.post("/lots", d),
+  update: (id, d) => api.put(`/lots/${id}`, d),
+};

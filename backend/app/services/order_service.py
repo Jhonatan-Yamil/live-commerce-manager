@@ -29,6 +29,7 @@ def create_order(db: Session, data: OrderCreate) -> Order:
         item = OrderItem(
             order_id=order.id,
             product_id=product.id,
+            lot_id=item_data.lot_id,
             quantity=item_data.quantity,
             unit_price=item_data.unit_price,
             subtotal=subtotal,

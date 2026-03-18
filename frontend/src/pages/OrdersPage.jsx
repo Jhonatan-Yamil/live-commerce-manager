@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { ordersApi, clientsApi } from "../services/api";
+import { ordersApi, clientsApi, lotsApi } from "../services/api";
 
 const STATUS_LABELS = {
   pending_payment: { label: "Pendiente pago", color: "#f59e0b" },
@@ -71,7 +71,70 @@ function ClientAutocomplete({ clients, value, onChange, onSelect }) {
   );
 }
 
-const emptyItem = () => ({ product_name: "", quantity: 1, unit_price: "" });
+function LotAutocomplete({ lots, value, onChange, onSelect, onClear }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  const filtered = lots.filter((l) =>
+    l.name.toLowerCase().includes(value.toLowerCase()) ||
+    l.brand.toLowerCase().includes(value.toLowerCase())
+  );
+
+  useEffect(() => {
+    const handleClick = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  return (
+    <div ref={ref} style={{ position: "relative" }}>
+      <div style={{ display: "flex", gap: 6 }}>
+        <input
+          value={value}
+          onChange={(e) => { onChange(e.target.value); setOpen(true); }}
+          onFocus={() => setOpen(true)}
+          placeholder="Sin lote (opcional)"
+          style={{ flex: 1, padding: "8px 10px", border: "1px solid #ddd", borderRadius: 6, fontSize: 14, boxSizing: "border-box" }}
+        />
+        {value && (
+          <button
+            onMouseDown={onClear}
+            style={{ padding: "6px 10px", background: "#f0f0f0", border: "none", borderRadius: 6, cursor: "pointer", color: "#888", fontSize: 13 }}
+          >
+            ✕
+          </button>
+        )}
+      </div>
+      {open && value.length > 0 && (
+        <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "1px solid #ddd", borderRadius: 8, boxShadow: "0 4px 16px rgba(0,0,0,0.1)", zIndex: 100, maxHeight: 180, overflowY: "auto" }}>
+          {filtered.length > 0 ? (
+            filtered.map((l) => (
+              <div
+                key={l.id}
+                onMouseDown={() => { onSelect(l); setOpen(false); }}
+                style={{ padding: "10px 14px", cursor: "pointer", fontSize: 14, borderBottom: "1px solid #f5f5f5" }}
+                onMouseEnter={(e) => e.currentTarget.style.background = "#f0f4ff"}
+                onMouseLeave={(e) => e.currentTarget.style.background = "#fff"}
+              >
+                <span style={{ fontWeight: 600 }}>{l.name}</span>
+                <span style={{ color: "#888", fontSize: 12, marginLeft: 8 }}>{l.brand}</span>
+                <span style={{ color: "#aaa", fontSize: 11, marginLeft: 8 }}>{l.units_remaining} uds restantes</span>
+              </div>
+            ))
+          ) : (
+            <div style={{ padding: "10px 14px", color: "#aaa", fontSize: 13 }}>
+              No se encontró ningún lote
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+const emptyItem = () => ({ product_name: "", quantity: 1, unit_price: "", lot_id: null, lot_input: "" });
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
@@ -82,12 +145,14 @@ export default function OrdersPage() {
   const [clientPhone, setClientPhone] = useState("");
   const [form, setForm] = useState({ notes: "", items: [emptyItem()] });
   const [loading, setLoading] = useState(false);
+  const [lots, setLots] = useState([]);
 
   const load = () => ordersApi.list().then((r) => setOrders(r.data));
 
   useEffect(() => {
     load();
     clientsApi.list().then((r) => setClients(r.data));
+    lotsApi.list().then((r) => setLots(r.data));
   }, []);
 
   const handleSelectClient = (c) => {
@@ -114,6 +179,18 @@ export default function OrdersPage() {
     setForm({ ...form, items });
   };
 
+  const selectLot = (i, lot) => {
+    const items = [...form.items];
+    items[i] = { ...items[i], lot_id: lot.id, lot_input: lot.name };
+    setForm({ ...form, items });
+  };
+
+  const clearLot = (i) => {
+    const items = [...form.items];
+    items[i] = { ...items[i], lot_id: null, lot_input: "" };
+    setForm({ ...form, items });
+  };
+
   const handleSubmit = async () => {
     if (!clientInput.trim()) return alert("Ingresa el nombre del cliente");
     setLoading(true);
@@ -136,6 +213,7 @@ export default function OrdersPage() {
           product_name: i.product_name,
           quantity: parseInt(i.quantity),
           unit_price: parseFloat(i.unit_price),
+          lot_id: i.lot_id || null,
         })),
       });
 
@@ -241,53 +319,72 @@ export default function OrdersPage() {
 
             <div style={{ background: "#f8f9fc", borderRadius: 8, padding: 12, display: "flex", flexDirection: "column", gap: 10 }}>
               {form.items.map((item, i) => (
-                <div key={i} style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr auto", gap: 10, alignItems: "end" }}>
-                  <div>
-                    {i === 0 && <label style={labelStyle}>Descripción del producto</label>}
-                    <input
-                      value={item.product_name}
-                      onChange={(e) => updateItem(i, "product_name", e.target.value)}
-                      style={inputStyle}
-                      placeholder="Ej: Polera Nike talla M azul"
-                    />
+                <div key={i} style={{ background: "#fff", borderRadius: 8, padding: 12, border: "1px solid #eee" }}>
+                  <div style={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr auto", gap: 10, alignItems: "end", marginBottom: 8 }}>
+                    <div>
+                      {i === 0 && <label style={labelStyle}>Descripción del producto</label>}
+                      <input
+                        value={item.product_name}
+                        onChange={(e) => updateItem(i, "product_name", e.target.value)}
+                        style={inputStyle}
+                        placeholder="Ej: Polera Nike talla M azul"
+                      />
+                    </div>
+                    <div>
+                      {i === 0 && <label style={labelStyle}>Cantidad</label>}
+                      <input
+                        type="number"
+                        min="1"
+                        value={item.quantity}
+                        onChange={(e) => updateItem(i, "quantity", e.target.value)}
+                        style={inputStyle}
+                      />
+                    </div>
+                    <div>
+                      {i === 0 && <label style={labelStyle}>Precio (Bs.)</label>}
+                      <input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        value={item.unit_price}
+                        onChange={(e) => updateItem(i, "unit_price", e.target.value)}
+                        style={inputStyle}
+                        placeholder="0.00"
+                      />
+                    </div>
+                    <button
+                      onClick={() => removeItem(i)}
+                      disabled={form.items.length === 1}
+                      style={{
+                        padding: "8px 10px",
+                        background: form.items.length === 1 ? "#f5f5f5" : "#fee2e2",
+                        color: form.items.length === 1 ? "#ccc" : "#dc2626",
+                        border: "none",
+                        borderRadius: 6,
+                        cursor: form.items.length === 1 ? "not-allowed" : "pointer",
+                        marginTop: i === 0 ? 20 : 0,
+                      }}
+                    >
+                      ✕
+                    </button>
                   </div>
                   <div>
-                    {i === 0 && <label style={labelStyle}>Cantidad</label>}
-                    <input
-                      type="number"
-                      min="1"
-                      value={item.quantity}
-                      onChange={(e) => updateItem(i, "quantity", e.target.value)}
-                      style={inputStyle}
+                    <label style={{ ...labelStyle, color: "#aaa" }}>
+                      Lote
+                      {item.lot_id && (
+                        <span style={{ marginLeft: 8, background: "#d1fae5", color: "#059669", borderRadius: 20, padding: "1px 8px", fontSize: 11, fontWeight: 600 }}>
+                          ✓ Asociado
+                        </span>
+                      )}
+                    </label>
+                    <LotAutocomplete
+                      lots={lots}
+                      value={item.lot_input}
+                      onChange={(val) => updateItem(i, "lot_input", val)}
+                      onSelect={(lot) => selectLot(i, lot)}
+                      onClear={() => clearLot(i)}
                     />
                   </div>
-                  <div>
-                    {i === 0 && <label style={labelStyle}>Precio (Bs.)</label>}
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={item.unit_price}
-                      onChange={(e) => updateItem(i, "unit_price", e.target.value)}
-                      style={inputStyle}
-                      placeholder="0.00"
-                    />
-                  </div>
-                  <button
-                    onClick={() => removeItem(i)}
-                    disabled={form.items.length === 1}
-                    style={{
-                      padding: "8px 10px",
-                      background: form.items.length === 1 ? "#f5f5f5" : "#fee2e2",
-                      color: form.items.length === 1 ? "#ccc" : "#dc2626",
-                      border: "none",
-                      borderRadius: 6,
-                      cursor: form.items.length === 1 ? "not-allowed" : "pointer",
-                      marginTop: i === 0 ? 20 : 0,
-                    }}
-                  >
-                    ✕
-                  </button>
                 </div>
               ))}
             </div>
