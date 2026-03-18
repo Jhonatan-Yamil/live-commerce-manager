@@ -22,10 +22,15 @@ function Badge({ status }) {
 
 function ClientAutocomplete({ clients, value, onChange, onSelect }) {
   const [open, setOpen] = useState(false);
+  const [highlighted, setHighlighted] = useState(0);
   const ref = useRef(null);
 
   const filtered = clients.filter((c) =>
     c.full_name.toLowerCase().includes(value.toLowerCase())
+  );
+
+  const exactMatch = clients.find(
+    (c) => c.full_name.toLowerCase() === value.toLowerCase()
   );
 
   useEffect(() => {
@@ -36,25 +41,44 @@ function ClientAutocomplete({ clients, value, onChange, onSelect }) {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
+  useEffect(() => { setHighlighted(0); }, [value]);
+
+  const handleKeyDown = (e) => {
+    if (!open || filtered.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlighted((h) => Math.min(h + 1, filtered.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlighted((h) => Math.max(h - 1, 0));
+    } else if (e.key === "Enter" || e.key === "Tab") {
+      e.preventDefault();
+      const selected = filtered[highlighted] || (exactMatch ? exactMatch : null);
+      if (selected) { onSelect(selected); setOpen(false); }
+    } else if (e.key === "Escape") {
+      setOpen(false);
+    }
+  };
+
   return (
     <div ref={ref} style={{ position: "relative" }}>
       <input
         value={value}
         onChange={(e) => { onChange(e.target.value); setOpen(true); }}
         onFocus={() => setOpen(true)}
+        onKeyDown={handleKeyDown}
         placeholder="Escribir nombre del cliente..."
         style={{ width: "100%", padding: "8px 10px", border: "1px solid #ddd", borderRadius: 6, fontSize: 14, boxSizing: "border-box" }}
       />
       {open && value.length > 0 && (
         <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "1px solid #ddd", borderRadius: 8, boxShadow: "0 4px 16px rgba(0,0,0,0.1)", zIndex: 100, maxHeight: 200, overflowY: "auto" }}>
           {filtered.length > 0 ? (
-            filtered.map((c) => (
+            filtered.map((c, i) => (
               <div
                 key={c.id}
                 onMouseDown={() => { onSelect(c); setOpen(false); }}
-                style={{ padding: "10px 14px", cursor: "pointer", fontSize: 14, borderBottom: "1px solid #f5f5f5" }}
-                onMouseEnter={(e) => e.target.style.background = "#f0f4ff"}
-                onMouseLeave={(e) => e.target.style.background = "#fff"}
+                style={{ padding: "10px 14px", cursor: "pointer", fontSize: 14, borderBottom: "1px solid #f5f5f5", background: i === highlighted ? "#f0f4ff" : "#fff" }}
+                onMouseEnter={() => setHighlighted(i)}
               >
                 <span style={{ fontWeight: 600 }}>{c.full_name}</span>
                 {c.phone && <span style={{ color: "#888", fontSize: 12, marginLeft: 8 }}>{c.phone}</span>}
@@ -73,6 +97,7 @@ function ClientAutocomplete({ clients, value, onChange, onSelect }) {
 
 function LotAutocomplete({ lots, value, onChange, onSelect, onClear }) {
   const [open, setOpen] = useState(false);
+  const [highlighted, setHighlighted] = useState(0);
   const ref = useRef(null);
 
   const filtered = lots.filter((l) =>
@@ -88,6 +113,24 @@ function LotAutocomplete({ lots, value, onChange, onSelect, onClear }) {
     return () => document.removeEventListener("mousedown", handleClick);
   }, []);
 
+  useEffect(() => { setHighlighted(0); }, [value]);
+
+  const handleKeyDown = (e) => {
+    if (!open || filtered.length === 0) return;
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setHighlighted((h) => Math.min(h + 1, filtered.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setHighlighted((h) => Math.max(h - 1, 0));
+    } else if (e.key === "Enter" || e.key === "Tab") {
+      e.preventDefault();
+      if (filtered[highlighted]) { onSelect(filtered[highlighted]); setOpen(false); }
+    } else if (e.key === "Escape") {
+      setOpen(false);
+    }
+  };
+
   return (
     <div ref={ref} style={{ position: "relative" }}>
       <div style={{ display: "flex", gap: 6 }}>
@@ -95,6 +138,7 @@ function LotAutocomplete({ lots, value, onChange, onSelect, onClear }) {
           value={value}
           onChange={(e) => { onChange(e.target.value); setOpen(true); }}
           onFocus={() => setOpen(true)}
+          onKeyDown={handleKeyDown}
           placeholder="Sin lote (opcional)"
           style={{ flex: 1, padding: "8px 10px", border: "1px solid #ddd", borderRadius: 6, fontSize: 14, boxSizing: "border-box" }}
         />
@@ -110,13 +154,12 @@ function LotAutocomplete({ lots, value, onChange, onSelect, onClear }) {
       {open && value.length > 0 && (
         <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: "#fff", border: "1px solid #ddd", borderRadius: 8, boxShadow: "0 4px 16px rgba(0,0,0,0.1)", zIndex: 100, maxHeight: 180, overflowY: "auto" }}>
           {filtered.length > 0 ? (
-            filtered.map((l) => (
+            filtered.map((l, i) => (
               <div
                 key={l.id}
                 onMouseDown={() => { onSelect(l); setOpen(false); }}
-                style={{ padding: "10px 14px", cursor: "pointer", fontSize: 14, borderBottom: "1px solid #f5f5f5" }}
-                onMouseEnter={(e) => e.currentTarget.style.background = "#f0f4ff"}
-                onMouseLeave={(e) => e.currentTarget.style.background = "#fff"}
+                style={{ padding: "10px 14px", cursor: "pointer", fontSize: 14, borderBottom: "1px solid #f5f5f5", background: i === highlighted ? "#f0f4ff" : "#fff" }}
+                onMouseEnter={() => setHighlighted(i)}
               >
                 <span style={{ fontWeight: 600 }}>{l.name}</span>
                 <span style={{ color: "#888", fontSize: 12, marginLeft: 8 }}>{l.brand}</span>
