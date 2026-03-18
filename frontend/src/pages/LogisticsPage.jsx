@@ -1,10 +1,15 @@
 import { useState, useEffect } from "react";
 import { logisticsApi, ordersApi } from "../services/api";
 
+const DELIVERY_TYPE_LABELS = {
+  pickup: { label: "Retiro en tienda", icon: "🏪" },
+  shipping: { label: "Envío a otra ciudad", icon: "🚚" },
+  coordinated: { label: "Entrega coordinada", icon: "📍" },
+};
+
 const DELIVERY_STATUS = {
-  pending: { label: "Pendiente", color: "#f59e0b" },
-  preparing: { label: "Preparando", color: "#3b82f6" },
-  dispatched: { label: "Despachado", color: "#8b5cf6" },
+  in_store: { label: "En tienda", color: "#f59e0b" },
+  sent: { label: "Enviado", color: "#8b5cf6" },
   delivered: { label: "Entregado", color: "#10b981" },
   failed: { label: "Fallido", color: "#ef4444" },
 };
@@ -13,7 +18,7 @@ export default function LogisticsPage() {
   const [logistics, setLogistics] = useState([]);
   const [orders, setOrders] = useState([]);
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ order_id: "", delivery_type: "delivery", address: "" });
+  const [form, setForm] = useState({ order_id: "", delivery_type: "pickup", address: "" });
   const [editing, setEditing] = useState({});
 
   const load = () => {
@@ -25,7 +30,7 @@ export default function LogisticsPage() {
   const handleCreate = async () => {
     await logisticsApi.create({ ...form, order_id: parseInt(form.order_id) });
     setShowForm(false);
-    setForm({ order_id: "", delivery_type: "delivery", address: "" });
+    setForm({ order_id: "", delivery_type: "pickup", address: "" });
     load();
   };
 
@@ -69,7 +74,11 @@ export default function LogisticsPage() {
               <label style={{ display: "block", marginBottom: 4, fontWeight: 500, fontSize: 13 }}>
                 Pedido (pago confirmado)
               </label>
-              <select value={form.order_id} onChange={(e) => setForm({ ...form, order_id: e.target.value })} style={inputStyle}>
+              <select
+                value={form.order_id}
+                onChange={(e) => setForm({ ...form, order_id: e.target.value })}
+                style={inputStyle}
+              >
                 <option value="">Seleccionar pedido</option>
                 {availableOrders.map((o) => (
                   <option key={o.id} value={o.id}>#{o.id} — {o.client?.full_name}</option>
@@ -80,20 +89,25 @@ export default function LogisticsPage() {
               <label style={{ display: "block", marginBottom: 4, fontWeight: 500, fontSize: 13 }}>
                 Tipo de entrega
               </label>
-              <select value={form.delivery_type} onChange={(e) => setForm({ ...form, delivery_type: e.target.value })} style={inputStyle}>
-                <option value="delivery">Envío a domicilio</option>
-                <option value="pickup">Retiro en tienda</option>
+              <select
+                value={form.delivery_type}
+                onChange={(e) => setForm({ ...form, delivery_type: e.target.value })}
+                style={inputStyle}
+              >
+                <option value="pickup">🏪 Retiro en tienda</option>
+                <option value="shipping">🚚 Envío a otra ciudad</option>
+                <option value="coordinated">📍 Entrega coordinada</option>
               </select>
             </div>
             <div>
               <label style={{ display: "block", marginBottom: 4, fontWeight: 500, fontSize: 13 }}>
-                Dirección
+                Dirección / Punto de encuentro
               </label>
               <input
                 value={form.address}
                 onChange={(e) => setForm({ ...form, address: e.target.value })}
                 style={inputStyle}
-                placeholder="Dirección de entrega"
+                placeholder={form.delivery_type === "pickup" ? "Dirección de la tienda" : form.delivery_type === "shipping" ? "Ciudad de destino" : "Punto de encuentro"}
               />
             </div>
           </div>
@@ -110,6 +124,7 @@ export default function LogisticsPage() {
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
         {logistics.map((l) => {
           const s = DELIVERY_STATUS[l.delivery_status];
+          const t = DELIVERY_TYPE_LABELS[l.delivery_type];
           const isEditing = !!editing[l.id];
           return (
             <div
@@ -124,11 +139,15 @@ export default function LogisticsPage() {
                       {s.label}
                     </span>
                     <span style={{ marginLeft: 8, color: "#888", fontSize: 12 }}>
-                      {l.delivery_type === "delivery" ? "🚚 Domicilio" : "🏪 Retiro"}
+                      {t.icon} {t.label}
                     </span>
                   </div>
-                  {l.address && <div style={{ fontSize: 13, color: "#666" }}>📍 {l.address}</div>}
-                  {l.tracking_notes && <div style={{ fontSize: 13, color: "#888", marginTop: 4 }}>📝 {l.tracking_notes}</div>}
+                  {l.address && (
+                    <div style={{ fontSize: 13, color: "#666" }}>📍 {l.address}</div>
+                  )}
+                  {l.tracking_notes && (
+                    <div style={{ fontSize: 13, color: "#888", marginTop: 4 }}>📝 {l.tracking_notes}</div>
+                  )}
                 </div>
                 <div>
                   {!isEditing ? (
@@ -136,7 +155,7 @@ export default function LogisticsPage() {
                       onClick={() => setEditing({ ...editing, [l.id]: { delivery_status: l.delivery_status, tracking_notes: l.tracking_notes || "", address: l.address || "" } })}
                       style={{ padding: "6px 14px", background: "#e0e7ff", color: "#4f46e5", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 13, fontWeight: 600 }}
                     >
-                      Editar
+                      Actualizar
                     </button>
                   ) : (
                     <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 300 }}>
@@ -145,14 +164,21 @@ export default function LogisticsPage() {
                         onChange={(e) => setEditing({ ...editing, [l.id]: { ...editing[l.id], delivery_status: e.target.value } })}
                         style={{ ...inputStyle, padding: "6px 8px" }}
                       >
-                        {Object.entries(DELIVERY_STATUS).map(([k, v]) => (
-                          <option key={k} value={k}>{v.label}</option>
-                        ))}
+                        <option value="in_store">En tienda</option>
+                        <option value="sent">Enviado</option>
+                        <option value="delivered">Entregado</option>
+                        <option value="failed">Fallido</option>
                       </select>
                       <input
                         placeholder="Notas de seguimiento"
                         value={editing[l.id].tracking_notes}
                         onChange={(e) => setEditing({ ...editing, [l.id]: { ...editing[l.id], tracking_notes: e.target.value } })}
+                        style={{ ...inputStyle, padding: "6px 8px" }}
+                      />
+                      <input
+                        placeholder="Dirección / Punto de encuentro"
+                        value={editing[l.id].address}
+                        onChange={(e) => setEditing({ ...editing, [l.id]: { ...editing[l.id], address: e.target.value } })}
                         style={{ ...inputStyle, padding: "6px 8px" }}
                       />
                       <div style={{ display: "flex", gap: 8 }}>

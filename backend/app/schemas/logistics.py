@@ -5,7 +5,7 @@ from app.models.logistics import DeliveryType, DeliveryStatus
 
 class LogisticsCreate(BaseModel):
     order_id: int
-    delivery_type: DeliveryType = DeliveryType.delivery
+    delivery_type: DeliveryType = DeliveryType.pickup
     address: str | None = None
 
 
