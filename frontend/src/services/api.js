@@ -36,6 +36,8 @@ export const productsApi = {
   list: () => api.get("/products"),
   create: (d) => api.post("/products", d),
   update: (id, d) => api.put(`/products/${id}`, d),
+  sold: () => api.get("/products/sold"),
+  names: () => api.get("/products/names"),
 };
 
 export const ordersApi = {
