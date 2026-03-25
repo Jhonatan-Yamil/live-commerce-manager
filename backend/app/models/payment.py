@@ -4,13 +4,11 @@ from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.models.base import Base
 
-
 class PaymentStatus(str, enum.Enum):
     pending = "pending"
     in_review = "in_review"
     confirmed = "confirmed"
     rejected = "rejected"
-
 
 class Payment(Base):
     __tablename__ = "payments"

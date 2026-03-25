@@ -16,8 +16,28 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 @router.get("/", response_model=list[PaymentOut])
+@router.get("/", response_model=list[PaymentOut])
 def list_payments(db: Session = Depends(get_db), _=Depends(get_current_user)):
-    return db.query(Payment).all()
+    from app.models.order import Order
+    from app.models.client import Client
+    payments = db.query(Payment).all()
+    result = []
+    for p in payments:
+        order = db.query(Order).filter(Order.id == p.order_id).first()
+        client = db.query(Client).filter(Client.id == order.client_id).first() if order else None
+        result.append(PaymentOut(
+            id=p.id,
+            order_id=p.order_id,
+            status=p.status,
+            voucher_path=p.voucher_path,
+            notes=p.notes,
+            reviewed_at=p.reviewed_at,
+            created_at=p.created_at,
+            client_name=client.full_name if client else None,
+            order_created_at=order.created_at if order else None,
+            order_total=float(order.total) if order else None,
+        ))
+    return result
 
 
 @router.get("/{payment_id}", response_model=PaymentOut)

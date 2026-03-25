@@ -2,17 +2,14 @@ from datetime import datetime
 from pydantic import BaseModel
 from app.models.payment import PaymentStatus
 
-
 class PaymentCreate(BaseModel):
     order_id: int
     voucher_path: str | None = None
     notes: str | None = None
 
-
 class PaymentStatusUpdate(BaseModel):
     status: PaymentStatus
     notes: str | None = None
-
 
 class PaymentOut(BaseModel):
     id: int
@@ -22,4 +19,7 @@ class PaymentOut(BaseModel):
     notes: str | None
     reviewed_at: datetime | None
     created_at: datetime
+    client_name: str | None = None
+    order_created_at: datetime | None = None
+    order_total: float | None = None
     model_config = {"from_attributes": True}

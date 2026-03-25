@@ -1,4 +1,9 @@
 import { useState, useEffect } from "react";
+import {
+  Box, Button, TextField, MenuItem, Typography, Paper,
+  Table, TableBody, TableCell, TableContainer, TableHead,
+  TableRow, TablePagination, Chip,
+} from "@mui/material";
 import { paymentsApi } from "../services/api";
 
 const STATUS_CONFIG = {
@@ -14,11 +19,21 @@ const STATUS_LABELS_NEXT = {
   rejected: "Rechazar pago ✗",
 };
 
+const NEXT_COLORS = {
+  confirmed: "#10b981",
+  rejected: "#ef4444",
+  in_review: "#3b82f6",
+};
+
 export default function PaymentsPage() {
   const [payments, setPayments] = useState([]);
   const [notes, setNotes] = useState({});
   const [files, setFiles] = useState({});
   const [uploading, setUploading] = useState({});
+  const [search, setSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const load = () => paymentsApi.list().then((r) => setPayments(r.data));
   useEffect(() => { load(); }, []);
@@ -26,10 +41,6 @@ export default function PaymentsPage() {
   const changeStatus = async (id, status) => {
     await paymentsApi.updateStatus(id, { status, notes: notes[id] || null });
     load();
-  };
-
-  const handleFileChange = (orderId, file) => {
-    setFiles({ ...files, [orderId]: file });
   };
 
   const uploadVoucher = async (orderId) => {
@@ -47,128 +58,122 @@ export default function PaymentsPage() {
     }
   };
 
-  const inputStyle = {
-    padding: "6px 10px",
-    border: "1px solid #ddd",
-    borderRadius: 6,
-    fontSize: 13,
-    width: "100%",
-  };
+  const filtered = payments.filter((p) => {
+    const matchSearch = !search || String(p.order_id).includes(search) || (p.client_name || "").toLowerCase().includes(search.toLowerCase());
+    const matchStatus = statusFilter === "all" || p.status === statusFilter;
+    return matchSearch && matchStatus;
+  });
 
   return (
-    <div>
-      <h2 style={{ marginBottom: 24, color: "#1a1a2e" }}>Gestión de Pagos</h2>
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {payments.map((p) => {
+    <Box>
+      <Typography variant="h5" fontWeight={700} color="#1a1a2e" mb={3}>Gestión de Pagos</Typography>
+
+      <Paper sx={{ p: 2, mb: 2, borderRadius: 3, boxShadow: "0 1px 8px rgba(0,0,0,0.08)", display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center" }}>
+        <TextField size="small" placeholder="Buscar por cliente o # pedido..." value={search}
+          onChange={(e) => { setSearch(e.target.value); setPage(0); }} sx={{ width: 260 }} />
+        <TextField select size="small" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }} sx={{ width: 180 }}>
+          <MenuItem value="all">Todos los estados</MenuItem>
+          <MenuItem value="pending">Pendiente</MenuItem>
+          <MenuItem value="in_review">En revisión</MenuItem>
+          <MenuItem value="confirmed">Confirmado</MenuItem>
+          <MenuItem value="rejected">Rechazado</MenuItem>
+        </TextField>
+        <Typography variant="caption" color="text.secondary">{filtered.length} resultado(s)</Typography>
+      </Paper>
+
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
+        {filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((p) => {
           const s = STATUS_CONFIG[p.status];
           return (
-            <div
-              key={p.id}
-              style={{ background: "#fff", borderRadius: 12, padding: 20, boxShadow: "0 1px 8px rgba(0,0,0,0.08)", borderLeft: `4px solid ${s.color}` }}
-            >
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 12 }}>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 15, color: "#1a1a2e", marginBottom: 4 }}>
+            <Paper key={p.id} sx={{ p: 2.5, borderRadius: 3, boxShadow: "0 1px 8px rgba(0,0,0,0.08)", borderLeft: `4px solid ${s.color}` }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 2 }}>
+                <Box>
+                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
+                    <Typography fontWeight={700} fontSize={15} color="#1a1a2e">
+                      {p.client_name || "Cliente desconocido"}
+                    </Typography>
+                    <span style={{ background: s.color + "20", color: s.color, borderRadius: 20, padding: "2px 10px", fontSize: 12, fontWeight: 600 }}>{s.label}</span>
+                  </Box>
+                  <Typography variant="caption" color="text.secondary">
                     Pedido #{p.order_id}
-                    <span style={{ marginLeft: 12, background: s.color + "20", color: s.color, borderRadius: 20, padding: "2px 10px", fontSize: 12, fontWeight: 600 }}>
-                      {s.label}
-                    </span>
-                  </div>
+                    {p.order_total && <span style={{ marginLeft: 8, fontWeight: 600, color: "#4f46e5" }}>Bs. {p.order_total.toFixed(2)}</span>}
+                    {p.order_created_at && <span style={{ marginLeft: 8 }}>{new Date(p.order_created_at).toLocaleDateString("es-BO", { day: "numeric", month: "short", year: "numeric" })}</span>}
+                  </Typography>
                   {p.voucher_path && (
-                    <div style={{ fontSize: 13, color: "#666", marginTop: 4 }}>
-                      Comprobante:{" "}
-                      <a
-                        href={`http://localhost:8000/uploads/${p.voucher_path}`}
-                        target="_blank"
-                        rel="noreferrer"
-                        style={{ color: "#4f46e5", fontWeight: 600 }}
-                      >
-                        Ver comprobante
-                      </a>
-                    </div>
+                    <Box mt={0.5}>
+                      <Typography variant="caption" color="text.secondary">
+                        Comprobante:{" "}
+                        <a href={`http://localhost:8000/uploads/${p.voucher_path}`} target="_blank" rel="noreferrer"
+                          style={{ color: "#4f46e5", fontWeight: 600 }}>Ver comprobante</a>
+                      </Typography>
+                    </Box>
                   )}
-                  {p.notes && (
-                    <div style={{ fontSize: 13, color: "#888", marginTop: 4 }}>Nota: {p.notes}</div>
-                  )}
-                  {p.reviewed_at && (
-                    <div style={{ fontSize: 12, color: "#aaa", marginTop: 4 }}>
-                      Revisado: {new Date(p.reviewed_at).toLocaleString("es-BO")}
-                    </div>
-                  )}
-                </div>
+                  {p.notes && <Typography variant="caption" color="text.secondary" display="block">Nota: {p.notes}</Typography>}
+                  {p.reviewed_at && <Typography variant="caption" color="text.secondary" display="block">Revisado: {new Date(p.reviewed_at).toLocaleString("es-BO")}</Typography>}
+                </Box>
 
-                <div style={{ display: "flex", flexDirection: "column", gap: 8, minWidth: 280 }}>
+                <Box sx={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 280 }}>
                   {p.status === "pending" && (
-                    <div style={{ background: "#f8f9fc", borderRadius: 8, padding: 12 }}>
-                      <label style={{ display: "block", marginBottom: 6, fontWeight: 500, fontSize: 13, color: "#555" }}>
+                    <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2, background: "#f8f9fc" }}>
+                      <Typography variant="caption" fontWeight={500} color="#555" display="block" mb={1}>
                         Subir comprobante (imagen o PDF)
-                      </label>
-                      <input
-                        type="file"
-                        accept=".jpg,.jpeg,.png,.pdf"
-                        onChange={(e) => handleFileChange(p.order_id, e.target.files[0])}
-                        style={{ width: "100%", marginBottom: 8, fontSize: 13 }}
-                      />
+                      </Typography>
+                      <input type="file" accept=".jpg,.jpeg,.png,.pdf"
+                        onChange={(e) => setFiles({ ...files, [p.order_id]: e.target.files[0] })}
+                        style={{ width: "100%", marginBottom: 8, fontSize: 13 }} />
                       {files[p.order_id] && (
-                        <div style={{ fontSize: 12, color: "#666", marginBottom: 8 }}>
+                        <Typography variant="caption" color="text.secondary" display="block" mb={1}>
                           📎 {files[p.order_id].name}
-                        </div>
+                        </Typography>
                       )}
-                      <button
-                        onClick={() => uploadVoucher(p.order_id)}
+                      <Button fullWidth variant="contained" size="small"
                         disabled={!files[p.order_id] || uploading[p.order_id]}
-                        style={{
-                          width: "100%",
-                          padding: "8px",
-                          background: files[p.order_id] ? "#4f46e5" : "#e0e0e0",
-                          color: files[p.order_id] ? "#fff" : "#aaa",
-                          border: "none",
-                          borderRadius: 6,
-                          cursor: files[p.order_id] ? "pointer" : "not-allowed",
-                          fontSize: 13,
-                          fontWeight: 600,
-                        }}
-                      >
+                        onClick={() => uploadVoucher(p.order_id)}
+                        sx={{ background: files[p.order_id] ? "#4f46e5" : "#e0e0e0", "&:hover": { background: "#4338ca" }, borderRadius: 2 }}>
                         {uploading[p.order_id] ? "Subiendo..." : "Registrar comprobante"}
-                      </button>
-                    </div>
+                      </Button>
+                    </Paper>
                   )}
-
                   {s.next.length > 0 && (
-                    <div>
-                      <input
-                        placeholder="Notas (opcional)"
-                        value={notes[p.id] || ""}
-                        onChange={(e) => setNotes({ ...notes, [p.id]: e.target.value })}
-                        style={{ ...inputStyle, marginBottom: 6 }}
-                      />
-                      <div style={{ display: "flex", gap: 8 }}>
-                        {s.next.map((ns) => {
-                          const colors = { confirmed: "#10b981", rejected: "#ef4444", in_review: "#3b82f6" };
-                          return (
-                            <button
-                              key={ns}
-                              onClick={() => changeStatus(p.id, ns)}
-                              style={{ flex: 1, padding: "7px", background: colors[ns], color: "#fff", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600 }}
-                            >
-                              {STATUS_LABELS_NEXT[ns]}
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
+                    <Box>
+                      <TextField size="small" fullWidth placeholder="Notas (opcional)" value={notes[p.id] || ""}
+                        onChange={(e) => setNotes({ ...notes, [p.id]: e.target.value })} sx={{ mb: 1 }} />
+                      <Box sx={{ display: "flex", gap: 1 }}>
+                        {s.next.map((ns) => (
+                          <Button key={ns} fullWidth size="small" variant="contained"
+                            onClick={() => changeStatus(p.id, ns)}
+                            sx={{ background: NEXT_COLORS[ns], "&:hover": { filter: "brightness(0.9)" }, borderRadius: 2, fontSize: 12 }}>
+                            {STATUS_LABELS_NEXT[ns]}
+                          </Button>
+                        ))}
+                      </Box>
+                    </Box>
                   )}
-                </div>
-              </div>
-            </div>
+                </Box>
+              </Box>
+            </Paper>
           );
         })}
-        {payments.length === 0 && (
-          <div style={{ background: "#fff", borderRadius: 12, padding: 32, textAlign: "center", color: "#aaa" }}>
-            No hay pagos registrados
-          </div>
+        {filtered.length === 0 && (
+          <Paper sx={{ p: 4, borderRadius: 3, textAlign: "center" }}>
+            <Typography color="text.secondary">{search || statusFilter !== "all" ? "No se encontraron pagos" : "No hay pagos registrados"}</Typography>
+          </Paper>
         )}
-      </div>
-    </div>
+      </Box>
+
+      {filtered.length > rowsPerPage && (
+        <TablePagination
+          component="div"
+          count={filtered.length}
+          page={page}
+          onPageChange={(_, newPage) => setPage(newPage)}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value)); setPage(0); }}
+          rowsPerPageOptions={[5, 10, 25]}
+          labelRowsPerPage="Por página:"
+          labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
+        />
+      )}
+    </Box>
   );
 }

@@ -1,4 +1,7 @@
 import { useState, useEffect } from "react";
+import {
+  Box, Button, TextField, Typography, Paper, Grid, TablePagination,
+} from "@mui/material";
 import { lotsApi } from "../services/api";
 
 export default function LotsPage() {
@@ -6,16 +9,15 @@ export default function LotsPage() {
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState({ name: "", brand: "", total_units: "", total_cost: "", notes: "" });
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   const load = () => lotsApi.list().then((r) => setLots(r.data));
   useEffect(() => { load(); }, []);
 
   const handleSubmit = async () => {
-    const payload = {
-      ...form,
-      total_units: parseInt(form.total_units),
-      total_cost: parseFloat(form.total_cost),
-    };
+    const payload = { ...form, total_units: parseInt(form.total_units), total_cost: parseFloat(form.total_cost) };
     if (editing) {
       await lotsApi.update(editing.id, payload);
     } else {
@@ -29,141 +31,142 @@ export default function LotsPage() {
 
   const startEdit = (l) => {
     setEditing(l);
-    setForm({
-      name: l.name,
-      brand: l.brand,
-      total_units: String(l.total_units),
-      total_cost: String(l.total_cost),
-      notes: l.notes || "",
-    });
+    setForm({ name: l.name, brand: l.brand, total_units: String(l.total_units), total_cost: String(l.total_cost), notes: l.notes || "" });
     setShowForm(true);
   };
 
-  const inputStyle = {
-    width: "100%",
-    padding: "8px 10px",
-    border: "1px solid #ddd",
-    borderRadius: 6,
-    fontSize: 14,
-    boxSizing: "border-box",
-  };
-  const labelStyle = { display: "block", marginBottom: 4, fontWeight: 500, color: "#555", fontSize: 13 };
+  const filtered = lots.filter((l) =>
+    !search ||
+    l.name.toLowerCase().includes(search.toLowerCase()) ||
+    l.brand.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const unitCostPreview = form.total_units && form.total_cost
+    ? `Bs. ${(parseFloat(form.total_cost) / parseInt(form.total_units)).toFixed(2)} por unidad`
+    : "—";
 
   return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
-        <h2 style={{ color: "#1a1a2e", margin: 0 }}>Lotes de mercancía</h2>
-        <button
+    <Box>
+      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
+        <Typography variant="h5" fontWeight={700} color="#1a1a2e">Lotes de mercancía</Typography>
+        <Button variant="contained"
           onClick={() => { setShowForm(!showForm); setEditing(null); setForm({ name: "", brand: "", total_units: "", total_cost: "", notes: "" }); }}
-          style={{ padding: "10px 20px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 600 }}
-        >
+          sx={{ background: "#4f46e5", "&:hover": { background: "#4338ca" }, borderRadius: 2 }}>
           {showForm ? "Cancelar" : "+ Nuevo lote"}
-        </button>
-      </div>
+        </Button>
+      </Box>
 
       {showForm && (
-        <div style={{ background: "#fff", borderRadius: 12, padding: 24, marginBottom: 20, boxShadow: "0 1px 8px rgba(0,0,0,0.08)" }}>
-          <h3 style={{ marginBottom: 16 }}>{editing ? "Editar lote" : "Registrar lote"}</h3>
-          <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16, marginBottom: 16 }}>
-            <div>
-              <label style={labelStyle}>Nombre del lote *</label>
-              <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} style={inputStyle} placeholder="Ej: Zara Enero 2026" />
-            </div>
-            <div>
-              <label style={labelStyle}>Marca *</label>
-              <input value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} style={inputStyle} placeholder="Ej: Zara" />
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
-              <div>
-                <label style={labelStyle}>Unidades totales *</label>
-                <input type="number" min="1" value={form.total_units} onChange={(e) => setForm({ ...form, total_units: e.target.value })} style={inputStyle} placeholder="100" />
-              </div>
-              <div>
-                <label style={labelStyle}>Costo total (Bs.) *</label>
-                <input type="number" step="0.01" value={form.total_cost} onChange={(e) => setForm({ ...form, total_cost: e.target.value })} style={inputStyle} placeholder="20000" />
-              </div>
-            </div>
-            <div>
-              <label style={labelStyle}>
-                Costo unitario estimado
-              </label>
-              <div style={{ padding: "8px 10px", background: "#f0f4ff", borderRadius: 6, fontSize: 14, fontWeight: 600, color: "#4f46e5" }}>
-                {form.total_units && form.total_cost
-                  ? `Bs. ${(parseFloat(form.total_cost) / parseInt(form.total_units)).toFixed(2)} por unidad`
-                  : "—"}
-              </div>
-            </div>
-          </div>
-          <div style={{ marginBottom: 16 }}>
-            <label style={labelStyle}>Notas</label>
-            <textarea value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} style={{ ...inputStyle, height: 60, resize: "vertical" }} placeholder="Observaciones del lote..." />
-          </div>
-          <button
-            onClick={handleSubmit}
+        <Paper sx={{ p: 3, mb: 3, borderRadius: 3, boxShadow: "0 1px 8px rgba(0,0,0,0.08)" }}>
+          <Typography variant="h6" fontWeight={600} mb={2}>{editing ? "Editar lote" : "Registrar lote"}</Typography>
+          <Grid container spacing={2} mb={2}>
+            <Grid item xs={12} sm={8}>
+              <TextField label="Nombre del lote *" size="small" fullWidth
+                value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="Ej: Zara Enero 2026" />
+            </Grid>
+            <Grid item xs={12} sm={4}>
+              <TextField label="Marca *" size="small" fullWidth
+                value={form.brand} onChange={(e) => setForm({ ...form, brand: e.target.value })} placeholder="Ej: Zara" />
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <TextField label="Unidades totales *" type="number" size="small" fullWidth inputProps={{ min: 1 }}
+                value={form.total_units} onChange={(e) => setForm({ ...form, total_units: e.target.value })} placeholder="100" />
+            </Grid>
+            <Grid item xs={6} sm={3}>
+              <TextField label="Costo total (Bs.) *" type="number" size="small" fullWidth inputProps={{ step: 0.01 }}
+                value={form.total_cost} onChange={(e) => setForm({ ...form, total_cost: e.target.value })} placeholder="20000" />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Box sx={{ p: 1.5, background: "#f0f4ff", borderRadius: 2, height: "100%", display: "flex", alignItems: "center" }}>
+                <Typography fontSize={14} fontWeight={600} color="#4f46e5">
+                  Costo unitario estimado: {unitCostPreview}
+                </Typography>
+              </Box>
+            </Grid>
+            <Grid item xs={12}>
+              <TextField label="Notas" size="small" fullWidth multiline rows={2}
+                value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Observaciones del lote..." />
+            </Grid>
+          </Grid>
+          <Button variant="contained" onClick={handleSubmit}
             disabled={!form.name || !form.brand || !form.total_units || !form.total_cost}
-            style={{ padding: "10px 24px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 8, cursor: "pointer", fontWeight: 600 }}
-          >
+            sx={{ background: "#4f46e5", "&:hover": { background: "#4338ca" }, borderRadius: 2 }}>
             {editing ? "Guardar cambios" : "Registrar lote"}
-          </button>
-        </div>
+          </Button>
+        </Paper>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        {lots.map((l) => {
+      <Paper sx={{ p: 2, mb: 2, borderRadius: 3, boxShadow: "0 1px 8px rgba(0,0,0,0.08)", display: "flex", gap: 2, alignItems: "center" }}>
+        <TextField size="small" placeholder="Buscar por nombre o marca..." value={search}
+          onChange={(e) => { setSearch(e.target.value); setPage(0); }} sx={{ width: 280 }} />
+        <Typography variant="caption" color="text.secondary">{filtered.length} lote(s)</Typography>
+      </Paper>
+
+      <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+        {filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((l) => {
           const profitColor = l.profit >= 0 ? "#10b981" : "#ef4444";
           const pctSold = l.total_units > 0 ? Math.min(100, Math.round((l.units_sold / l.total_units) * 100)) : 0;
           return (
-            <div key={l.id} style={{ background: "#fff", borderRadius: 12, padding: 24, boxShadow: "0 1px 8px rgba(0,0,0,0.08)" }}>
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
-                <div>
-                  <div style={{ fontWeight: 700, fontSize: 16, color: "#1a1a2e" }}>{l.name}</div>
-                  <div style={{ color: "#888", fontSize: 13, marginTop: 2 }}>Marca: <strong>{l.brand}</strong></div>
-                  {l.notes && <div style={{ color: "#aaa", fontSize: 12, marginTop: 4 }}>{l.notes}</div>}
-                </div>
-                <button
-                  onClick={() => startEdit(l)}
-                  style={{ padding: "6px 14px", background: "#e0e7ff", color: "#4f46e5", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 13, fontWeight: 600 }}
-                >
+            <Paper key={l.id} sx={{ p: 3, borderRadius: 3, boxShadow: "0 1px 8px rgba(0,0,0,0.08)" }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 2 }}>
+                <Box>
+                  <Typography fontWeight={700} fontSize={16} color="#1a1a2e">{l.name}</Typography>
+                  <Typography variant="caption" color="text.secondary">Marca: <strong>{l.brand}</strong></Typography>
+                  {l.notes && <Typography variant="caption" color="text.secondary" display="block">{l.notes}</Typography>}
+                </Box>
+                <Button variant="outlined" size="small" onClick={() => startEdit(l)}
+                  sx={{ color: "#4f46e5", borderColor: "#c7d2fe", background: "#e0e7ff", borderRadius: 2, fontSize: 13 }}>
                   Editar
-                </button>
-              </div>
+                </Button>
+              </Box>
 
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: 12, marginBottom: 16 }}>
+              <Grid container spacing={1.5} mb={2}>
                 {[
-                  { label: "Unidades totales", value: l.total_units, suffix: "uds" },
-                  { label: "Unidades vendidas", value: l.units_sold, suffix: "uds", color: "#4f46e5" },
-                  { label: "Unidades restantes", value: l.units_remaining, suffix: "uds", color: l.units_remaining === 0 ? "#ef4444" : "#f59e0b" },
+                  { label: "Unidades totales", value: `${l.total_units} uds` },
+                  { label: "Unidades vendidas", value: `${l.units_sold} uds`, color: "#4f46e5" },
+                  { label: "Unidades restantes", value: `${l.units_remaining} uds`, color: l.units_remaining === 0 ? "#ef4444" : "#f59e0b" },
                   { label: "Costo unitario", value: `Bs. ${Number(l.unit_cost).toFixed(2)}`, color: "#888" },
                   { label: "Ingresos", value: `Bs. ${Number(l.total_revenue).toFixed(2)}`, color: "#10b981" },
                   { label: "Ganancia estimada", value: `Bs. ${Number(l.profit).toFixed(2)}`, color: profitColor },
                 ].map((stat) => (
-                  <div key={stat.label} style={{ background: "#f8f9fc", borderRadius: 8, padding: "12px 14px" }}>
-                    <div style={{ fontSize: 11, color: "#aaa", marginBottom: 4 }}>{stat.label}</div>
-                    <div style={{ fontWeight: 700, fontSize: 15, color: stat.color || "#1a1a2e" }}>
-                      {typeof stat.value === "number" ? `${stat.value} ${stat.suffix}` : stat.value}
-                    </div>
-                  </div>
+                  <Grid item xs={6} sm={4} md={2} key={stat.label}>
+                    <Box sx={{ background: "#f8f9fc", borderRadius: 2, p: 1.5 }}>
+                      <Typography variant="caption" color="text.secondary" display="block">{stat.label}</Typography>
+                      <Typography fontWeight={700} fontSize={15} color={stat.color || "#1a1a2e"}>{stat.value}</Typography>
+                    </Box>
+                  </Grid>
                 ))}
-              </div>
+              </Grid>
 
-              <div>
-                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 4 }}>
-                  <span style={{ fontSize: 12, color: "#888" }}>Progreso de ventas</span>
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "#4f46e5" }}>{pctSold}%</span>
-                </div>
-                <div style={{ background: "#f0f0f0", borderRadius: 20, height: 8 }}>
-                  <div style={{ width: `${pctSold}%`, background: "#4f46e5", borderRadius: 20, height: 8, transition: "width 0.3s" }} />
-                </div>
-              </div>
-            </div>
+              <Box>
+                <Box sx={{ display: "flex", justifyContent: "space-between", mb: 0.5 }}>
+                  <Typography variant="caption" color="text.secondary">Progreso de ventas</Typography>
+                  <Typography variant="caption" fontWeight={600} color="#4f46e5">{pctSold}%</Typography>
+                </Box>
+                <Box sx={{ background: "#f0f0f0", borderRadius: 10, height: 8 }}>
+                  <Box sx={{ width: `${pctSold}%`, background: "#4f46e5", borderRadius: 10, height: 8, transition: "width 0.3s" }} />
+                </Box>
+              </Box>
+            </Paper>
           );
         })}
-        {lots.length === 0 && (
-          <div style={{ background: "#fff", borderRadius: 12, padding: 32, textAlign: "center", color: "#aaa" }}>
-            No hay lotes registrados
-          </div>
+        {filtered.length === 0 && (
+          <Paper sx={{ p: 4, borderRadius: 3, textAlign: "center" }}>
+            <Typography color="text.secondary">{search ? "No se encontraron lotes" : "No hay lotes registrados"}</Typography>
+          </Paper>
         )}
-      </div>
-    </div>
+      </Box>
+
+      {filtered.length > rowsPerPage && (
+        <TablePagination component="div" count={filtered.length} page={page}
+          onPageChange={(_, newPage) => setPage(newPage)}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value)); setPage(0); }}
+          rowsPerPageOptions={[5, 10, 25]}
+          labelRowsPerPage="Por página:"
+          labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
+        />
+      )}
+    </Box>
   );
 }
