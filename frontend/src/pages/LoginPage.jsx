@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import {
+  Box, Button, TextField, Typography, Paper, Alert, CircularProgress,
+} from "@mui/material";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -24,45 +27,51 @@ export default function LoginPage() {
   };
 
   return (
-    <div style={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f0f2f5" }}>
-      <div style={{ background: "#fff", padding: 40, borderRadius: 12, width: 380, boxShadow: "0 4px 20px rgba(0,0,0,0.1)" }}>
-        <h2 style={{ textAlign: "center", marginBottom: 8, color: "#1a1a2e" }}>LiveSale Manager</h2>
-        <p style={{ textAlign: "center", color: "#666", marginBottom: 28 }}>Panel de gestión de ventas</p>
+    <Box sx={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f0f2f5" }}>
+      <Paper sx={{ p: 5, borderRadius: 3, width: 380, boxShadow: "0 4px 20px rgba(0,0,0,0.1)" }}>
+        <Typography variant="h5" fontWeight={700} color="#1a1a2e" textAlign="center" mb={0.5}>
+          LiveSale Manager
+        </Typography>
+        <Typography color="text.secondary" textAlign="center" fontSize={14} mb={3}>
+          Panel de gestión de ventas
+        </Typography>
+
         {error && (
-          <div style={{ background: "#fee", border: "1px solid #fcc", borderRadius: 6, padding: "10px 14px", marginBottom: 16, color: "#c00", fontSize: 14 }}>
-            {error}
-          </div>
+          <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>{error}</Alert>
         )}
-        <form onSubmit={handleSubmit}>
-          <div style={{ marginBottom: 16 }}>
-            <label style={{ display: "block", marginBottom: 6, fontWeight: 500, color: "#333" }}>Email</label>
-            <input
-              type="email"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-              style={{ width: "100%", padding: "10px 12px", border: "1px solid #ddd", borderRadius: 8, fontSize: 14, boxSizing: "border-box" }}
-              required
-            />
-          </div>
-          <div style={{ marginBottom: 24 }}>
-            <label style={{ display: "block", marginBottom: 6, fontWeight: 500, color: "#333" }}>Contraseña</label>
-            <input
-              type="password"
-              value={form.password}
-              onChange={(e) => setForm({ ...form, password: e.target.value })}
-              style={{ width: "100%", padding: "10px 12px", border: "1px solid #ddd", borderRadius: 8, fontSize: 14, boxSizing: "border-box" }}
-              required
-            />
-          </div>
-          <button
+
+        <Box component="form" onSubmit={handleSubmit}>
+          <TextField
+            label="Email"
+            type="email"
+            fullWidth
+            size="small"
+            value={form.email}
+            onChange={(e) => setForm({ ...form, email: e.target.value })}
+            required
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            label="Contraseña"
+            type="password"
+            fullWidth
+            size="small"
+            value={form.password}
+            onChange={(e) => setForm({ ...form, password: e.target.value })}
+            required
+            sx={{ mb: 3 }}
+          />
+          <Button
             type="submit"
+            fullWidth
+            variant="contained"
             disabled={loading}
-            style={{ width: "100%", padding: "12px", background: "#4f46e5", color: "#fff", border: "none", borderRadius: 8, fontSize: 15, fontWeight: 600, cursor: loading ? "not-allowed" : "pointer", opacity: loading ? 0.7 : 1 }}
+            sx={{ py: 1.5, background: "#4f46e5", "&:hover": { background: "#4338ca" }, borderRadius: 2, fontSize: 15, fontWeight: 600 }}
           >
-            {loading ? "Ingresando..." : "Ingresar"}
-          </button>
-        </form>
-      </div>
-    </div>
+            {loading ? <CircularProgress size={22} color="inherit" /> : "Ingresar"}
+          </Button>
+        </Box>
+      </Paper>
+    </Box>
   );
 }

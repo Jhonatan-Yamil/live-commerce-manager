@@ -1,4 +1,9 @@
 import { useState, useEffect } from "react";
+import {
+  Box, Typography, Paper, Grid, TextField,
+  Table, TableBody, TableCell, TableContainer,
+  TableHead, TableRow, TablePagination, Button, CircularProgress,
+} from "@mui/material";
 import { productsApi } from "../services/api";
 
 export default function ProductsPage() {
@@ -6,6 +11,8 @@ export default function ProductsPage() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [expanded, setExpanded] = useState({});
+  const [page, setPage] = useState(0);
+  const [rowsPerPage, setRowsPerPage] = useState(10);
 
   useEffect(() => {
     productsApi.sold().then((r) => {
@@ -20,96 +27,109 @@ export default function ProductsPage() {
 
   const totalRevenue = products.reduce((sum, p) => sum + p.total_revenue, 0);
   const totalUnits = products.reduce((sum, p) => sum + p.units_sold, 0);
-
   const toggleExpand = (id) => setExpanded({ ...expanded, [id]: !expanded[id] });
 
   return (
-    <div>
-      <h2 style={{ marginBottom: 6, color: "#1a1a2e" }}>Historial de productos vendidos</h2>
-      <p style={{ color: "#888", fontSize: 13, marginBottom: 24 }}>
+    <Box>
+      <Typography variant="h5" fontWeight={700} color="#1a1a2e" mb={0.5}>
+        Historial de productos vendidos
+      </Typography>
+      <Typography variant="caption" color="text.secondary" display="block" mb={3}>
         Resumen de todos los productos registrados en pedidos
-      </p>
+      </Typography>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: 16, marginBottom: 24 }}>
+      <Grid container spacing={2} mb={3}>
         {[
           { label: "Productos distintos", value: products.length, icon: "🏷️", color: "#4f46e5" },
           { label: "Unidades vendidas", value: totalUnits, icon: "📦", color: "#0891b2" },
           { label: "Ingresos totales", value: `Bs. ${totalRevenue.toFixed(2)}`, icon: "💰", color: "#059669" },
         ].map((s) => (
-          <div key={s.label} style={{ background: "#fff", borderRadius: 12, padding: 20, boxShadow: "0 1px 8px rgba(0,0,0,0.08)", borderTop: `4px solid ${s.color}` }}>
-            <div style={{ fontSize: 24, marginBottom: 8 }}>{s.icon}</div>
-            <div style={{ fontWeight: 700, fontSize: 22, color: s.color }}>{s.value}</div>
-            <div style={{ color: "#666", fontSize: 12, marginTop: 4 }}>{s.label}</div>
-          </div>
+          <Grid item xs={12} sm={4} key={s.label}>
+            <Paper sx={{ p: 2.5, borderRadius: 3, boxShadow: "0 1px 8px rgba(0,0,0,0.08)", borderTop: `4px solid ${s.color}` }}>
+              <Typography fontSize={24} mb={1}>{s.icon}</Typography>
+              <Typography fontSize={22} fontWeight={700} color={s.color}>{s.value}</Typography>
+              <Typography color="text.secondary" fontSize={12} mt={0.5}>{s.label}</Typography>
+            </Paper>
+          </Grid>
         ))}
-      </div>
+      </Grid>
 
-      <div style={{ background: "#fff", borderRadius: 12, padding: 24, boxShadow: "0 1px 8px rgba(0,0,0,0.08)" }}>
-        <div style={{ marginBottom: 16 }}>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Buscar producto..."
-            style={{ width: 280, padding: "8px 12px", border: "1px solid #ddd", borderRadius: 8, fontSize: 14, boxSizing: "border-box" }}
-          />
-        </div>
-
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
-          <thead>
-            <tr style={{ borderBottom: "2px solid #f0f0f0" }}>
+      <TableContainer component={Paper} sx={{ borderRadius: 3, boxShadow: "0 1px 8px rgba(0,0,0,0.08)" }}>
+        <Box sx={{ p: 2.5, pb: 1 }}>
+          <TextField size="small" placeholder="Buscar producto..." value={search}
+            onChange={(e) => { setSearch(e.target.value); setPage(0); }} sx={{ width: 280 }} />
+        </Box>
+        <Table>
+          <TableHead>
+            <TableRow sx={{ background: "#f8f9fc" }}>
               {["Producto", "Unidades vendidas", "Pedidos", "Precio promedio", "Ingresos generados", "Lotes"].map((h) => (
-                <th key={h} style={{ textAlign: "left", padding: "8px 12px", color: "#888", fontWeight: 600, fontSize: 13 }}>{h}</th>
+                <TableCell key={h} sx={{ fontWeight: 700, color: "#888", fontSize: 13 }}>{h}</TableCell>
               ))}
-            </tr>
-          </thead>
-          <tbody>
+            </TableRow>
+          </TableHead>
+          <TableBody>
             {loading ? (
-              <tr><td colSpan={6} style={{ padding: 24, textAlign: "center", color: "#aaa" }}>Cargando...</td></tr>
+              <TableRow>
+                <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                  <CircularProgress size={28} sx={{ color: "#4f46e5" }} />
+                </TableCell>
+              </TableRow>
             ) : filtered.length > 0 ? (
-              filtered.map((p) => (
+              filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((p) => (
                 <>
-                  <tr key={p.product_id} style={{ borderBottom: expanded[p.product_id] ? "none" : "1px solid #f5f5f5" }}>
-                    <td style={{ padding: "12px", fontWeight: 600, color: "#1a1a2e" }}>{p.name}</td>
-                    <td style={{ padding: "12px", color: "#4f46e5", fontWeight: 600 }}>{p.units_sold} uds</td>
-                    <td style={{ padding: "12px", color: "#666" }}>{p.orders_count} pedido(s)</td>
-                    <td style={{ padding: "12px", color: "#666" }}>Bs. {p.avg_price.toFixed(2)}</td>
-                    <td style={{ padding: "12px", fontWeight: 700, color: "#059669" }}>Bs. {p.total_revenue.toFixed(2)}</td>
-                    <td style={{ padding: "12px" }}>
+                  <TableRow key={p.product_id} hover sx={{ borderBottom: expanded[p.product_id] ? "none" : undefined }}>
+                    <TableCell sx={{ fontWeight: 600, color: "#1a1a2e" }}>{p.name}</TableCell>
+                    <TableCell sx={{ color: "#4f46e5", fontWeight: 600 }}>{p.units_sold} uds</TableCell>
+                    <TableCell sx={{ color: "#666" }}>{p.orders_count} pedido(s)</TableCell>
+                    <TableCell sx={{ color: "#666" }}>Bs. {p.avg_price.toFixed(2)}</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: "#059669" }}>Bs. {p.total_revenue.toFixed(2)}</TableCell>
+                    <TableCell>
                       {p.lots.length > 0 ? (
-                        <button
-                          onClick={() => toggleExpand(p.product_id)}
-                          style={{ padding: "4px 10px", background: "#e0e7ff", color: "#4f46e5", border: "none", borderRadius: 6, cursor: "pointer", fontSize: 12, fontWeight: 600 }}
-                        >
+                        <Button size="small" variant="outlined" onClick={() => toggleExpand(p.product_id)}
+                          sx={{ color: "#4f46e5", borderColor: "#c7d2fe", background: "#e0e7ff", borderRadius: 2, fontSize: 12 }}>
                           {expanded[p.product_id] ? "▲ Ocultar" : `▼ Ver ${p.lots.length} lote(s)`}
-                        </button>
+                        </Button>
                       ) : (
-                        <span style={{ color: "#aaa", fontSize: 12 }}>Sin lote</span>
+                        <Typography variant="caption" color="text.secondary">Sin lote</Typography>
                       )}
-                    </td>
-                  </tr>
+                    </TableCell>
+                  </TableRow>
                   {expanded[p.product_id] && p.lots.map((l) => (
-                    <tr key={l.lot_id} style={{ borderBottom: "1px solid #f5f5f5", background: "#f8f9fc" }}>
-                      <td style={{ padding: "8px 12px 8px 28px", color: "#666", fontSize: 13 }}>
+                    <TableRow key={l.lot_id} sx={{ background: "#f8f9fc" }}>
+                      <TableCell sx={{ pl: 4, color: "#666", fontSize: 13 }}>
                         └ <span style={{ fontWeight: 600 }}>{l.lot_name}</span>
                         <span style={{ marginLeft: 6, color: "#aaa" }}>{l.brand}</span>
-                      </td>
-                      <td style={{ padding: "8px 12px", color: "#4f46e5", fontSize: 13 }}>{l.units_sold} uds</td>
-                      <td style={{ padding: "8px 12px", color: "#aaa", fontSize: 13 }}>—</td>
-                      <td style={{ padding: "8px 12px", color: "#aaa", fontSize: 13 }}>—</td>
-                      <td style={{ padding: "8px 12px", color: "#059669", fontSize: 13, fontWeight: 600 }}>Bs. {l.revenue.toFixed(2)}</td>
-                      <td style={{ padding: "8px 12px" }}></td>
-                    </tr>
+                      </TableCell>
+                      <TableCell sx={{ color: "#4f46e5", fontSize: 13 }}>{l.units_sold} uds</TableCell>
+                      <TableCell sx={{ color: "#aaa", fontSize: 13 }}>—</TableCell>
+                      <TableCell sx={{ color: "#aaa", fontSize: 13 }}>—</TableCell>
+                      <TableCell sx={{ color: "#059669", fontSize: 13, fontWeight: 600 }}>Bs. {l.revenue.toFixed(2)}</TableCell>
+                      <TableCell />
+                    </TableRow>
                   ))}
                 </>
               ))
             ) : (
-              <tr><td colSpan={6} style={{ padding: 24, textAlign: "center", color: "#aaa" }}>
-                {search ? "No se encontraron productos" : "No hay productos vendidos aún"}
-              </td></tr>
+              <TableRow>
+                <TableCell colSpan={6} align="center" sx={{ py: 4, color: "#aaa" }}>
+                  {search ? "No se encontraron productos" : "No hay productos vendidos aún"}
+                </TableCell>
+              </TableRow>
             )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+          </TableBody>
+        </Table>
+        <TablePagination
+          component="div"
+          count={filtered.length}
+          page={page}
+          onPageChange={(_, newPage) => setPage(newPage)}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value)); setPage(0); }}
+          rowsPerPageOptions={[5, 10, 25]}
+          labelRowsPerPage="Filas por página:"
+          labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
+        />
+      </TableContainer>
+    </Box>
   );
 }
