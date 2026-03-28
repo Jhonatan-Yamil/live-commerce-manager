@@ -5,16 +5,8 @@ import {
   TableHead, TableRow, CircularProgress,
 } from "@mui/material";
 import { ordersApi, paymentsApi, lotsApi, logisticsApi } from "../services/api";
-
-const STATUS_LABELS = {
-  pending_payment: { label: "Pendiente pago", color: "#f59e0b" },
-  payment_in_review: { label: "Pago en revisión", color: "#3b82f6" },
-  payment_confirmed: { label: "Pago confirmado", color: "#10b981" },
-  payment_rejected: { label: "Pago rechazado", color: "#ef4444" },
-  in_delivery: { label: "En entrega", color: "#8b5cf6" },
-  delivered: { label: "Entregado", color: "#059669" },
-  cancelled: { label: "Cancelado", color: "#6b7280" },
-};
+import StatusBadge from "../components/common/StatusBadge";
+import { ORDER_STATUS_LABELS } from "../utils/constants";
 
 function AlertCard({ background, border, children }) {
   return (
@@ -166,15 +158,13 @@ export default function DashboardPage() {
           </TableHead>
           <TableBody>
             {recentOrders.map((o) => {
-              const s = STATUS_LABELS[o.status] || { label: o.status, color: "#888" };
+              const s = ORDER_STATUS_LABELS[o.status] || { label: o.status, color: "#888" };
               return (
                 <TableRow key={o.id} hover>
                   <TableCell sx={{ fontWeight: 600, color: "#666" }}>#{o.id}</TableCell>
                   <TableCell>{o.client?.full_name}</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Bs. {Number(o.total).toFixed(2)}</TableCell>
-                  <TableCell>
-                    <span style={{ background: s.color + "20", color: s.color, borderRadius: 20, padding: "3px 10px", fontSize: 12, fontWeight: 600 }}>{s.label}</span>
-                  </TableCell>
+                  <TableCell><StatusBadge label={s.label} color={s.color} /></TableCell>
                   <TableCell sx={{ color: "#888", fontSize: 13 }}>
                     {new Date(o.created_at).toLocaleDateString("es-BO", { day: "numeric", month: "short" })}
                   </TableCell>

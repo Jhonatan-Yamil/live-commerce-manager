@@ -1,20 +1,14 @@
-import { useState, useEffect } from "react";
+import { Fragment, useState, useEffect } from "react";
 import {
   Box, Button, TextField, Typography, Paper,
   Table, TableBody, TableCell, TableContainer,
-  TableHead, TableRow, TablePagination, Grid,
+  TableHead, TableRow, Grid,
 } from "@mui/material";
 import { clientsApi, ordersApi } from "../services/api";
-
-const STATUS_LABELS = {
-  pending_payment: { label: "Pendiente pago", color: "#f59e0b" },
-  payment_in_review: { label: "En revisión", color: "#3b82f6" },
-  payment_confirmed: { label: "Pago confirmado", color: "#10b981" },
-  payment_rejected: { label: "Rechazado", color: "#ef4444" },
-  in_delivery: { label: "En entrega", color: "#8b5cf6" },
-  delivered: { label: "Entregado", color: "#059669" },
-  cancelled: { label: "Cancelado", color: "#6b7280" },
-};
+import SearchBar from "../components/common/SearchBar";
+import StatusBadge from "../components/common/StatusBadge";
+import TablePager from "../components/common/TablePager";
+import { ORDER_STATUS_LABELS } from "../utils/constants";
 
 export default function ClientsPage() {
   const [clients, setClients] = useState([]);
@@ -97,11 +91,14 @@ export default function ClientsPage() {
         </Paper>
       )}
 
-      <Paper sx={{ p: 2, mb: 2, borderRadius: 3, boxShadow: "0 1px 8px rgba(0,0,0,0.08)", display: "flex", gap: 2, alignItems: "center" }}>
-        <TextField size="small" placeholder="Buscar por nombre o teléfono..." value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(0); }} sx={{ width: 280 }} />
-        <Typography variant="caption" color="text.secondary">{filtered.length} cliente(s)</Typography>
-      </Paper>
+      <SearchBar
+        search={search}
+        onSearchChange={(value) => {
+          setSearch(value);
+          setPage(0);
+        }}
+        resultCount={filtered.length}
+      />
 
       <TableContainer component={Paper} sx={{ borderRadius: 3, boxShadow: "0 1px 8px rgba(0,0,0,0.08)" }}>
         <Table>
@@ -117,7 +114,7 @@ export default function ClientsPage() {
               const clientOrders = getClientOrders(c.id);
               const isExpanded = expanded[c.id];
               return (
-                <>
+                <Fragment key={c.id}>
                   <TableRow key={c.id} hover>
                     <TableCell sx={{ fontWeight: 600 }}>{c.full_name}</TableCell>
                     <TableCell sx={{ color: "#666" }}>{c.phone || "—"}</TableCell>
@@ -142,7 +139,7 @@ export default function ClientsPage() {
                     </TableCell>
                   </TableRow>
                   {isExpanded && clientOrders.map((o) => {
-                    const s = STATUS_LABELS[o.status] || { label: o.status, color: "#888" };
+                    const s = ORDER_STATUS_LABELS[o.status] || { label: o.status, color: "#888" };
                     return (
                       <TableRow key={`order-${o.id}`} sx={{ background: "#f8f9fc" }}>
                         <TableCell sx={{ pl: 4, color: "#666", fontSize: 13 }}>└ Pedido #{o.id}</TableCell>
@@ -150,16 +147,12 @@ export default function ClientsPage() {
                           {new Date(o.created_at).toLocaleDateString("es-BO", { day: "numeric", month: "short", year: "numeric" })}
                         </TableCell>
                         <TableCell sx={{ fontWeight: 600, color: "#4f46e5", fontSize: 13 }}>Bs. {Number(o.total).toFixed(2)}</TableCell>
-                        <TableCell colSpan={2}>
-                          <span style={{ background: s.color + "20", color: s.color, borderRadius: 20, padding: "2px 10px", fontSize: 12, fontWeight: 600 }}>
-                            {s.label}
-                          </span>
-                        </TableCell>
+                        <TableCell colSpan={2}><StatusBadge label={s.label} color={s.color} /></TableCell>
                         <TableCell />
                       </TableRow>
                     );
                   })}
-                </>
+                </Fragment>
               );
             })}
             {filtered.length === 0 && (
@@ -171,16 +164,15 @@ export default function ClientsPage() {
             )}
           </TableBody>
         </Table>
-        <TablePagination
-          component="div"
+        <TablePager
           count={filtered.length}
           page={page}
-          onPageChange={(_, newPage) => setPage(newPage)}
           rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value)); setPage(0); }}
-          rowsPerPageOptions={[5, 10, 25]}
-          labelRowsPerPage="Filas por página:"
-          labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
+          onPageChange={setPage}
+          onRowsPerPageChange={(value) => {
+            setRowsPerPage(value);
+            setPage(0);
+          }}
         />
       </TableContainer>
     </Box>

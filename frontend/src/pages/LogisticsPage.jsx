@@ -1,149 +1,13 @@
 import { useState, useEffect } from "react";
 import {
-  Box, Button, TextField, Typography, Paper, Grid, MenuItem, TablePagination,
+  Box, Button, TextField, Typography, Paper, Grid, MenuItem,
 } from "@mui/material";
 import { logisticsApi, ordersApi } from "../services/api";
-
-const DELIVERY_TYPE_LABELS = {
-  pickup: { label: "Retiro en tienda", icon: "🏪" },
-  shipping: { label: "Envío a otra ciudad", icon: "🚚" },
-  coordinated: { label: "Entrega coordinada", icon: "📍" },
-};
-
-const DELIVERY_STATUS = {
-  in_store: { label: "En tienda", color: "#f59e0b" },
-  sent: { label: "Enviado", color: "#8b5cf6" },
-  delivered: { label: "Entregado", color: "#10b981" },
-  failed: { label: "Fallido", color: "#ef4444" },
-};
-
-function PrepareDeliveryMode({ orders, logistics, onUpdate }) {
-  const [search, setSearch] = useState("");
-  const [selectedClient, setSelectedClient] = useState(null);
-
-  const pendingLogistics = logistics.filter(
-    (l) => l.delivery_status !== "delivered" && l.delivery_status !== "failed"
-  );
-  const pendingOrderIds = new Set(pendingLogistics.map((l) => l.order_id));
-
-  const clientsWithPending = {};
-  orders.forEach((o) => {
-    if (pendingOrderIds.has(o.id) && o.client) {
-      if (!clientsWithPending[o.client_id]) {
-        clientsWithPending[o.client_id] = { id: o.client_id, name: o.client.full_name, orders: [] };
-      }
-      clientsWithPending[o.client_id].orders.push(o);
-    }
-  });
-
-  const clientList = Object.values(clientsWithPending).filter((c) =>
-    c.name.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const getLogisticsForOrder = (orderId) => logistics.find((l) => l.order_id === orderId);
-
-  const handleMarkDelivered = async (logisticsId) => {
-    await logisticsApi.update(logisticsId, { delivery_status: "delivered" });
-    onUpdate();
-  };
-
-  const handleMarkAllDelivered = async (client) => {
-    for (const order of client.orders) {
-      const log = getLogisticsForOrder(order.id);
-      if (log && log.delivery_status !== "delivered") {
-        await logisticsApi.update(log.id, { delivery_status: "delivered" });
-      }
-    }
-    setSelectedClient(null);
-    onUpdate();
-  };
-
-  return (
-    <Paper sx={{ p: 3, mb: 3, borderRadius: 3, boxShadow: "0 1px 8px rgba(0,0,0,0.08)" }}>
-      <Typography variant="h6" fontWeight={700} color="#1a1a2e" mb={0.5}>🗓️ Modo preparación de entregas</Typography>
-      <Typography variant="caption" color="text.secondary" display="block" mb={2}>
-        Busca un cliente para ver todos sus pedidos pendientes y marcarlos como entregados
-      </Typography>
-
-      <TextField size="small" fullWidth placeholder="Buscar cliente..." value={search}
-        onChange={(e) => { setSearch(e.target.value); setSelectedClient(null); }} sx={{ mb: 1.5 }} />
-
-      {search && !selectedClient && (
-        <Paper variant="outlined" sx={{ borderRadius: 2, overflow: "hidden", mb: 1.5 }}>
-          {clientList.length === 0 ? (
-            <Typography variant="caption" color="text.secondary" sx={{ p: 1.5, display: "block" }}>
-              No se encontraron clientes con pedidos pendientes
-            </Typography>
-          ) : (
-            clientList.map((c) => (
-              <Box key={c.id} onClick={() => { setSelectedClient(c); setSearch(c.name); }}
-                sx={{ p: 1.5, cursor: "pointer", borderBottom: "1px solid #f5f5f5", display: "flex", justifyContent: "space-between", alignItems: "center", "&:hover": { background: "#f0f4ff" } }}>
-                <Typography fontWeight={600}>{c.name}</Typography>
-                <span style={{ background: "#fef3c7", color: "#d97706", borderRadius: 20, padding: "2px 10px", fontSize: 12, fontWeight: 600 }}>
-                  {c.orders.length} pedido(s) pendiente(s)
-                </span>
-              </Box>
-            ))
-          )}
-        </Paper>
-      )}
-
-      {selectedClient && (
-        <Box>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
-            <Box>
-              <Typography fontWeight={700} fontSize={15} display="inline">{selectedClient.name}</Typography>
-              <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                {selectedClient.orders.length} pedido(s) pendiente(s)
-              </Typography>
-            </Box>
-            <Box sx={{ display: "flex", gap: 1 }}>
-              <Button size="small" variant="contained" onClick={() => handleMarkAllDelivered(selectedClient)}
-                sx={{ background: "#10b981", "&:hover": { background: "#059669" }, borderRadius: 2, fontSize: 12 }}>
-                ✓ Marcar todos como entregados
-              </Button>
-              <Button size="small" variant="outlined" onClick={() => { setSelectedClient(null); setSearch(""); }}
-                sx={{ color: "#666", borderColor: "#ddd", borderRadius: 2 }}>
-                Limpiar
-              </Button>
-            </Box>
-          </Box>
-
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
-            {selectedClient.orders.map((o) => {
-              const log = getLogisticsForOrder(o.id);
-              const isDelivered = log?.delivery_status === "delivered";
-              return (
-                <Box key={o.id} sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", p: 1.5, borderRadius: 2, background: isDelivered ? "#f0fdf4" : "#f8f9fc", border: `1px solid ${isDelivered ? "#86efac" : "#e5e7eb"}` }}>
-                  <Box>
-                    <Typography fontWeight={600} display="inline">Pedido #{o.id}</Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                      {new Date(o.created_at).toLocaleDateString("es-BO", { day: "numeric", month: "short", year: "numeric" })}
-                    </Typography>
-                    <Typography variant="caption" fontWeight={600} color="#4f46e5" sx={{ ml: 1 }}>
-                      Bs. {Number(o.total).toFixed(2)}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
-                      {o.items?.length || 0} ítem(s)
-                    </Typography>
-                  </Box>
-                  {isDelivered ? (
-                    <span style={{ background: "#d1fae5", color: "#059669", borderRadius: 20, padding: "4px 12px", fontSize: 12, fontWeight: 600 }}>✓ Entregado</span>
-                  ) : (
-                    <Button size="small" variant="contained" onClick={() => handleMarkDelivered(log.id)}
-                      sx={{ background: "#10b981", "&:hover": { background: "#059669" }, borderRadius: 2, fontSize: 12 }}>
-                      Marcar entregado
-                    </Button>
-                  )}
-                </Box>
-              );
-            })}
-          </Box>
-        </Box>
-      )}
-    </Paper>
-  );
-}
+import SearchBar from "../components/common/SearchBar";
+import StatusBadge from "../components/common/StatusBadge";
+import TablePager from "../components/common/TablePager";
+import PrepareDeliveryMode from "../components/logistics/PrepareDeliveryMode";
+import { DELIVERY_STATUS, DELIVERY_TYPE_LABELS } from "../utils/constants";
 
 export default function LogisticsPage() {
   const [logistics, setLogistics] = useState([]);
@@ -199,7 +63,26 @@ export default function LogisticsPage() {
     return matchSearch && matchStatus;
   });
 
-  const inputStyle = { width: "100%", padding: "8px 10px", border: "1px solid #ddd", borderRadius: 6, fontSize: 14, boxSizing: "border-box" };
+  const statusFilters = [
+    {
+      key: "deliveryStatus",
+      type: "select",
+      label: "Estado",
+      value: statusFilter,
+      defaultValue: "all",
+      onChange: (value) => {
+        setStatusFilter(value);
+        setPage(0);
+      },
+      options: [
+        { value: "all", label: "Todos los estados" },
+        { value: "in_store", label: "En tienda" },
+        { value: "sent", label: "Enviado" },
+        { value: "delivered", label: "Entregado" },
+        { value: "failed", label: "Fallido" },
+      ],
+    },
+  ];
 
   return (
     <Box>
@@ -284,18 +167,20 @@ export default function LogisticsPage() {
 
       <PrepareDeliveryMode orders={orders} logistics={logistics} onUpdate={load} />
 
-      <Paper sx={{ p: 2, mb: 2, borderRadius: 3, boxShadow: "0 1px 8px rgba(0,0,0,0.08)", display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center" }}>
-        <TextField size="small" placeholder="Buscar por cliente o # pedido..." value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(0); }} sx={{ width: 260 }} />
-        <TextField select size="small" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }} sx={{ width: 180 }}>
-          <MenuItem value="all">Todos los estados</MenuItem>
-          <MenuItem value="in_store">En tienda</MenuItem>
-          <MenuItem value="sent">Enviado</MenuItem>
-          <MenuItem value="delivered">Entregado</MenuItem>
-          <MenuItem value="failed">Fallido</MenuItem>
-        </TextField>
-        <Typography variant="caption" color="text.secondary">{filtered.length} resultado(s)</Typography>
-      </Paper>
+      <SearchBar
+        search={search}
+        onSearchChange={(value) => {
+          setSearch(value);
+          setPage(0);
+        }}
+        filters={statusFilters}
+        resultCount={filtered.length}
+        onClear={() => {
+          setSearch("");
+          setStatusFilter("all");
+          setPage(0);
+        }}
+      />
 
       <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
         {filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((l) => {
@@ -317,7 +202,7 @@ export default function LogisticsPage() {
                     {relatedOrder && <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>{new Date(relatedOrder.created_at).toLocaleDateString("es-BO", { day: "numeric", month: "short", year: "numeric" })}</Typography>}
                   </Box>
                   <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center", mb: 0.5 }}>
-                    <span style={{ background: s.color + "20", color: s.color, borderRadius: 20, padding: "2px 10px", fontSize: 12, fontWeight: 600 }}>{s.label}</span>
+                    <StatusBadge label={s.label} color={s.color} />
                     <Typography variant="caption" color="text.secondary">{t.icon} {t.label}</Typography>
                     {pendingOrders.length > 1 && <span style={{ background: "#fef3c7", color: "#d97706", borderRadius: 20, padding: "2px 10px", fontSize: 12, fontWeight: 600 }}>⚠️ {pendingOrders.length} pedidos pendientes</span>}
                     {pendingOrders.length === 1 && <span style={{ background: "#d1fae5", color: "#059669", borderRadius: 20, padding: "2px 10px", fontSize: 12, fontWeight: 600 }}>✓ Único pendiente</span>}
@@ -373,13 +258,10 @@ export default function LogisticsPage() {
       </Box>
 
       {filtered.length > rowsPerPage && (
-        <TablePagination component="div" count={filtered.length} page={page}
-          onPageChange={(_, newPage) => setPage(newPage)}
+        <TablePager count={filtered.length} page={page}
           rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value)); setPage(0); }}
-          rowsPerPageOptions={[5, 10, 25]}
-          labelRowsPerPage="Por página:"
-          labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
+          onPageChange={setPage}
+          onRowsPerPageChange={(value) => { setRowsPerPage(value); setPage(0); }}
         />
       )}
     </Box>

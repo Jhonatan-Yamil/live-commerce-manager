@@ -1,17 +1,11 @@
 import { useState, useEffect } from "react";
 import {
   Box, Button, TextField, MenuItem, Typography, Paper,
-  Table, TableBody, TableCell, TableContainer, TableHead,
-  TableRow, TablePagination, Chip,
 } from "@mui/material";
 import { paymentsApi } from "../services/api";
-
-const STATUS_CONFIG = {
-  pending: { label: "Pendiente", color: "#f59e0b", next: ["in_review"] },
-  in_review: { label: "En revisión", color: "#3b82f6", next: ["confirmed", "rejected"] },
-  confirmed: { label: "Confirmado", color: "#10b981", next: [] },
-  rejected: { label: "Rechazado", color: "#ef4444", next: ["in_review"] },
-};
+import SearchBar from "../components/common/SearchBar";
+import TablePager from "../components/common/TablePager";
+import { PAYMENT_STATUS_CONFIG } from "../utils/constants";
 
 const STATUS_LABELS_NEXT = {
   in_review: "Marcar en revisión",
@@ -64,26 +58,49 @@ export default function PaymentsPage() {
     return matchSearch && matchStatus;
   });
 
+  const statusFilters = [
+    {
+      key: "paymentStatus",
+      type: "select",
+      label: "Estado",
+      value: statusFilter,
+      defaultValue: "all",
+      onChange: (value) => {
+        setStatusFilter(value);
+        setPage(0);
+      },
+      options: [
+        { value: "all", label: "Todos los estados" },
+        { value: "pending", label: "Pendiente" },
+        { value: "in_review", label: "En revision" },
+        { value: "confirmed", label: "Confirmado" },
+        { value: "rejected", label: "Rechazado" },
+      ],
+    },
+  ];
+
   return (
     <Box>
       <Typography variant="h5" fontWeight={700} color="#1a1a2e" mb={3}>Gestión de Pagos</Typography>
 
-      <Paper sx={{ p: 2, mb: 2, borderRadius: 3, boxShadow: "0 1px 8px rgba(0,0,0,0.08)", display: "flex", gap: 2, flexWrap: "wrap", alignItems: "center" }}>
-        <TextField size="small" placeholder="Buscar por cliente o # pedido..." value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(0); }} sx={{ width: 260 }} />
-        <TextField select size="small" value={statusFilter} onChange={(e) => { setStatusFilter(e.target.value); setPage(0); }} sx={{ width: 180 }}>
-          <MenuItem value="all">Todos los estados</MenuItem>
-          <MenuItem value="pending">Pendiente</MenuItem>
-          <MenuItem value="in_review">En revisión</MenuItem>
-          <MenuItem value="confirmed">Confirmado</MenuItem>
-          <MenuItem value="rejected">Rechazado</MenuItem>
-        </TextField>
-        <Typography variant="caption" color="text.secondary">{filtered.length} resultado(s)</Typography>
-      </Paper>
+      <SearchBar
+        search={search}
+        onSearchChange={(value) => {
+          setSearch(value);
+          setPage(0);
+        }}
+        filters={statusFilters}
+        resultCount={filtered.length}
+        onClear={() => {
+          setSearch("");
+          setStatusFilter("all");
+          setPage(0);
+        }}
+      />
 
       <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
         {filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((p) => {
-          const s = STATUS_CONFIG[p.status];
+          const s = PAYMENT_STATUS_CONFIG[p.status];
           return (
             <Paper key={p.id} sx={{ p: 2.5, borderRadius: 3, boxShadow: "0 1px 8px rgba(0,0,0,0.08)", borderLeft: `4px solid ${s.color}` }}>
               <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 2 }}>
@@ -162,16 +179,12 @@ export default function PaymentsPage() {
       </Box>
 
       {filtered.length > rowsPerPage && (
-        <TablePagination
-          component="div"
+        <TablePager
           count={filtered.length}
           page={page}
-          onPageChange={(_, newPage) => setPage(newPage)}
           rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value)); setPage(0); }}
-          rowsPerPageOptions={[5, 10, 25]}
-          labelRowsPerPage="Por página:"
-          labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
+          onPageChange={setPage}
+          onRowsPerPageChange={(value) => { setRowsPerPage(value); setPage(0); }}
         />
       )}
     </Box>
