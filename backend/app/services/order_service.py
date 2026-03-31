@@ -1,20 +1,16 @@
 from decimal import Decimal
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session
 from app.models.order import Order, OrderItem, OrderStatus
 from app.models.payment import Payment, PaymentStatus
 from app.models.product import Product
 from app.schemas.order import OrderCreate
+from app.repositories import order_repository
 
 
 def get_or_create_product(db: Session, name: str, price: Decimal) -> Product:
-    product = db.query(Product).filter(
-        Product.name == name,
-        Product.is_active == True
-    ).first()
+    product = order_repository.get_active_product_by_name(db, name)
     if not product:
-        product = Product(name=name, price=price, stock=0)
-        db.add(product)
-        db.flush()
+        product = order_repository.create_product(db, name, price)
     return product
 
 
@@ -45,34 +41,15 @@ def create_order(db: Session, data: OrderCreate) -> Order:
 
 
 def get_orders(db: Session, skip: int = 0, limit: int = 100):
-    return (
-        db.query(Order)
-        .options(
-            joinedload(Order.client),
-            joinedload(Order.items),
-        )
-        .offset(skip)
-        .limit(limit)
-        .all()
-    )
+    return order_repository.list_orders(db, skip, limit)
 
 
 def get_order(db: Session, order_id: int):
-    return (
-        db.query(Order)
-        .options(
-            joinedload(Order.client),
-            joinedload(Order.items),
-            joinedload(Order.payment),
-            joinedload(Order.logistics),
-        )
-        .filter(Order.id == order_id)
-        .first()
-    )
+    return order_repository.get_order_by_id(db, order_id)
 
 
 def update_order_status(db: Session, order_id: int, status: OrderStatus):
-    order = db.query(Order).filter(Order.id == order_id).first()
+    order = order_repository.get_order_for_update(db, order_id)
     if order:
         order.status = status
         db.commit()

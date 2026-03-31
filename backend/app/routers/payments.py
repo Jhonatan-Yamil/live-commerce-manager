@@ -1,13 +1,18 @@
 import os
 import shutil
-from datetime import datetime, timezone
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.auth.dependencies import get_current_user
 from app.schemas.payment import PaymentOut, PaymentStatusUpdate
-from app.models.payment import Payment
-from app.services.payment_service import update_payment_status
+from app.services.payment_service import (
+    get_payment as get_payment_service,
+    get_payment_by_order as get_payment_by_order_service,
+    list_payments as list_payments_service,
+    register_voucher as register_voucher_service,
+    update_payment_status,
+)
 
 router = APIRouter()
 
@@ -16,33 +21,13 @@ os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 @router.get("/", response_model=list[PaymentOut])
-@router.get("/", response_model=list[PaymentOut])
 def list_payments(db: Session = Depends(get_db), _=Depends(get_current_user)):
-    from app.models.order import Order
-    from app.models.client import Client
-    payments = db.query(Payment).all()
-    result = []
-    for p in payments:
-        order = db.query(Order).filter(Order.id == p.order_id).first()
-        client = db.query(Client).filter(Client.id == order.client_id).first() if order else None
-        result.append(PaymentOut(
-            id=p.id,
-            order_id=p.order_id,
-            status=p.status,
-            voucher_path=p.voucher_path,
-            notes=p.notes,
-            reviewed_at=p.reviewed_at,
-            created_at=p.created_at,
-            client_name=client.full_name if client else None,
-            order_created_at=order.created_at if order else None,
-            order_total=float(order.total) if order else None,
-        ))
-    return result
+    return list_payments_service(db)
 
 
 @router.get("/{payment_id}", response_model=PaymentOut)
 def get_payment(payment_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
-    p = db.query(Payment).filter(Payment.id == payment_id).first()
+    p = get_payment_service(db, payment_id)
     if not p:
         raise HTTPException(status_code=404, detail="Pago no encontrado")
     return p
@@ -63,7 +48,7 @@ def upload_voucher(
     db: Session = Depends(get_db),
     _=Depends(get_current_user),
 ):
-    payment = db.query(Payment).filter(Payment.order_id == order_id).first()
+    payment = get_payment_by_order_service(db, order_id)
     if not payment:
         raise HTTPException(status_code=404, detail="Pago no encontrado para este pedido")
 
@@ -77,12 +62,4 @@ def upload_voucher(
     with open(filepath, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    from app.models.order import Order, OrderStatus
-    payment.voucher_path = filename
-    payment.status = __import__('app.models.payment', fromlist=['PaymentStatus']).PaymentStatus.in_review
-    order = db.query(Order).filter(Order.id == order_id).first()
-    if order:
-        order.status = OrderStatus.payment_in_review
-    db.commit()
-    db.refresh(payment)
-    return payment
+    return register_voucher_service(db, order_id, filename)

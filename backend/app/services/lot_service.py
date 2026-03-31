@@ -1,9 +1,8 @@
 from decimal import Decimal
 from sqlalchemy.orm import Session
-from sqlalchemy import func
 from app.models.lot import Lot
-from app.models.order import OrderItem
 from app.schemas.lot import LotCreate, LotUpdate, LotOut
+from app.repositories import lot_repository
 
 
 def calculate_unit_cost(total_cost: Decimal, total_units: int) -> Decimal:
@@ -14,37 +13,40 @@ def calculate_unit_cost(total_cost: Decimal, total_units: int) -> Decimal:
 
 def create_lot(db: Session, data: LotCreate) -> Lot:
     unit_cost = calculate_unit_cost(data.total_cost, data.total_units)
-    lot = Lot(
-        name=data.name,
-        brand=data.brand,
-        total_units=data.total_units,
-        total_cost=data.total_cost,
-        unit_cost=unit_cost,
-        notes=data.notes,
+    return lot_repository.create_lot(
+        db,
+        {
+            "name": data.name,
+            "brand": data.brand,
+            "total_units": data.total_units,
+            "total_cost": data.total_cost,
+            "unit_cost": unit_cost,
+            "notes": data.notes,
+        },
     )
-    db.add(lot)
-    db.commit()
-    db.refresh(lot)
-    return lot
 
 
 def update_lot(db: Session, lot_id: int, data: LotUpdate) -> Lot:
-    lot = db.query(Lot).filter(Lot.id == lot_id).first()
+    lot = lot_repository.get_lot_by_id(db, lot_id)
     if not lot:
         return None
-    for k, v in data.model_dump(exclude_unset=True).items():
-        setattr(lot, k, v)
-    lot.unit_cost = calculate_unit_cost(lot.total_cost, lot.total_units)
-    db.commit()
-    db.refresh(lot)
-    return lot
+
+    payload = data.model_dump(exclude_unset=True)
+    total_cost = payload.get("total_cost", lot.total_cost)
+    total_units = payload.get("total_units", lot.total_units)
+    payload["unit_cost"] = calculate_unit_cost(total_cost, total_units)
+    return lot_repository.update_lot(db, lot_id, payload)
+
+
+def get_lot(db: Session, lot_id: int):
+    return lot_repository.get_lot_by_id(db, lot_id)
 
 
 def get_lots_with_stats(db: Session):
-    lots = db.query(Lot).all()
+    lots = lot_repository.list_lots(db)
     result = []
     for lot in lots:
-        items = db.query(OrderItem).filter(OrderItem.lot_id == lot.id).all()
+        items = lot_repository.list_order_items_by_lot(db, lot.id)
         units_sold = sum(i.quantity for i in items)
         total_revenue = sum(i.subtotal for i in items)
         profit = total_revenue - lot.total_cost

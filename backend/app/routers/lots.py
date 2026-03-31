@@ -4,8 +4,7 @@ from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.auth.dependencies import get_current_user
 from app.schemas.lot import LotCreate, LotUpdate, LotOut
-from app.models.lot import Lot
-from app.services.lot_service import create_lot, update_lot, get_lots_with_stats
+from app.services.lot_service import create_lot, get_lot as get_lot_service, get_lots_with_stats, update_lot
 
 router = APIRouter()
 
@@ -35,7 +34,7 @@ def list_lots(db: Session = Depends(get_db), _=Depends(get_current_user)):
 
 @router.get("/{lot_id}", response_model=LotOut)
 def get_lot(lot_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
-    lot = db.query(Lot).filter(Lot.id == lot_id).first()
+    lot = get_lot_service(db, lot_id)
     if not lot:
         raise HTTPException(status_code=404, detail="Lote no encontrado")
     return lot
