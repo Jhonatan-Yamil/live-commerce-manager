@@ -23,3 +23,6 @@ frontend/.env.local
 # Archivos subidos por usuarios
 backend/uploads/*
 !backend/uploads/.gitkeep
+
+# Scripts de siembra de datos (datos privados/de testing)
+backend/seed_data.py
