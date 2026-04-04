@@ -33,7 +33,10 @@ export default function DashboardPage() {
   today.setHours(0, 0, 0, 0);
 
   const todayOrders = orders.filter((o) => new Date(o.created_at) >= today);
-  const todayRevenue = todayOrders.filter((o) => o.status === "payment_confirmed").reduce((sum, o) => sum + Number(o.total), 0);
+  const ordersById = new Map(orders.map((o) => [o.id, o]));
+  const todayRevenue = payments
+    .filter((p) => p.status === "confirmed" && new Date(p.created_at) >= today)
+    .reduce((sum, p) => sum + Number(ordersById.get(p.order_id)?.total || 0), 0);
   const pendingPayments = payments.filter((p) => p.status === "in_review");
   const rejectedPayments = payments.filter((p) => p.status === "rejected");
   const logisticsOrderIds = new Set(logistics.map((l) => l.order_id));
