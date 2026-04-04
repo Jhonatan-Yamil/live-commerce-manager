@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import {
-  Box, Button, TextField, Typography, Paper, Grid, TablePagination,
+  Box, Button, Typography, Paper, Grid, TablePagination, TextField,
 } from "@mui/material";
+import SearchBar from "../components/common/SearchBar";
 import { lotsApi } from "../services/api";
 
 export default function LotsPage() {
@@ -39,7 +40,7 @@ export default function LotsPage() {
     !search ||
     l.name.toLowerCase().includes(search.toLowerCase()) ||
     l.brand.toLowerCase().includes(search.toLowerCase())
-  );
+  ).sort((a, b) => b.id - a.id);
 
   const unitCostPreview = form.total_units && form.total_cost
     ? `Bs. ${(parseFloat(form.total_cost) / parseInt(form.total_units)).toFixed(2)} por unidad`
@@ -96,11 +97,18 @@ export default function LotsPage() {
         </Paper>
       )}
 
-      <Paper sx={{ p: 2, mb: 2, borderRadius: 3, boxShadow: "0 1px 8px rgba(0,0,0,0.08)", display: "flex", gap: 2, alignItems: "center" }}>
-        <TextField size="small" placeholder="Buscar por nombre o marca..." value={search}
-          onChange={(e) => { setSearch(e.target.value); setPage(0); }} sx={{ width: 280 }} />
-        <Typography variant="caption" color="text.secondary">{filtered.length} lote(s)</Typography>
-      </Paper>
+      <SearchBar
+        search={search}
+        onSearchChange={(value) => {
+          setSearch(value);
+          setPage(0);
+        }}
+        resultCount={filtered.length}
+        onClear={() => {
+          setSearch("");
+          setPage(0);
+        }}
+      />
 
       <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
         {filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((l) => {

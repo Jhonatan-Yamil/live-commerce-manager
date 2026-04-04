@@ -75,7 +75,7 @@ export default function OrdersPage() {
     const matchFrom = !dateFrom || orderDate >= new Date(dateFrom);
     const matchTo = !dateTo || orderDate <= new Date(dateTo + "T23:59:59");
     return matchSearch && matchStatus && matchFrom && matchTo;
-  });
+  }).sort((a, b) => b.id - a.id);
 
   const statusOptions = Object.entries(ORDER_STATUS_LABELS).map(([value, cfg]) => ({
     value,

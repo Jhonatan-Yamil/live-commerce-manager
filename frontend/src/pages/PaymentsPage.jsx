@@ -56,7 +56,7 @@ export default function PaymentsPage() {
     const matchSearch = !search || String(p.order_id).includes(search) || (p.client_name || "").toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "all" || p.status === statusFilter;
     return matchSearch && matchStatus;
-  });
+  }).sort((a, b) => b.id - a.id);
 
   const statusFilters = [
     {

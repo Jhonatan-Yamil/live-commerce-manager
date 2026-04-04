@@ -61,7 +61,7 @@ export default function LogisticsPage() {
     const matchSearch = !search || String(l.order_id).includes(search) || (relatedOrder?.client?.full_name || "").toLowerCase().includes(search.toLowerCase());
     const matchStatus = statusFilter === "all" || l.delivery_status === statusFilter;
     return matchSearch && matchStatus;
-  });
+  }).sort((a, b) => b.id - a.id);
 
   const statusFilters = [
     {

@@ -51,7 +51,7 @@ export default function ClientsPage() {
     !search ||
     c.full_name.toLowerCase().includes(search.toLowerCase()) ||
     (c.phone || "").includes(search)
-  );
+  ).sort((a, b) => b.id - a.id);
 
   return (
     <Box>

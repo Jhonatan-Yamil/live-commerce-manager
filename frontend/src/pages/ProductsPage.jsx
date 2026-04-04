@@ -1,10 +1,11 @@
 import { useState, useEffect } from "react";
 import {
-  Box, Typography, Paper, Grid, TextField,
+  Box, Typography, Paper, Grid,
   Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, TablePagination, Button, CircularProgress,
 } from "@mui/material";
 import { productsApi } from "../services/api";
+import SearchBar from "../components/common/SearchBar";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
@@ -23,7 +24,7 @@ export default function ProductsPage() {
 
   const filtered = products.filter((p) =>
     p.name.toLowerCase().includes(search.toLowerCase())
-  );
+  ).sort((a, b) => b.product_id - a.product_id);
 
   const totalRevenue = products.reduce((sum, p) => sum + p.total_revenue, 0);
   const totalUnits = products.reduce((sum, p) => sum + p.units_sold, 0);
@@ -54,11 +55,20 @@ export default function ProductsPage() {
         ))}
       </Grid>
 
+      <SearchBar
+        search={search}
+        onSearchChange={(value) => {
+          setSearch(value);
+          setPage(0);
+        }}
+        resultCount={filtered.length}
+        onClear={() => {
+          setSearch("");
+          setPage(0);
+        }}
+      />
+
       <TableContainer component={Paper} sx={{ borderRadius: 3, boxShadow: "0 1px 8px rgba(0,0,0,0.08)" }}>
-        <Box sx={{ p: 2.5, pb: 1 }}>
-          <TextField size="small" placeholder="Buscar producto..." value={search}
-            onChange={(e) => { setSearch(e.target.value); setPage(0); }} sx={{ width: 280 }} />
-        </Box>
         <Table>
           <TableHead>
             <TableRow sx={{ background: "#f8f9fc" }}>
