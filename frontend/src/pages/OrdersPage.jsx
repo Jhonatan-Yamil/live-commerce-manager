@@ -55,7 +55,8 @@ export default function OrdersPage() {
     try {
       let clientId = selectedClient?.id;
       if (!clientId) {
-        const res = await clientsApi.create({ full_name: clientInput.trim(), phone: clientPhone.trim() || null });
+        if (!clientPhone.trim()) return alert("Ingresa el celular del cliente");
+        const res = await clientsApi.create({ full_name: clientInput.trim(), phone: clientPhone.trim() });
         clientId = res.data.id;
         clientsApi.list().then((r) => setClients(r.data));
       }

@@ -31,6 +31,7 @@ export default function ClientsPage() {
     if (editing) {
       await clientsApi.update(editing.id, form);
     } else {
+      if (!form.phone.trim()) return alert("El teléfono es obligatorio para registrar cliente");
       await clientsApi.create(form);
     }
     setShowForm(false);
@@ -72,7 +73,7 @@ export default function ClientsPage() {
                 value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField label="Teléfono / WhatsApp" size="small" fullWidth
+              <TextField label="Teléfono / WhatsApp *" size="small" fullWidth
                 value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+591 7..." />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -84,7 +85,7 @@ export default function ClientsPage() {
                 value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
             </Grid>
           </Grid>
-          <Button variant="contained" onClick={handleSubmit} disabled={!form.full_name}
+          <Button variant="contained" onClick={handleSubmit} disabled={!form.full_name || (!editing && !form.phone.trim())}
             sx={{ background: "#4f46e5", "&:hover": { background: "#4338ca" }, borderRadius: 2 }}>
             {editing ? "Guardar cambios" : "Registrar"}
           </Button>

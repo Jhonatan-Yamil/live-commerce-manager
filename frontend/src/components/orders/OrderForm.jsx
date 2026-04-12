@@ -23,6 +23,9 @@ export default function OrderForm({
 	onClearLot,
 	onSubmit,
 }) {
+	const isNewClient = !selectedClient && clientInput.trim().length > 0;
+	const missingPhoneForNewClient = isNewClient && !clientPhone.trim();
+
 	const total = form.items.reduce(
 		(sum, i) => sum + (parseFloat(i.unit_price) || 0) * (parseInt(i.quantity) || 0),
 		0
@@ -96,12 +99,12 @@ export default function OrderForm({
 
 					{!selectedClient && clientInput && (
 						<div style={{ marginTop: 10 }}>
-							<label style={labelStyle}>Celular del cliente</label>
+							<label style={labelStyle}>Celular del cliente *</label>
 							<input
 								value={clientPhone}
 								onChange={(e) => onClientPhoneChange(e.target.value)}
 								style={inputStyle}
-								placeholder="7..."
+								placeholder="+591 7..."
 							/>
 						</div>
 					)}
@@ -246,12 +249,12 @@ export default function OrderForm({
 				<Button
 					variant="contained"
 					onClick={onSubmit}
-					disabled={loading || !clientInput || form.items.some((i) => !i.product_name || !i.unit_price)}
+					disabled={loading || !clientInput || missingPhoneForNewClient || form.items.some((i) => !i.product_name || !i.unit_price)}
 					sx={{
 						background: "#4f46e5",
 						"&:hover": { background: "#4338ca" },
 						borderRadius: 2,
-						opacity: loading || !clientInput ? 0.6 : 1,
+						opacity: loading || !clientInput || missingPhoneForNewClient ? 0.6 : 1,
 					}}
 				>
 					{loading ? "Guardando..." : "Registrar pedido"}
