@@ -152,7 +152,7 @@ def _create_base_order(db: Session, client_id: int, intake) -> Order:
 
 def create_intake_from_upload(
     db: Session,
-    current_user: User,
+    current_user: User | None,
     *,
     file,
     source_channel: VoucherSourceChannel = VoucherSourceChannel.manual,

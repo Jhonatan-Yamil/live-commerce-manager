@@ -5,7 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.database.session import engine
 from app.models import base, user, client, product, order, payment, logistics, lot, voucher_intake
-from app.routers import auth, users, clients, products, orders, payments, lots, intake
+from app.routers import auth, users, clients, products, orders, payments, lots, intake, telegram_integration
 from app.routers import logistics as logistics_router
 
 base.Base.metadata.create_all(bind=engine)
@@ -36,6 +36,7 @@ app.include_router(payments.router, prefix="/api/payments", tags=["Payments"])
 app.include_router(logistics_router.router, prefix="/api/logistics", tags=["Logistics"])
 app.include_router(lots.router, prefix="/api/lots", tags=["Lots"])
 app.include_router(intake.router, prefix="/api/intake", tags=["Intake"])
+app.include_router(telegram_integration.router, prefix="/api/integrations/telegram", tags=["Telegram Integration"])
 
 
 @app.get("/")

@@ -1,11 +1,17 @@
 import os
 import re
 from datetime import datetime
+from io import BytesIO
 
 try:
     import pdfplumber
 except Exception:
     pdfplumber = None
+
+try:
+    import fitz  # PyMuPDF
+except Exception:
+    fitz = None
 
 try:
     from PIL import Image
@@ -19,14 +25,38 @@ except Exception:
 
 
 def _extract_text_from_pdf(file_path: str) -> str:
-    if not pdfplumber:
-        return ""
+    """Extract text from PDF. If PDF is image-based, renders to image and uses OCR."""
     text_chunks = []
-    with pdfplumber.open(file_path) as pdf:
-        for page in pdf.pages:
-            page_text = page.extract_text() or ""
-            if page_text:
-                text_chunks.append(page_text)
+    
+    # Intenta extraer texto directamente con pdfplumber
+    if pdfplumber:
+        try:
+            with pdfplumber.open(file_path) as pdf:
+                for page in pdf.pages:
+                    page_text = page.extract_text() or ""
+                    if page_text:
+                        text_chunks.append(page_text)
+        except Exception:
+            pass
+    
+    # Si no extrajo texto (PDF basado en imagen), renderiza a imagen y usa OCR
+    if not text_chunks and fitz and Image and pytesseract:
+        try:
+            doc = fitz.open(file_path)
+            for page_num, page in enumerate(doc):
+                # Renderizar página a imagen (zoom 2x para mejor OCR)
+                pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+                img_data = pix.tobytes("ppm")
+                image = Image.open(BytesIO(img_data))
+                
+                # Aplicar OCR
+                ocr_text = pytesseract.image_to_string(image, lang="spa+eng")
+                if ocr_text.strip():
+                    text_chunks.append(ocr_text)
+            doc.close()
+        except Exception:
+            pass
+    
     return "\n".join(text_chunks)
 
 
@@ -59,6 +89,47 @@ def _parse_amount(raw_text: str) -> float | None:
 
     lowered = raw_text.lower()
 
+    # Caso BNB: "La suma de Bs.:" seguido por el monto en una línea numérica.
+    label_match = re.search(
+        r"la\s+suma\s+de\s+(?:bs|b\$|bob|ps|8s|s/)\.?[ \t]*:?[ \t]*([0-9]+(?:[\.,][0-9]{1,2})?)",
+        lowered,
+        flags=re.IGNORECASE,
+    )
+    if label_match:
+        amount = _to_amount(label_match.group(1))
+        if amount is not None:
+            return amount
+
+    # Si la maquetación del PDF separa etiquetas/valores, busca el primer número
+    # "limpio" en las siguientes líneas y evita fechas/horas/cuentas enmascaradas.
+    lines = [line.strip() for line in raw_text.splitlines()]
+    anchor_idx = None
+    for idx, line in enumerate(lines):
+        if re.search(r"la\s+suma\s+de\s+(?:bs|b\$|bob|ps|8s|s/)", line, flags=re.IGNORECASE):
+            anchor_idx = idx
+            break
+
+    if anchor_idx is not None:
+        numeric_candidates: list[float] = []
+        for candidate in lines[anchor_idx + 1:anchor_idx + 60]:
+            if not candidate:
+                continue
+            if any(token in candidate for token in ["/", ":", "*", "x", "X"]):
+                continue
+            if re.search(r"[A-Za-z]", candidate):
+                continue
+            clean_match = re.fullmatch(r"([0-9]+(?:[\.,][0-9]{1,2})?)", candidate)
+            if not clean_match:
+                continue
+            amount = _to_amount(clean_match.group(1))
+            if amount is not None:
+                numeric_candidates.append(amount)
+
+        # En comprobantes BNB suele aparecer un único monto limpio (ej. 100).
+        # Si hay más de uno, prioriza el más alto para evitar capturar "12" de fecha.
+        if numeric_candidates:
+            return max(numeric_candidates)
+
     # Prioriza la zona del encabezado "Pago realizado" donde suele aparecer el monto.
     anchor = re.search(r"pago\s+realizado", lowered)
     if anchor:
@@ -80,8 +151,8 @@ def _parse_amount(raw_text: str) -> float | None:
             if amount is not None:
                 return amount
 
-    # Fallback: primer decimal válido en el texto.
-    match = re.search(r"\b([0-9]+(?:[\.,][0-9]{2}))\b", raw_text)
+    # Fallback: primer número válido (decimal o entero) en el texto.
+    match = re.search(r"\b([0-9]+(?:[\.,][0-9]{1,2})?)\b", raw_text)
     if match:
         amount = _to_amount(match.group(1))
         if amount is not None:
