@@ -3,6 +3,10 @@ from pydantic import BaseModel
 from app.models.voucher_intake import VoucherSourceChannel, VoucherMatchStatus
 
 
+class VoucherReassignIn(BaseModel):
+    order_id: int
+
+
 class VoucherIntakeOut(BaseModel):
     id: int
     source_channel: VoucherSourceChannel
