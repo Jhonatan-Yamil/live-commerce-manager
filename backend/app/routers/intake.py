@@ -12,6 +12,7 @@ from app.services.voucher_intake_service import (
     confirm_intake_match,
     reject_intake_match,
     reassign_intake_match,
+    reprocess_intake,
 )
 
 
@@ -105,6 +106,18 @@ def reassign_voucher_intake(
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+    if not intake:
+        raise HTTPException(status_code=404, detail="Comprobante intake no encontrado")
+    return intake
+
+
+@router.post("/vouchers/{intake_id}/reprocess", response_model=VoucherIntakeOut)
+def reprocess_voucher_intake(
+    intake_id: int,
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user),
+):
+    intake = reprocess_intake(db, intake_id)
     if not intake:
         raise HTTPException(status_code=404, detail="Comprobante intake no encontrado")
     return intake

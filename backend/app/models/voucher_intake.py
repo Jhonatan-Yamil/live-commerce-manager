@@ -27,6 +27,13 @@ class VoucherMatchStatus(str, enum.Enum):
     rejected = "rejected"
 
 
+class VoucherProcessingStatus(str, enum.Enum):
+    queued = "queued"
+    processing = "processing"
+    processed = "processed"
+    failed = "failed"
+
+
 class VoucherIntake(Base):
     __tablename__ = "voucher_intakes"
 
@@ -46,6 +53,12 @@ class VoucherIntake(Base):
     extracted_sender_name = Column(String, nullable=True)
     ocr_raw_text = Column(Text, nullable=True)
     ocr_confidence = Column(Numeric(5, 2), nullable=True)
+
+    processing_status = Column(String, nullable=False, default=VoucherProcessingStatus.queued.value)
+    processing_error = Column(Text, nullable=True)
+    processing_started_at = Column(DateTime(timezone=True), nullable=True)
+    processing_finished_at = Column(DateTime(timezone=True), nullable=True)
+    processing_attempts = Column(Integer, nullable=False, default=0)
 
     match_status = Column(SAEnum(VoucherMatchStatus), default=VoucherMatchStatus.pending, nullable=False)
 

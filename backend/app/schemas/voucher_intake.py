@@ -23,6 +23,12 @@ class VoucherIntakeOut(BaseModel):
     ocr_raw_text: str | None
     ocr_confidence: float | None
 
+    processing_status: str
+    processing_error: str | None
+    processing_started_at: datetime | None
+    processing_finished_at: datetime | None
+    processing_attempts: int
+
     match_status: VoucherMatchStatus
     matched_client_id: int | None
     matched_order_id: int | None

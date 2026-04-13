@@ -9,9 +9,10 @@ from app.models.order import Order, OrderStatus
 from app.models.payment import Payment, PaymentStatus
 from app.models.user import User
 from app.models.voucher_intake import VoucherSourceChannel, VoucherMatchStatus
+from app.core.config import settings
 from app.repositories import payment_repository
 from app.repositories import voucher_intake_repository
-from app.services.ocr_service import extract_voucher_fields
+from app.services.intake_queue_service import enqueue_intake_processing
 from app.services.payment_service import register_voucher
 
 
@@ -168,8 +169,6 @@ def create_intake_from_upload(
     with open(filepath, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    ocr_fields = extract_voucher_fields(filepath)
-
     payload = {
         "source_channel": source_channel,
         "external_chat_id": external_chat_id,
@@ -180,15 +179,28 @@ def create_intake_from_upload(
         "match_status": VoucherMatchStatus.pending,
         "reviewed_by_user_id": None,
         "reviewed_at": None,
-        "extracted_amount": ocr_fields.get("extracted_amount"),
-        "extracted_date": ocr_fields.get("extracted_date"),
-        "extracted_reference": ocr_fields.get("extracted_reference"),
-        "extracted_sender_name": ocr_fields.get("extracted_sender_name"),
-        "ocr_raw_text": ocr_fields.get("ocr_raw_text"),
-        "ocr_confidence": ocr_fields.get("ocr_confidence"),
+        "processing_status": "queued",
+        "processing_error": None,
+        "processing_started_at": None,
+        "processing_finished_at": None,
+        "processing_attempts": 0,
+        "extracted_amount": None,
+        "extracted_date": None,
+        "extracted_reference": None,
+        "extracted_sender_name": None,
+        "ocr_raw_text": "[PENDING_PROCESSING]",
+        "ocr_confidence": None,
     }
     intake = voucher_intake_repository.create_intake(db, payload)
-    return attempt_match_intake(db, intake.id)
+    if settings.INTAKE_ASYNC_ENABLED:
+        enqueue_intake_processing(intake.id)
+        return intake
+
+    from app.services.intake_processing_service import process_intake_job
+
+    process_intake_job(intake.id)
+    refreshed = voucher_intake_repository.get_by_id(db, intake.id)
+    return refreshed or intake
 
 
 def list_intakes(db: Session, status: VoucherMatchStatus | None = None, skip: int = 0, limit: int = 100):
@@ -197,6 +209,38 @@ def list_intakes(db: Session, status: VoucherMatchStatus | None = None, skip: in
 
 def get_intake(db: Session, intake_id: int):
     return voucher_intake_repository.get_by_id(db, intake_id)
+
+
+def reprocess_intake(db: Session, intake_id: int):
+    intake = voucher_intake_repository.get_by_id(db, intake_id)
+    if not intake:
+        return None
+
+    intake.extracted_amount = None
+    intake.extracted_date = None
+    intake.extracted_reference = None
+    intake.extracted_sender_name = None
+    intake.ocr_raw_text = "[PENDING_PROCESSING]"
+    intake.ocr_confidence = None
+    intake.processing_status = "queued"
+    intake.processing_error = None
+    intake.processing_started_at = None
+    intake.processing_finished_at = None
+    intake.processing_attempts = (intake.processing_attempts or 0) + 1
+    intake.match_status = VoucherMatchStatus.pending
+    intake.reviewed_by_user_id = None
+    intake.reviewed_at = None
+    intake = voucher_intake_repository.save(db, intake)
+
+    if settings.INTAKE_ASYNC_ENABLED:
+        enqueue_intake_processing(intake.id)
+        return intake
+
+    from app.services.intake_processing_service import process_intake_job
+
+    process_intake_job(intake.id)
+    refreshed = voucher_intake_repository.get_by_id(db, intake.id)
+    return refreshed or intake
 
 
 def attempt_match_intake(db: Session, intake_id: int):
