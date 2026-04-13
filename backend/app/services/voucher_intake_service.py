@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.models.user import User
 from app.models.voucher_intake import VoucherSourceChannel, VoucherMatchStatus
 from app.repositories import voucher_intake_repository
+from app.services.ocr_service import extract_voucher_fields
 
 
 UPLOAD_DIR = "uploads/intake"
@@ -39,6 +40,8 @@ def create_intake_from_upload(
     with open(filepath, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
+    ocr_fields = extract_voucher_fields(filepath)
+
     payload = {
         "source_channel": source_channel,
         "external_chat_id": external_chat_id,
@@ -49,6 +52,12 @@ def create_intake_from_upload(
         "match_status": VoucherMatchStatus.pending,
         "reviewed_by_user_id": None,
         "reviewed_at": None,
+        "extracted_amount": ocr_fields.get("extracted_amount"),
+        "extracted_date": ocr_fields.get("extracted_date"),
+        "extracted_reference": ocr_fields.get("extracted_reference"),
+        "extracted_sender_name": ocr_fields.get("extracted_sender_name"),
+        "ocr_raw_text": ocr_fields.get("ocr_raw_text"),
+        "ocr_confidence": ocr_fields.get("ocr_confidence"),
     }
     return voucher_intake_repository.create_intake(db, payload)
 
