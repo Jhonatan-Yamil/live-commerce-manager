@@ -15,6 +15,8 @@ class VoucherIntakeOut(BaseModel):
     sender_phone: str | None
     file_path: str
     mime_type: str | None
+    file_sha256: str | None
+    file_size_bytes: int | None
 
     extracted_amount: float | None
     extracted_date: datetime | None
@@ -31,8 +33,11 @@ class VoucherIntakeOut(BaseModel):
 
     match_status: VoucherMatchStatus
     matched_client_id: int | None
+    matched_client_name: str | None
+    matched_client_is_provisional: bool
     matched_order_id: int | None
     created_order_id: int | None
+    needs_order_completion: bool
 
     reviewed_by_user_id: int | None
     reviewed_at: datetime | None

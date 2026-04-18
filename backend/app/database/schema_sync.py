@@ -10,6 +10,8 @@ VOUCHER_INTAKE_COLUMNS = {
     "processing_started_at": "TIMESTAMP WITH TIME ZONE NULL",
     "processing_finished_at": "TIMESTAMP WITH TIME ZONE NULL",
     "processing_attempts": "INTEGER NOT NULL DEFAULT 0",
+    "file_sha256": "VARCHAR(64) NULL",
+    "file_size_bytes": "INTEGER NULL",
 }
 
 

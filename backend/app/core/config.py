@@ -13,6 +13,8 @@ class Settings(BaseSettings):
     INTAKE_QUEUE_KEY: str = "live-sale:intake-queue"
     REDIS_URL: str = "redis://localhost:6379/0"
     INTAKE_WORKER_EMBEDDED: bool = True
+    INTAKE_MAX_FILE_SIZE_MB: int = 10
+    INTAKE_HASH_DEDUP_WINDOW_HOURS: int = 24
 
     class Config:
         env_file = ".env"

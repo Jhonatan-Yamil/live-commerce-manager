@@ -46,6 +46,8 @@ class VoucherIntake(Base):
 
     file_path = Column(String, nullable=False)
     mime_type = Column(String, nullable=True)
+    file_sha256 = Column(String(64), nullable=True)
+    file_size_bytes = Column(Integer, nullable=True)
 
     extracted_amount = Column(Numeric(10, 2), nullable=True)
     extracted_date = Column(DateTime(timezone=True), nullable=True)
@@ -74,3 +76,27 @@ class VoucherIntake(Base):
     matched_order = relationship("Order", foreign_keys=[matched_order_id])
     created_order = relationship("Order", foreign_keys=[created_order_id])
     reviewed_by_user = relationship("User", foreign_keys=[reviewed_by_user_id])
+
+    @property
+    def matched_client_is_provisional(self) -> bool:
+        if not self.matched_client:
+            return False
+        notes = (self.matched_client.notes or "").upper()
+        return "[PROVISIONAL]" in notes
+
+    @property
+    def matched_client_name(self) -> str | None:
+        if not self.matched_client:
+            return None
+        return self.matched_client.full_name
+
+    @property
+    def needs_order_completion(self) -> bool:
+        if self.matched_order_id is None:
+            return True
+        if self.created_order_id is None:
+            return False
+        if self.matched_client_is_provisional:
+            return True
+        notes = (self.matched_order.notes or "").upper() if self.matched_order else ""
+        return "[AUTO_BASE]" in notes

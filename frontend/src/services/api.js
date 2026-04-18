@@ -70,3 +70,11 @@ export const lotsApi = {
   create: (d) => api.post("/lots", d),
   update: (id, d) => api.put(`/lots/${id}`, d),
 };
+
+export const intakeApi = {
+  listSuggestions: (status) => api.get("/intake/suggestions", { params: status ? { status } : {} }),
+  confirm: (id) => api.post(`/intake/vouchers/${id}/confirm`),
+  reject: (id) => api.post(`/intake/vouchers/${id}/reject`),
+  reassign: (id, orderId) => api.post(`/intake/vouchers/${id}/reassign`, { order_id: Number(orderId) }),
+  reprocess: (id) => api.post(`/intake/vouchers/${id}/reprocess`),
+};

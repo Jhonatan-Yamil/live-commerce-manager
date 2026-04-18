@@ -49,10 +49,27 @@ REFERENCE_LABEL_PATTERNS = [
 ]
 
 SENDER_LABEL_PATTERNS = [
+    r"enviado\s+por",
+    r"cuenta\s+de\s+origen",
+    r"cuenta\s+origen",
+    r"de\s+la\s+cuenta",
     r"nombre\s+del\s+originante",
     r"ordenante",
     r"remitente",
-    r"de",
+    r"originante",
+]
+
+SENDER_SECONDARY_LABEL_PATTERNS = [
+    r"a\s+nombre\s+de",
+]
+
+DESTINATION_HINT_PATTERNS = [
+    r"cuenta\s+de\s+destino",
+    r"cuenta\s+destino",
+    r"destinatario",
+    r"beneficiario",
+    r"para",
+    r"a\s+la\s+cuenta",
 ]
 
 
@@ -353,35 +370,139 @@ def _parse_reference(raw_text: str) -> str | None:
 def _parse_sender_name(raw_text: str) -> str | None:
     lines = _normalized_lines(raw_text)
 
+    operational_noise_patterns = [
+        r"se\s+debit[oó]",
+        r"se\s+acredit[oó]",
+        r"de\s+ahorro",
+        r"de\s+corriente",
+        r"la\s+suma",
+        r"bancarizaci[oó]n",
+        r"fecha\s+de\s+la\s+transacci[oó]n",
+        r"hora\s+de\s+la\s+transacci[oó]n",
+    ]
+
+    business_noise_words = {
+        "se", "su", "caja", "ahorro", "corriente", "cuenta", "banco", "destino", "origen",
+        "acredito", "acredito", "debito", "debito", "suma", "referencia", "transaccion",
+        "fecha", "hora", "bancarizacion", "nombre", "destinatario", "originante",
+        "transferencia", "interbancaria", "comprobante", "electronico", "operacion",
+    }
+
+    person_connectors = {"de", "del", "la", "las", "los", "y"}
+
     def _is_name_candidate(value: str) -> bool:
+        value = value.strip()
+        if not value:
+            return False
         if re.search(r"\d|\*", value):
             return False
-        if "BANCO" in value.upper():
+        normalized = value.lower()
+        if any(re.search(pattern, normalized, flags=re.IGNORECASE) for pattern in operational_noise_patterns):
             return False
-        words = [w for w in value.split() if w]
+        upper_value = value.upper()
+        blocked_tokens = [
+            "BANCO",
+            "CUENTA",
+            "DESTINO",
+            "ORIGEN",
+            "COMPROBANTE",
+            "TRANSACCION",
+            "REFERENCIA",
+            "MOTIVO",
+            "PAGO",
+        ]
+        if any(token in upper_value for token in blocked_tokens):
+            return False
+
+        # Acepta nombres en mayúsculas o formato título con 2+ palabras.
+        words = [w for w in re.split(r"\s+", value) if w]
         if len(words) < 2:
             return False
-        return bool(re.fullmatch(r"[A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s]{5,}", value))
+
+        cleaned_words = [re.sub(r"[^A-Za-zÁÉÍÓÚÑáéíóúñ]", "", w).lower() for w in words]
+        cleaned_words = [w for w in cleaned_words if w]
+        if not cleaned_words:
+            return False
+
+        if any(w in business_noise_words for w in cleaned_words):
+            return False
+
+        content_words = [w for w in cleaned_words if w not in person_connectors]
+        if len(content_words) < 2:
+            return False
+
+        valid_word = r"[A-Za-zÁÉÍÓÚÑáéíóúñ][A-Za-zÁÉÍÓÚÑáéíóúñ'\.-]*"
+        return bool(re.fullmatch(rf"{valid_word}(?:\s+{valid_word}){{1,6}}", value))
+
+    def _name_quality_bonus(value: str) -> float:
+        words = [w for w in re.split(r"\s+", value.strip()) if w]
+        if not words:
+            return 0.0
+
+        capitalized_like = 0
+        for word in words:
+            plain = re.sub(r"[^A-Za-zÁÉÍÓÚÑáéíóúñ]", "", word)
+            if not plain:
+                continue
+            if plain.isupper() or (plain[0].isupper() and plain[1:].islower()):
+                capitalized_like += 1
+
+        ratio = capitalized_like / max(1, len(words))
+        # Beneficia nombres con formato de persona (mayúsculas o título).
+        base = 0.08 if ratio >= 0.75 else 0.0
+        # Nombres completos suelen tener 3+ palabras en estos comprobantes.
+        if len(words) >= 3:
+            base += 0.04
+        return base
+
+    def _extract_name_from_same_line(line: str) -> str | None:
+        if ":" not in line:
+            return None
+        candidate = line.split(":", 1)[1].strip()
+        return candidate if _is_name_candidate(candidate) else None
+
+    def _context_penalty(idx: int) -> float:
+        # Penaliza si el contexto cercano menciona destino/beneficiario.
+        start = max(0, idx - 2)
+        end = min(len(lines), idx + 2)
+        neighborhood = " ".join(lines[start:end]).lower()
+        return 0.4 if any(re.search(p, neighborhood, flags=re.IGNORECASE) for p in DESTINATION_HINT_PATTERNS) else 0.0
+
+    scored_candidates: list[tuple[str, float]] = []
 
     for idx, line in enumerate(lines):
         if _line_has_label(line, SENDER_LABEL_PATTERNS):
-            same_line = re.search(r":\s*([A-ZÁÉÍÓÚÑ][A-ZÁÉÍÓÚÑ\s]{5,})$", line)
-            if same_line:
-                return same_line.group(1).strip()
+            same_line_name = _extract_name_from_same_line(line)
+            if same_line_name:
+                score = 1.0 - _context_penalty(idx) + _name_quality_bonus(same_line_name)
+                scored_candidates.append((same_line_name, score))
 
-            # En PDFs, el valor puede estar varias líneas después de la etiqueta.
-            for candidate in lines[idx + 1:idx + 12]:
+            # Valor en líneas siguientes (común en PDFs y capturas móviles)
+            for step, candidate in enumerate(lines[idx + 1:idx + 25], start=1):
                 if _is_name_candidate(candidate):
-                    return candidate
+                    score = 0.98 - (step * 0.03) - _context_penalty(idx) + _name_quality_bonus(candidate)
+                    scored_candidates.append((candidate, score))
+
+        elif _line_has_label(line, SENDER_SECONDARY_LABEL_PATTERNS):
+            same_line_name = _extract_name_from_same_line(line)
+            if same_line_name:
+                score = 0.65 - _context_penalty(idx) + _name_quality_bonus(same_line_name)
+                scored_candidates.append((same_line_name, score))
+
+            for step, candidate in enumerate(lines[idx + 1:idx + 3], start=1):
+                if _is_name_candidate(candidate):
+                    score = 0.62 - (step * 0.04) - _context_penalty(idx) + _name_quality_bonus(candidate)
+                    scored_candidates.append((candidate, score))
+
+    if scored_candidates:
+        best_name, _ = max(scored_candidates, key=lambda item: item[1])
+        return best_name
 
     # Fallback: primera línea con forma de nombre completo.
     for line in lines:
         if _is_name_candidate(line):
             return line
 
-    for idx, line in enumerate(lines):
-        if line.lower() == "de" and idx + 1 < len(lines):
-            return lines[idx + 1]
     return None
 
 

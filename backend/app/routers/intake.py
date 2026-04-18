@@ -54,6 +54,25 @@ def list_voucher_intakes(
     return list_intakes_service(db, status=status, skip=skip, limit=limit)
 
 
+@router.get("/suggestions", response_model=list[VoucherIntakeOut])
+def list_voucher_suggestions(
+    status: VoucherMatchStatus | None = None,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    _=Depends(get_current_user),
+):
+    if status is None:
+        # Vista operativa por defecto: pendientes y sugeridos.
+        suggestions = list_intakes_service(db, status=VoucherMatchStatus.pending, skip=skip, limit=limit)
+        if len(suggestions) < limit:
+            remaining = limit - len(suggestions)
+            suggestions.extend(list_intakes_service(db, status=VoucherMatchStatus.suggested, skip=0, limit=remaining))
+        return suggestions
+
+    return list_intakes_service(db, status=status, skip=skip, limit=limit)
+
+
 @router.post("/vouchers/{intake_id}/match", response_model=VoucherIntakeOut)
 def match_voucher_intake(
     intake_id: int,

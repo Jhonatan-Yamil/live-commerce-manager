@@ -1,7 +1,8 @@
 import os
-import shutil
+import hashlib
 from datetime import datetime, timezone, timedelta
 from decimal import Decimal
+import unicodedata
 from sqlalchemy.orm import Session
 
 from app.models.client import Client
@@ -13,13 +14,19 @@ from app.core.config import settings
 from app.repositories import payment_repository
 from app.repositories import voucher_intake_repository
 from app.services.intake_queue_service import enqueue_intake_processing
-from app.services.payment_service import register_voucher
+from app.services.payment_service import register_voucher, update_payment_status
 
 
 UPLOAD_DIR = "uploads/intake"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 ALLOWED_EXTENSIONS = {".jpg", ".jpeg", ".png", ".pdf"}
+ALLOWED_MIME_TYPES = {
+    "image/jpeg",
+    "image/jpg",
+    "image/png",
+    "application/pdf",
+}
 PENDING_ORDER_STATUSES = {
     OrderStatus.pending_payment,
     OrderStatus.payment_in_review,
@@ -32,6 +39,29 @@ def _validate_extension(filename: str) -> str:
     if ext not in ALLOWED_EXTENSIONS:
         raise ValueError("Solo se permiten archivos JPG, PNG o PDF")
     return ext
+
+
+def _validate_mime_type(mime_type: str | None) -> None:
+    if not mime_type:
+        return
+    if mime_type.lower() not in ALLOWED_MIME_TYPES:
+        raise ValueError("Tipo de archivo no permitido")
+
+
+def _read_upload_bytes(file) -> bytes:
+    content = file.file.read()
+    file.file.seek(0)
+    return content
+
+
+def _validate_file_size(content: bytes) -> None:
+    max_bytes = settings.INTAKE_MAX_FILE_SIZE_MB * 1024 * 1024
+    if len(content) > max_bytes:
+        raise ValueError(f"Archivo demasiado grande. Máximo {settings.INTAKE_MAX_FILE_SIZE_MB}MB")
+
+
+def _compute_sha256(content: bytes) -> str:
+    return hashlib.sha256(content).hexdigest()
 
 
 def _normalize_phone(phone: str | None) -> str:
@@ -49,6 +79,30 @@ def _phones_match(a: str | None, b: str | None) -> bool:
     return na.endswith(nb) or nb.endswith(na)
 
 
+def _normalize_name_tokens(value: str | None) -> list[str]:
+    if not value:
+        return []
+    normalized = unicodedata.normalize("NFKD", value)
+    normalized = "".join(ch for ch in normalized if not unicodedata.combining(ch)).lower()
+    cleaned = "".join(ch if (ch.isalnum() or ch.isspace()) else " " for ch in normalized)
+    tokens = [t for t in cleaned.split() if len(t) > 1]
+    # Quita ruido común en comprobantes.
+    stopwords = {"de", "del", "la", "el", "cuenta", "origen", "destino", "banco"}
+    return [t for t in tokens if t not in stopwords]
+
+
+def _name_similarity(a: str | None, b: str | None) -> float:
+    ta = set(_normalize_name_tokens(a))
+    tb = set(_normalize_name_tokens(b))
+    if not ta or not tb:
+        return 0.0
+    inter = len(ta.intersection(tb))
+    union = len(ta.union(tb))
+    if union == 0:
+        return 0.0
+    return inter / union
+
+
 def _find_client_by_phone(db: Session, sender_phone: str | None) -> Client | None:
     if not sender_phone:
         return None
@@ -57,6 +111,22 @@ def _find_client_by_phone(db: Session, sender_phone: str | None) -> Client | Non
         if _phones_match(sender_phone, client.phone):
             return client
     return None
+
+
+def _find_client_by_name(db: Session, sender_name: str | None) -> Client | None:
+    if not sender_name:
+        return None
+    clients = db.query(Client).all()
+    best_client = None
+    best_score = 0.0
+    for client in clients:
+        score = _name_similarity(sender_name, client.full_name)
+        if score > best_score:
+            best_score = score
+            best_client = client
+
+    # Umbral conservador: al menos 2/3 de tokens en común.
+    return best_client if best_score >= 0.66 else None
 
 
 def _find_best_order_match(db: Session, client_id: int, extracted_amount) -> Order | None:
@@ -161,13 +231,33 @@ def create_intake_from_upload(
     external_message_id: str | None = None,
     sender_phone: str | None = None,
 ):
+    _validate_mime_type(file.content_type)
     ext = _validate_extension(file.filename)
+    content = _read_upload_bytes(file)
+    _validate_file_size(content)
+    file_sha256 = _compute_sha256(content)
+    file_size_bytes = len(content)
+
+    if external_chat_id and external_message_id:
+        existing_by_external = voucher_intake_repository.get_by_external_message(
+            db,
+            source_channel=source_channel,
+            external_chat_id=external_chat_id,
+            external_message_id=external_message_id,
+        )
+        if existing_by_external:
+            return existing_by_external
+
+    dedup_since = datetime.now(timezone.utc) - timedelta(hours=settings.INTAKE_HASH_DEDUP_WINDOW_HOURS)
+    existing_by_hash = voucher_intake_repository.get_recent_by_hash(db, file_sha256=file_sha256, since=dedup_since)
+    if existing_by_hash:
+        return existing_by_hash
 
     filename = f"intake_{source_channel.value}_{int(datetime.now().timestamp())}{ext}"
     filepath = os.path.join(UPLOAD_DIR, filename)
 
     with open(filepath, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+        buffer.write(content)
 
     payload = {
         "source_channel": source_channel,
@@ -176,6 +266,8 @@ def create_intake_from_upload(
         "sender_phone": sender_phone,
         "file_path": filename,
         "mime_type": file.content_type,
+        "file_sha256": file_sha256,
+        "file_size_bytes": file_size_bytes,
         "match_status": VoucherMatchStatus.pending,
         "reviewed_by_user_id": None,
         "reviewed_at": None,
@@ -249,6 +341,8 @@ def attempt_match_intake(db: Session, intake_id: int):
         return None
 
     matched_client = _find_client_by_phone(db, intake.sender_phone)
+    if not matched_client:
+        matched_client = _find_client_by_name(db, intake.extracted_sender_name)
     intake.matched_client_id = matched_client.id if matched_client else None
 
     if matched_client:
@@ -258,18 +352,16 @@ def attempt_match_intake(db: Session, intake_id: int):
             intake.created_order_id = None
             intake.match_status = VoucherMatchStatus.suggested
         else:
-            created_order = _create_base_order(db, matched_client.id, intake)
-            intake.created_order_id = created_order.id
-            intake.matched_order_id = created_order.id
-            intake.match_status = VoucherMatchStatus.suggested
+            # No crear pedidos automáticamente: esperar decisión del vendedor.
+            intake.created_order_id = None
+            intake.matched_order_id = None
+            intake.match_status = VoucherMatchStatus.pending
     else:
-        provisional_client = _create_provisional_client(db, intake)
-        created_order = _create_base_order(db, provisional_client.id, intake)
-
-        intake.matched_client_id = provisional_client.id
-        intake.created_order_id = created_order.id
-        intake.matched_order_id = created_order.id
-        intake.match_status = VoucherMatchStatus.suggested
+        # Sin cliente identificado: no crear cliente/pedido/pago en automático.
+        intake.matched_client_id = None
+        intake.created_order_id = None
+        intake.matched_order_id = None
+        intake.match_status = VoucherMatchStatus.pending
 
     intake.reviewed_by_user_id = None
     intake.reviewed_at = None
@@ -289,6 +381,7 @@ def confirm_intake_match(db: Session, intake_id: int, current_user: User):
 
     voucher_public_path = f"/uploads/intake/{intake.file_path}"
     register_voucher(db, intake.matched_order_id, voucher_public_path)
+    update_payment_status(db, payment.id, PaymentStatus.confirmed, notes="Confirmado desde intake automático")
 
     intake.match_status = VoucherMatchStatus.confirmed
     intake.reviewed_by_user_id = current_user.id
@@ -324,6 +417,7 @@ def reassign_intake_match(db: Session, intake_id: int, order_id: int, current_us
 
     voucher_public_path = f"/uploads/intake/{intake.file_path}"
     register_voucher(db, order.id, voucher_public_path)
+    update_payment_status(db, payment.id, PaymentStatus.confirmed, notes="Confirmado desde reasignación de intake")
 
     intake.match_status = VoucherMatchStatus.confirmed
     intake.reviewed_by_user_id = current_user.id
