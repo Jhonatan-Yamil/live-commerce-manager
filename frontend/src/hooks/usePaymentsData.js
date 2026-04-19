@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { intakeApi, ordersApi, paymentsApi } from "../services/api";
+import { useNotification } from "../context/NotificationContext";
 
 export default function usePaymentsData() {
+  const { notifyError, notifyWarning } = useNotification();
   const [payments, setPayments] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
   const [orders, setOrders] = useState([]);
@@ -70,7 +72,7 @@ export default function usePaymentsData() {
     async (orderId) => {
       const file = files[orderId];
       if (!file) {
-        alert("Selecciona un archivo primero");
+        notifyWarning("Selecciona un archivo primero");
         return;
       }
 
@@ -80,12 +82,12 @@ export default function usePaymentsData() {
         setFiles((prev) => ({ ...prev, [orderId]: null }));
         await load();
       } catch {
-        alert("Error al subir el comprobante");
+        notifyError("Error al subir el comprobante");
       } finally {
         setUploading((prev) => ({ ...prev, [orderId]: false }));
       }
     },
-    [files, load]
+    [files, load, notifyError, notifyWarning]
   );
 
   const handleSuggestionAction = useCallback(
@@ -101,19 +103,19 @@ export default function usePaymentsData() {
         } else if (action === "reassign") {
           const selected = reassignOrder[intakeId];
           if (!selected?.id) {
-            alert("Selecciona un pedido sugerido para reasignar");
+            notifyWarning("Selecciona un pedido sugerido para reasignar");
             return;
           }
           await intakeApi.reassign(intakeId, selected.id);
         }
         await load();
       } catch {
-        alert("No se pudo completar la acción sobre la sugerencia");
+        notifyError("No se pudo completar la acción sobre la sugerencia");
       } finally {
         setProcessingAction((prev) => ({ ...prev, [intakeId]: false }));
       }
     },
-    [load, reassignOrder]
+    [load, notifyError, notifyWarning, reassignOrder]
   );
 
   return {

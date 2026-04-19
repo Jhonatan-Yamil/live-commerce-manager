@@ -53,43 +53,24 @@ export default function LotAutocomplete({ lots, value, onChange, onSelect, onCle
 
 	return (
 		<div ref={ref} style={{ position: "relative" }}>
-			<div style={{ display: "flex", gap: 6 }}>
-				<input
-					value={value}
-					onChange={(e) => {
-						onChange(e.target.value);
-						setOpen(true);
-					}}
-					onFocus={() => setOpen(true)}
-					onKeyDown={handleKeyDown}
-					placeholder="Sin lote (opcional)"
-					style={{
-						flex: 1,
-						padding: "8px 10px",
-						border: "1px solid #ddd",
-						borderRadius: 6,
-						fontSize: 14,
-						boxSizing: "border-box",
-					}}
-				/>
-
-				{value && (
-					<button
-						onMouseDown={onClear}
-						style={{
-							padding: "6px 10px",
-							background: "#f0f0f0",
-							border: "none",
-							borderRadius: 6,
-							cursor: "pointer",
-							color: "#888",
-							fontSize: 13,
-						}}
-					>
-						x
-					</button>
-				)}
-			</div>
+			<input
+				value={value}
+				onChange={(e) => {
+					onChange(e.target.value);
+					setOpen(true);
+				}}
+				onFocus={() => setOpen(true)}
+				onKeyDown={handleKeyDown}
+				placeholder="Ej: Lote A - Ropa de invierno"
+				style={{
+					width: "100%",
+					padding: "8px 10px",
+					border: "1px solid #ddd",
+					borderRadius: 6,
+					fontSize: 14,
+					boxSizing: "border-box",
+				}}
+			/>
 
 			{open && value.length > 0 && (
 				<div

@@ -10,8 +10,10 @@ import StatusBadge from "../components/common/StatusBadge";
 import TablePager from "../components/common/TablePager";
 import { ORDER_STATUS_LABELS } from "../utils/constants";
 import useCrudForm from "../hooks/useCrudForm";
+import { useNotification } from "../context/NotificationContext";
 
 export default function ClientsPage() {
+  const { notifyWarning } = useNotification();
   const [clients, setClients] = useState([]);
   const [orders, setOrders] = useState([]);
   const [search, setSearch] = useState("");
@@ -46,7 +48,7 @@ export default function ClientsPage() {
     }),
     validateCreate: (payload) => {
       if (!payload.phone.trim()) {
-        alert("El teléfono es obligatorio para registrar cliente");
+        notifyWarning("El teléfono es obligatorio para registrar cliente");
         return false;
       }
       return true;

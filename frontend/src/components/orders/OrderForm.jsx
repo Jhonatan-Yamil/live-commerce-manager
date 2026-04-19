@@ -106,6 +106,9 @@ export default function OrderForm({
 								style={inputStyle}
 								placeholder="+591 7..."
 							/>
+							<Typography sx={{ mt: 0.5, fontSize: 12, color: "#b45309" }}>
+								Obligatorio para registrar cliente nuevo
+							</Typography>
 						</div>
 					)}
 				</div>
@@ -200,25 +203,7 @@ export default function OrderForm({
 						</Box>
 
 						<div>
-							<label style={{ ...labelStyle, color: "#aaa" }}>
-								Lote
-								{item.lot_id && (
-									<span
-										style={{
-											marginLeft: 8,
-											background: "#d1fae5",
-											color: "#059669",
-											borderRadius: 20,
-											padding: "1px 8px",
-											fontSize: 11,
-											fontWeight: 600,
-										}}
-									>
-										Asociado
-									</span>
-								)}
-							</label>
-
+						<label style={labelStyle}>Lote *</label>
 							<LotAutocomplete
 								lots={lots}
 								value={item.lot_input}
@@ -249,12 +234,12 @@ export default function OrderForm({
 				<Button
 					variant="contained"
 					onClick={onSubmit}
-					disabled={loading || !clientInput || missingPhoneForNewClient || form.items.some((i) => !i.product_name || !i.unit_price)}
+					disabled={loading || !clientInput || missingPhoneForNewClient || form.items.some((i) => !i.product_name || !i.unit_price || !i.lot_id)}
 					sx={{
 						background: "#4f46e5",
 						"&:hover": { background: "#4338ca" },
 						borderRadius: 2,
-						opacity: loading || !clientInput || missingPhoneForNewClient ? 0.6 : 1,
+						opacity: loading || !clientInput || missingPhoneForNewClient || form.items.some((i) => !i.product_name || !i.unit_price || !i.lot_id) ? 0.6 : 1,
 					}}
 				>
 					{loading ? "Guardando..." : "Registrar pedido"}

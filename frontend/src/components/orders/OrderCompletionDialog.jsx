@@ -12,10 +12,12 @@ import {
 } from "@mui/material";
 import OrderForm from "./OrderForm";
 import { clientsApi, intakeApi, lotsApi, ordersApi, productsApi } from "../../services/api";
+import { useNotification } from "../../context/NotificationContext";
 
 const emptyItem = () => ({ product_name: "", quantity: 1, unit_price: "", lot_id: null, lot_input: "" });
 
 export default function OrderCompletionDialog({ open, suggestion, onClose, onCompleted }) {
+  const { notifyError, notifyWarning } = useNotification();
   const isIntakeMode = Boolean(suggestion);
   const [clients, setClients] = useState([]);
   const [lots, setLots] = useState([]);
@@ -111,7 +113,12 @@ export default function OrderCompletionDialog({ open, suggestion, onClose, onCom
 
   const handleSubmit = async () => {
     if (mismatch && !allowTotalOverride) {
-      alert("El total no coincide con el comprobante. Activa la confirmación de excepción para continuar.");
+      notifyWarning("El total no coincide con el comprobante. Activa la confirmación de excepción para continuar.");
+      return;
+    }
+
+    if (form.items.some((i) => !i.lot_id)) {
+      notifyWarning("Debes asignar un lote a todos los productos");
       return;
     }
 
@@ -120,7 +127,7 @@ export default function OrderCompletionDialog({ open, suggestion, onClose, onCom
       let clientId = selectedClient?.id;
       if (!clientId) {
         if (!clientPhone.trim()) {
-          alert("Debes ingresar celular para cliente nuevo/provisional");
+          notifyWarning("Debes ingresar celular para cliente nuevo/provisional");
           return;
         }
         const c = await clientsApi.create({ full_name: clientInput.trim(), phone: clientPhone.trim() });
@@ -134,7 +141,7 @@ export default function OrderCompletionDialog({ open, suggestion, onClose, onCom
           product_name: i.product_name,
           quantity: parseInt(i.quantity, 10),
           unit_price: parseFloat(i.unit_price),
-          lot_id: i.lot_id || null,
+          lot_id: i.lot_id,
         })),
       };
 
@@ -145,7 +152,7 @@ export default function OrderCompletionDialog({ open, suggestion, onClose, onCom
       onCompleted?.();
       onClose?.();
     } catch {
-      alert("No se pudo completar el pedido desde la sugerencia");
+      notifyError("No se pudo completar el pedido desde la sugerencia");
     } finally {
       setLoading(false);
     }
