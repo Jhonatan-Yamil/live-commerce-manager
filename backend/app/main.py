@@ -5,17 +5,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.database.session import engine
-from app.database.schema_sync import ensure_voucher_intake_processing_columns
-from app.models import base, user, client, product, order, payment, logistics, lot, voucher_intake
 from app.routers import auth, users, clients, products, orders, payments, lots, intake, telegram_integration
 from app.routers import logistics as logistics_router
 from app.services.intake_processing_service import process_intake_job
 from app.services.intake_queue_service import start_intake_worker, stop_intake_worker
 from app.services.telegram_intake_service import ensure_telegram_webhook_configured
-
-base.Base.metadata.create_all(bind=engine)
-ensure_voucher_intake_processing_columns(engine)
 
 app = FastAPI(
     title="LiveSale Manager",
