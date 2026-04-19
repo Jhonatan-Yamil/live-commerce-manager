@@ -35,21 +35,28 @@ api.interceptors.response.use(
 
 export default api;
 
+const createCrudApi = (basePath, options = {}) => {
+  const crudApi = {
+    list: () => api.get(basePath),
+    create: (data) => api.post(basePath, data),
+    update: (id, data) => api.put(`${basePath}/${id}`, data),
+  };
+
+  if (options.includeGet) {
+    crudApi.get = (id) => api.get(`${basePath}/${id}`);
+  }
+
+  return crudApi;
+};
+
 export const authApi = {
   login: (data) => api.post("/auth/login", data),
 };
 
-export const clientsApi = {
-  list: () => api.get("/clients"),
-  create: (d) => api.post("/clients", d),
-  update: (id, d) => api.put(`/clients/${id}`, d),
-  get: (id) => api.get(`/clients/${id}`),
-};
+export const clientsApi = createCrudApi("/clients", { includeGet: true });
 
 export const productsApi = {
-  list: () => api.get("/products"),
-  create: (d) => api.post("/products", d),
-  update: (id, d) => api.put(`/products/${id}`, d),
+  ...createCrudApi("/products"),
   sold: () => api.get("/products/sold"),
   names: () => api.get("/products/names"),
 };
@@ -73,17 +80,9 @@ export const paymentsApi = {
   },
 };
 
-export const logisticsApi = {
-  list: () => api.get("/logistics"),
-  create: (d) => api.post("/logistics", d),
-  update: (id, d) => api.put(`/logistics/${id}`, d),
-};
+export const logisticsApi = createCrudApi("/logistics");
 
-export const lotsApi = {
-  list: () => api.get("/lots"),
-  create: (d) => api.post("/lots", d),
-  update: (id, d) => api.put(`/lots/${id}`, d),
-};
+export const lotsApi = createCrudApi("/lots");
 
 export const intakeApi = {
   listSuggestions: (status) => api.get("/intake/suggestions", { params: status ? { status } : {} }),

@@ -5,7 +5,7 @@ from io import BytesIO
 from typing import Any
 
 try:
-    import fitz  # PyMuPDF
+    import fitz
 except Exception:
     fitz = None
 
@@ -24,7 +24,7 @@ def _get_engine():
     if _ocr_engine is not None:
         return _ocr_engine
     try:
-        from rapidocr_onnxruntime import RapidOCR  # type: ignore[import-not-found]
+        from rapidocr_onnxruntime import RapidOCR
     except Exception:
         return None
 

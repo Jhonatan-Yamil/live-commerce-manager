@@ -9,6 +9,7 @@ from app.services.logistics_service import (
     list_logistics as list_logistics_service,
     update_logistics as update_logistics_service,
 )
+from app.routers.utils import require_found
 
 router = APIRouter()
 
@@ -29,14 +30,10 @@ def list_logistics(db: Session = Depends(get_db), _=Depends(get_current_user)):
 @router.get("/{logistics_id}", response_model=LogisticsOut)
 def get_logistics(logistics_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
     l = get_logistics_service(db, logistics_id)
-    if not l:
-        raise HTTPException(status_code=404, detail="No encontrado")
-    return l
+    return require_found(l, "No encontrado")
 
 
 @router.put("/{logistics_id}", response_model=LogisticsOut)
 def update_logistics(logistics_id: int, data: LogisticsUpdate, db: Session = Depends(get_db), _=Depends(get_current_user)):
     l = update_logistics_service(db, logistics_id, data.model_dump(exclude_unset=True))
-    if not l:
-        raise HTTPException(status_code=404, detail="No encontrado")
-    return l
+    return require_found(l, "No encontrado")

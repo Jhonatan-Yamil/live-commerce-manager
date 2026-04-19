@@ -1,11 +1,12 @@
-import { useState, useEffect } from "react";
+import { Fragment, useState, useEffect } from "react";
 import {
   Box, Typography, Paper, Grid,
   Table, TableBody, TableCell, TableContainer,
-  TableHead, TableRow, TablePagination, Button, CircularProgress,
+  TableHead, TableRow, Button, CircularProgress,
 } from "@mui/material";
 import { productsApi } from "../services/api";
 import SearchBar from "../components/common/SearchBar";
+import TablePager from "../components/common/TablePager";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
@@ -86,8 +87,8 @@ export default function ProductsPage() {
               </TableRow>
             ) : filtered.length > 0 ? (
               filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((p) => (
-                <>
-                  <TableRow key={p.product_id} hover sx={{ borderBottom: expanded[p.product_id] ? "none" : undefined }}>
+                <Fragment key={p.product_id}>
+                  <TableRow hover sx={{ borderBottom: expanded[p.product_id] ? "none" : undefined }}>
                     <TableCell sx={{ fontWeight: 600, color: "#1a1a2e" }}>{p.name}</TableCell>
                     <TableCell sx={{ color: "#4f46e5", fontWeight: 600 }}>{p.units_sold} uds</TableCell>
                     <TableCell sx={{ color: "#666" }}>{p.orders_count} pedido(s)</TableCell>
@@ -117,7 +118,7 @@ export default function ProductsPage() {
                       <TableCell />
                     </TableRow>
                   ))}
-                </>
+                </Fragment>
               ))
             ) : (
               <TableRow>
@@ -128,16 +129,12 @@ export default function ProductsPage() {
             )}
           </TableBody>
         </Table>
-        <TablePagination
-          component="div"
+        <TablePager
           count={filtered.length}
           page={page}
-          onPageChange={(_, newPage) => setPage(newPage)}
           rowsPerPage={rowsPerPage}
-          onRowsPerPageChange={(e) => { setRowsPerPage(parseInt(e.target.value)); setPage(0); }}
-          rowsPerPageOptions={[5, 10, 25]}
-          labelRowsPerPage="Filas por página:"
-          labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
+          onPageChange={setPage}
+          onRowsPerPageChange={(value) => { setRowsPerPage(value); setPage(0); }}
         />
       </TableContainer>
     </Box>

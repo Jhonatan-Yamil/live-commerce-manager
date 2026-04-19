@@ -48,7 +48,6 @@ def on_startup():
     if settings.INTAKE_ASYNC_ENABLED and settings.INTAKE_WORKER_EMBEDDED:
         start_intake_worker(process_intake_job)
 
-    # Non-blocking background setup: retries while ngrok/public URL becomes available.
     threading.Thread(target=ensure_telegram_webhook_configured, daemon=True).start()
 
 

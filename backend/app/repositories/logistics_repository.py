@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.models.logistics import Logistics
+from app.repositories.crud_utils import get_entity_by_id, list_entities, update_entity
 
 
 def create_logistics(db: Session, payload: dict):
@@ -16,21 +17,13 @@ def create_logistics(db: Session, payload: dict):
 
 
 def list_logistics(db: Session):
-    return db.query(Logistics).all()
+    return list_entities(db, Logistics)
 
 
 def get_logistics_by_id(db: Session, logistics_id: int):
-    return db.query(Logistics).filter(Logistics.id == logistics_id).first()
+    return get_entity_by_id(db, Logistics, logistics_id)
 
 
 def update_logistics(db: Session, logistics_id: int, payload: dict):
     logistics = get_logistics_by_id(db, logistics_id)
-    if not logistics:
-        return None
-
-    for key, value in payload.items():
-        setattr(logistics, key, value)
-
-    db.commit()
-    db.refresh(logistics)
-    return logistics
+    return update_entity(db, logistics, payload)

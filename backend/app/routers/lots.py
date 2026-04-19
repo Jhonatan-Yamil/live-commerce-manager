@@ -1,10 +1,11 @@
 from decimal import Decimal
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.auth.dependencies import get_current_user
 from app.schemas.lot import LotCreate, LotUpdate, LotOut
 from app.services.lot_service import create_lot, get_lot as get_lot_service, get_lots_with_stats, update_lot
+from app.routers.utils import require_found
 
 router = APIRouter()
 
@@ -35,14 +36,10 @@ def list_lots(db: Session = Depends(get_db), _=Depends(get_current_user)):
 @router.get("/{lot_id}", response_model=LotOut)
 def get_lot(lot_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
     lot = get_lot_service(db, lot_id)
-    if not lot:
-        raise HTTPException(status_code=404, detail="Lote no encontrado")
-    return lot
+    return require_found(lot, "Lote no encontrado")
 
 
 @router.put("/{lot_id}", response_model=LotOut)
 def edit_lot(lot_id: int, data: LotUpdate, db: Session = Depends(get_db), _=Depends(get_current_user)):
     lot = update_lot(db, lot_id, data)
-    if not lot:
-        raise HTTPException(status_code=404, detail="Lote no encontrado")
-    return lot
+    return require_found(lot, "Lote no encontrado")

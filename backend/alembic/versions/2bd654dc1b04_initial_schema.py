@@ -1,10 +1,3 @@
-"""initial_schema
-
-Revision ID: 2bd654dc1b04
-Revises: 
-Create Date: 2026-04-18 21:01:17.594965
-
-"""
 from typing import Sequence, Union
 
 from alembic import op
@@ -13,7 +6,6 @@ from app.models.base import Base
 from app.models import user, client, product, order, payment, logistics, lot, voucher_intake
 
 
-# revision identifiers, used by Alembic.
 revision: str = '2bd654dc1b04'
 down_revision: Union[str, None] = None
 branch_labels: Union[str, Sequence[str], None] = None

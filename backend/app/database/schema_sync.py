@@ -34,7 +34,6 @@ def ensure_voucher_intake_processing_columns(engine: Engine) -> None:
         for column_name, column_sql in missing_columns.items():
             connection.execute(text(f"ALTER TABLE voucher_intakes ADD COLUMN IF NOT EXISTS {column_name} {column_sql}"))
 
-        # Backfill básicos para que los registros existentes no queden sin estado.
         connection.execute(
             text(
                 """

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, UploadFile, File, Form
 from sqlalchemy.orm import Session
 
 from app.database.session import get_db
@@ -14,6 +14,7 @@ from app.services.voucher_intake_service import (
     reassign_intake_match,
     reprocess_intake,
 )
+from app.routers.utils import require_found, value_error_to_http_400
 
 
 router = APIRouter()
@@ -40,7 +41,7 @@ def upload_voucher_intake(
             sender_phone=sender_phone,
         )
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise value_error_to_http_400(e)
 
 
 @router.get("/vouchers", response_model=list[VoucherIntakeOut])
@@ -63,7 +64,6 @@ def list_voucher_suggestions(
     _=Depends(get_current_user),
 ):
     if status is None:
-        # Vista operativa por defecto: pendientes y sugeridos.
         suggestions = list_intakes_service(db, status=VoucherMatchStatus.pending, skip=skip, limit=limit)
         if len(suggestions) < limit:
             remaining = limit - len(suggestions)
@@ -80,9 +80,7 @@ def match_voucher_intake(
     _=Depends(get_current_user),
 ):
     intake = attempt_match_intake(db, intake_id)
-    if not intake:
-        raise HTTPException(status_code=404, detail="Comprobante intake no encontrado")
-    return intake
+    return require_found(intake, "Comprobante intake no encontrado")
 
 
 @router.post("/vouchers/{intake_id}/confirm", response_model=VoucherIntakeOut)
@@ -94,11 +92,9 @@ def confirm_voucher_intake(
     try:
         intake = confirm_intake_match(db, intake_id, current_user)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise value_error_to_http_400(e)
 
-    if not intake:
-        raise HTTPException(status_code=404, detail="Comprobante intake no encontrado")
-    return intake
+    return require_found(intake, "Comprobante intake no encontrado")
 
 
 @router.post("/vouchers/{intake_id}/reject", response_model=VoucherIntakeOut)
@@ -108,9 +104,7 @@ def reject_voucher_intake(
     current_user=Depends(get_current_user),
 ):
     intake = reject_intake_match(db, intake_id, current_user)
-    if not intake:
-        raise HTTPException(status_code=404, detail="Comprobante intake no encontrado")
-    return intake
+    return require_found(intake, "Comprobante intake no encontrado")
 
 
 @router.post("/vouchers/{intake_id}/reassign", response_model=VoucherIntakeOut)
@@ -123,11 +117,9 @@ def reassign_voucher_intake(
     try:
         intake = reassign_intake_match(db, intake_id, data.order_id, current_user)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
+        raise value_error_to_http_400(e)
 
-    if not intake:
-        raise HTTPException(status_code=404, detail="Comprobante intake no encontrado")
-    return intake
+    return require_found(intake, "Comprobante intake no encontrado")
 
 
 @router.post("/vouchers/{intake_id}/reprocess", response_model=VoucherIntakeOut)
@@ -137,6 +129,4 @@ def reprocess_voucher_intake(
     _=Depends(get_current_user),
 ):
     intake = reprocess_intake(db, intake_id)
-    if not intake:
-        raise HTTPException(status_code=404, detail="Comprobante intake no encontrado")
-    return intake
+    return require_found(intake, "Comprobante intake no encontrado")
