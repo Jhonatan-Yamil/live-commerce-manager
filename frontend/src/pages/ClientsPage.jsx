@@ -9,13 +9,11 @@ import SearchBar from "../components/common/SearchBar";
 import StatusBadge from "../components/common/StatusBadge";
 import TablePager from "../components/common/TablePager";
 import { ORDER_STATUS_LABELS } from "../utils/constants";
+import useCrudForm from "../hooks/useCrudForm";
 
 export default function ClientsPage() {
   const [clients, setClients] = useState([]);
   const [orders, setOrders] = useState([]);
-  const [showForm, setShowForm] = useState(false);
-  const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ full_name: "", phone: "", address: "", notes: "" });
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -27,24 +25,33 @@ export default function ClientsPage() {
   };
   useEffect(() => { load(); }, []);
 
-  const handleSubmit = async () => {
-    if (editing) {
-      await clientsApi.update(editing.id, form);
-    } else {
-      if (!form.phone.trim()) return alert("El teléfono es obligatorio para registrar cliente");
-      await clientsApi.create(form);
-    }
-    setShowForm(false);
-    setEditing(null);
-    setForm({ full_name: "", phone: "", address: "", notes: "" });
-    load();
-  };
-
-  const startEdit = (c) => {
-    setEditing(c);
-    setForm({ full_name: c.full_name, phone: c.phone || "", address: c.address || "", notes: c.notes || "" });
-    setShowForm(true);
-  };
+  const {
+    showForm,
+    editing,
+    form,
+    setForm,
+    toggleCreate,
+    openEdit,
+    submitForm,
+  } = useCrudForm({
+    initialForm: { full_name: "", phone: "", address: "", notes: "" },
+    loadData: load,
+    createItem: (payload) => clientsApi.create(payload),
+    updateItem: (id, payload) => clientsApi.update(id, payload),
+    mapToForm: (c) => ({
+      full_name: c.full_name,
+      phone: c.phone || "",
+      address: c.address || "",
+      notes: c.notes || "",
+    }),
+    validateCreate: (payload) => {
+      if (!payload.phone.trim()) {
+        alert("El teléfono es obligatorio para registrar cliente");
+        return false;
+      }
+      return true;
+    },
+  });
 
   const getClientOrders = (clientId) => orders.filter((o) => o.client_id === clientId);
 
@@ -58,7 +65,7 @@ export default function ClientsPage() {
     <Box>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
         <Typography variant="h5" fontWeight={700} color="#1a1a2e">Clientes</Typography>
-        <Button variant="contained" onClick={() => { setShowForm(!showForm); setEditing(null); setForm({ full_name: "", phone: "", address: "", notes: "" }); }}
+        <Button variant="contained" onClick={toggleCreate}
           sx={{ background: "#4f46e5", "&:hover": { background: "#4338ca" }, borderRadius: 2 }}>
           {showForm ? "Cancelar" : "+ Nuevo cliente"}
         </Button>
@@ -85,7 +92,7 @@ export default function ClientsPage() {
                 value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
             </Grid>
           </Grid>
-          <Button variant="contained" onClick={handleSubmit} disabled={!form.full_name || (!editing && !form.phone.trim())}
+          <Button variant="contained" onClick={submitForm} disabled={!form.full_name || (!editing && !form.phone.trim())}
             sx={{ background: "#4f46e5", "&:hover": { background: "#4338ca" }, borderRadius: 2 }}>
             {editing ? "Guardar cambios" : "Registrar"}
           </Button>
@@ -133,7 +140,7 @@ export default function ClientsPage() {
                       )}
                     </TableCell>
                     <TableCell>
-                      <Button size="small" variant="outlined" onClick={() => startEdit(c)}
+                      <Button size="small" variant="outlined" onClick={() => openEdit(c)}
                         sx={{ color: "#4f46e5", borderColor: "#c7d2fe", background: "#e0e7ff", borderRadius: 2, fontSize: 13 }}>
                         Editar
                       </Button>

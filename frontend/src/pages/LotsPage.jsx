@@ -4,12 +4,10 @@ import {
 } from "@mui/material";
 import SearchBar from "../components/common/SearchBar";
 import { lotsApi } from "../services/api";
+import useCrudForm from "../hooks/useCrudForm";
 
 export default function LotsPage() {
   const [lots, setLots] = useState([]);
-  const [showForm, setShowForm] = useState(false);
-  const [editing, setEditing] = useState(null);
-  const [form, setForm] = useState({ name: "", brand: "", total_units: "", total_cost: "", notes: "" });
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
@@ -17,24 +15,32 @@ export default function LotsPage() {
   const load = () => lotsApi.list().then((r) => setLots(r.data));
   useEffect(() => { load(); }, []);
 
-  const handleSubmit = async () => {
-    const payload = { ...form, total_units: parseInt(form.total_units), total_cost: parseFloat(form.total_cost) };
-    if (editing) {
-      await lotsApi.update(editing.id, payload);
-    } else {
-      await lotsApi.create(payload);
-    }
-    setShowForm(false);
-    setEditing(null);
-    setForm({ name: "", brand: "", total_units: "", total_cost: "", notes: "" });
-    load();
-  };
-
-  const startEdit = (l) => {
-    setEditing(l);
-    setForm({ name: l.name, brand: l.brand, total_units: String(l.total_units), total_cost: String(l.total_cost), notes: l.notes || "" });
-    setShowForm(true);
-  };
+  const {
+    showForm,
+    editing,
+    form,
+    setForm,
+    toggleCreate,
+    openEdit,
+    submitForm,
+  } = useCrudForm({
+    initialForm: { name: "", brand: "", total_units: "", total_cost: "", notes: "" },
+    loadData: load,
+    createItem: (payload) => lotsApi.create(payload),
+    updateItem: (id, payload) => lotsApi.update(id, payload),
+    mapToForm: (l) => ({
+      name: l.name,
+      brand: l.brand,
+      total_units: String(l.total_units),
+      total_cost: String(l.total_cost),
+      notes: l.notes || "",
+    }),
+    mapToPayload: (payload) => ({
+      ...payload,
+      total_units: parseInt(payload.total_units, 10),
+      total_cost: parseFloat(payload.total_cost),
+    }),
+  });
 
   const filtered = lots.filter((l) =>
     !search ||
@@ -51,7 +57,7 @@ export default function LotsPage() {
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
         <Typography variant="h5" fontWeight={700} color="#1a1a2e">Lotes de mercancía</Typography>
         <Button variant="contained"
-          onClick={() => { setShowForm(!showForm); setEditing(null); setForm({ name: "", brand: "", total_units: "", total_cost: "", notes: "" }); }}
+          onClick={toggleCreate}
           sx={{ background: "#4f46e5", "&:hover": { background: "#4338ca" }, borderRadius: 2 }}>
           {showForm ? "Cancelar" : "+ Nuevo lote"}
         </Button>
@@ -89,7 +95,7 @@ export default function LotsPage() {
                 value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} placeholder="Observaciones del lote..." />
             </Grid>
           </Grid>
-          <Button variant="contained" onClick={handleSubmit}
+          <Button variant="contained" onClick={submitForm}
             disabled={!form.name || !form.brand || !form.total_units || !form.total_cost}
             sx={{ background: "#4f46e5", "&:hover": { background: "#4338ca" }, borderRadius: 2 }}>
             {editing ? "Guardar cambios" : "Registrar lote"}
@@ -122,7 +128,7 @@ export default function LotsPage() {
                   <Typography variant="caption" color="text.secondary">Marca: <strong>{l.brand}</strong></Typography>
                   {l.notes && <Typography variant="caption" color="text.secondary" display="block">{l.notes}</Typography>}
                 </Box>
-                <Button variant="outlined" size="small" onClick={() => startEdit(l)}
+                <Button variant="outlined" size="small" onClick={() => openEdit(l)}
                   sx={{ color: "#4f46e5", borderColor: "#c7d2fe", background: "#e0e7ff", borderRadius: 2, fontSize: 13 }}>
                   Editar
                 </Button>

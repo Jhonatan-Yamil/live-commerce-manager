@@ -1,6 +1,20 @@
 import axios from "axios";
 
-const api = axios.create({ baseURL: "http://localhost:8000/api" });
+const rawApiBaseUrl = process.env.REACT_APP_API_URL || "http://localhost:8000/api";
+const api = axios.create({ baseURL: rawApiBaseUrl });
+
+export const getBackendOrigin = () => {
+  if (rawApiBaseUrl.startsWith("/")) {
+    if (typeof window !== "undefined") return window.location.origin;
+    return "http://localhost:8000";
+  }
+
+  try {
+    return new URL(rawApiBaseUrl).origin;
+  } catch {
+    return "http://localhost:8000";
+  }
+};
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");

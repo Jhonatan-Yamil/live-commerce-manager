@@ -8,6 +8,9 @@ venv/
 
 # Entorno
 backend/.env
+.env
+.env.prod
+.env.local
 
 # Node
 node_modules/
@@ -19,6 +22,13 @@ frontend/.env.local
 .vscode/
 .idea/
 *.swp
+
+# Terraform
+*.tfvars
+*.tfstate
+*.tfstate.*
+.terraform/
+!*.example
 
 # Archivos subidos por usuarios
 backend/uploads/*

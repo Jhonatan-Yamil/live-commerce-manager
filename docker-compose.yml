@@ -1,0 +1,71 @@
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-livesale}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./backend
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-livesale}
+      SECRET_KEY: ${SECRET_KEY}
+      ALGORITHM: ${ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-1440}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      TELEGRAM_WEBHOOK_SECRET: ${TELEGRAM_WEBHOOK_SECRET}
+      TELEGRAM_WEBHOOK_AUTO_SETUP: ${TELEGRAM_WEBHOOK_AUTO_SETUP:-true}
+      TELEGRAM_PUBLIC_BASE_URL: ${TELEGRAM_PUBLIC_BASE_URL:-}
+      TELEGRAM_WEBHOOK_DROP_PENDING_UPDATES: ${TELEGRAM_WEBHOOK_DROP_PENDING_UPDATES:-false}
+      NGROK_API_URL: http://ngrok:4040
+      INTAKE_ASYNC_ENABLED: ${INTAKE_ASYNC_ENABLED:-true}
+      INTAKE_QUEUE_BACKEND: ${INTAKE_QUEUE_BACKEND:-memory}
+      INTAKE_QUEUE_KEY: ${INTAKE_QUEUE_KEY:-live-sale:intake-queue}
+      INTAKE_WORKER_EMBEDDED: ${INTAKE_WORKER_EMBEDDED:-true}
+      INTAKE_MAX_FILE_SIZE_MB: ${INTAKE_MAX_FILE_SIZE_MB:-10}
+      INTAKE_HASH_DEDUP_WINDOW_HOURS: ${INTAKE_HASH_DEDUP_WINDOW_HOURS:-24}
+      REDIS_URL: redis://redis:6379/0
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+      UPLOADS_DIR: ${UPLOADS_DIR:-uploads}
+    volumes:
+      - ./backend/uploads:/app/uploads
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - redis
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:8000/api}
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    profiles: ["with-ngrok"]
+    command: ["http", "backend:8000", "--log=stdout"]
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-}
+    ports:
+      - "4040:4040"
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:

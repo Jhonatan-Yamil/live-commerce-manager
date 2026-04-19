@@ -1,0 +1,5 @@
+aws_region    = "us-east-1"
+project_name  = "live-commerce-manager"
+instance_type = "t3a.small"
+ssh_cidr      = "0.0.0.0/0"
+key_pair_name = "my-existing-keypair"
