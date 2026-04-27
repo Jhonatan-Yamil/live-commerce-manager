@@ -17,6 +17,7 @@ import StatusBadge from "../components/common/StatusBadge";
 import TablePager from "../components/common/TablePager";
 import OrderCompletionDialog from "../components/orders/OrderCompletionDialog";
 import { ORDER_STATUS_LABELS } from "../utils/constants";
+import { APP_PALETTE } from "../theme/palette";
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
@@ -93,13 +94,13 @@ export default function OrdersPage() {
   return (
     <Box>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-        <Typography variant="h5" fontWeight={700} color="#1a1a2e">
+        <Typography variant="h5" fontWeight={700} color={APP_PALETTE.text.primary}>
           Pedidos
         </Typography>
         <Button
           variant="contained"
           onClick={() => setShowForm(true)}
-          sx={{ background: "#4f46e5", "&:hover": { background: "#4338ca" }, borderRadius: 2 }}
+          sx={{ background: APP_PALETTE.brand.primary, "&:hover": { background: APP_PALETTE.brand.primaryHover }, borderRadius: 2 }}
         >
           + Nuevo pedido
         </Button>
@@ -125,9 +126,9 @@ export default function OrdersPage() {
       <TableContainer component={Paper} sx={{ borderRadius: 3, boxShadow: "0 1px 8px rgba(0,0,0,0.08)" }}>
         <Table>
           <TableHead>
-            <TableRow sx={{ background: "#f8f9fc" }}>
+            <TableRow sx={{ background: APP_PALETTE.surfaces.subtle }}>
               {["#", "Cliente", "Ítems", "Total", "Estado", "Fecha"].map((h) => (
-                <TableCell key={h} sx={{ fontWeight: 700, color: "#888", fontSize: 13 }}>
+                <TableCell key={h} sx={{ fontWeight: 700, color: APP_PALETTE.text.muted, fontSize: 13 }}>
                   {h}
                 </TableCell>
               ))}
@@ -135,17 +136,17 @@ export default function OrdersPage() {
           </TableHead>
           <TableBody>
             {filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((o) => {
-              const s = ORDER_STATUS_LABELS[o.status] || { label: o.status, color: "#888" };
+              const s = ORDER_STATUS_LABELS[o.status] || { label: o.status, color: APP_PALETTE.text.muted };
               return (
                 <TableRow key={o.id} hover>
-                  <TableCell sx={{ fontWeight: 600, color: "#666" }}>#{o.id}</TableCell>
+                  <TableCell sx={{ fontWeight: 600, color: APP_PALETTE.text.secondary }}>#{o.id}</TableCell>
                   <TableCell>{o.client?.full_name}</TableCell>
-                  <TableCell sx={{ color: "#666", fontSize: 13 }}>{o.items?.length || 0} ítem(s)</TableCell>
+                  <TableCell sx={{ color: APP_PALETTE.text.secondary, fontSize: 13 }}>{o.items?.length || 0} ítem(s)</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Bs. {Number(o.total).toFixed(2)}</TableCell>
                   <TableCell>
                     <StatusBadge label={s.label} color={s.color} />
                   </TableCell>
-                  <TableCell sx={{ color: "#888", fontSize: 13 }}>
+                  <TableCell sx={{ color: APP_PALETTE.text.muted, fontSize: 13 }}>
                     {new Date(o.created_at).toLocaleDateString("es-BO")}
                   </TableCell>
                 </TableRow>
@@ -153,7 +154,7 @@ export default function OrdersPage() {
             })}
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 4, color: "#aaa" }}>
+                <TableCell colSpan={6} align="center" sx={{ py: 4, color: APP_PALETTE.text.muted }}>
                   {search || statusFilter !== "all" || dateFrom || dateTo
                     ? "No se encontraron pedidos"
                     : "No hay pedidos registrados"}

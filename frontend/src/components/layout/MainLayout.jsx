@@ -14,6 +14,7 @@ import {
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
 import Sidebar from "./Sidebar";
+import { APP_PALETTE } from "../../theme/palette";
 
 export default function MainLayout() {
   const { user, loading, logout } = useAuth();
@@ -35,26 +36,26 @@ export default function MainLayout() {
   if (!user) return <Navigate to="/login" replace />;
 
   return (
-    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: "#f8f9fc" }}>
+    <Box sx={{ display: "flex", minHeight: "100vh", bgcolor: APP_PALETTE.background }}>
       <AppBar
         position="fixed"
         elevation={0}
         sx={{
-          bgcolor: "#ffffff",
-          color: "#1a1a2e",
-          borderBottom: "1px solid rgba(10,20,40,0.08)",
+          bgcolor: APP_PALETTE.surface,
+          color: APP_PALETTE.text.primary,
+          borderBottom: `1px solid ${APP_PALETTE.surfaces.border}`,
           width: { md: `calc(100% - ${drawerWidth}px)` },
           ml: { md: `${drawerWidth}px` },
         }}
       >
         <Toolbar sx={{ minHeight: { xs: 64, md: 72 }, px: { xs: 2, sm: 3 } }}>
           {isMobile && (
-            <IconButton edge="start" onClick={handleDrawerToggle} sx={{ mr: 1 }}>
+            <IconButton edge="start" onClick={handleDrawerToggle} sx={{ mr: 1, color: APP_PALETTE.text.primary }}>
               <MenuRoundedIcon />
             </IconButton>
           )}
 
-          <Typography variant="h6" fontWeight={800} sx={{ flexGrow: 1, fontSize: { xs: 18, md: 20 } }}>
+          <Typography variant="h6" fontWeight={900} sx={{ flexGrow: 1, fontSize: { xs: 18, md: 20 }, color: APP_PALETTE.text.primary, letterSpacing: 0.15 }}>
             LiveSale Manager
           </Typography>
 
@@ -62,9 +63,10 @@ export default function MainLayout() {
             sx={{
               display: { xs: "none", sm: "block" },
               mr: 2,
-              color: "text.secondary",
+              color: APP_PALETTE.text.secondary,
               fontSize: 14,
               maxWidth: 260,
+              fontWeight: 700,
             }}
             noWrap
           >

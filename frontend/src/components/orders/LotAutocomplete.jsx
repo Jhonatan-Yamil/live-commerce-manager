@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { APP_PALETTE } from "../../theme/palette";
 
 export default function LotAutocomplete({ lots, value, onChange, onSelect, onClear }) {
 	const [open, setOpen] = useState(false);
@@ -65,7 +66,7 @@ export default function LotAutocomplete({ lots, value, onChange, onSelect, onCle
 				style={{
 					width: "100%",
 					padding: "8px 10px",
-					border: "1px solid #ddd",
+					border: `1px solid ${APP_PALETTE.surfaces.border}`,
 					borderRadius: 6,
 					fontSize: 14,
 					boxSizing: "border-box",
@@ -79,8 +80,8 @@ export default function LotAutocomplete({ lots, value, onChange, onSelect, onCle
 						top: "100%",
 						left: 0,
 						right: 0,
-						background: "#fff",
-						border: "1px solid #ddd",
+						background: APP_PALETTE.surface,
+						border: `1px solid ${APP_PALETTE.surfaces.border}`,
 						borderRadius: 8,
 						boxShadow: "0 4px 16px rgba(0,0,0,0.1)",
 						zIndex: 100,
@@ -89,7 +90,7 @@ export default function LotAutocomplete({ lots, value, onChange, onSelect, onCle
 					}}
 				>
 					{filtered.length > 0 ? (
-						filtered.map((l, i) => (
+						filtered.map((l, i) => ( 
 							<div
 								key={l.id}
 								onMouseDown={() => {
@@ -100,18 +101,18 @@ export default function LotAutocomplete({ lots, value, onChange, onSelect, onCle
 									padding: "10px 14px",
 									cursor: "pointer",
 									fontSize: 14,
-									borderBottom: "1px solid #f5f5f5",
-									background: i === highlighted ? "#f0f4ff" : "#fff",
+									borderBottom: `1px solid ${APP_PALETTE.surfaces.borderSoft}`,
+ 									background: i === highlighted ? APP_PALETTE.brand.soft : APP_PALETTE.surface,
 								}}
 								onMouseEnter={() => setHighlighted(i)}
 							>
 								<span style={{ fontWeight: 600 }}>{l.name}</span>
-								<span style={{ color: "#888", fontSize: 12, marginLeft: 8 }}>{l.brand}</span>
-								<span style={{ color: "#aaa", fontSize: 11, marginLeft: 8 }}>{l.units_remaining} uds restantes</span>
+								<span style={{ color: APP_PALETTE.text.muted, fontSize: 12, marginLeft: 8 }}>{l.brand}</span>
+								<span style={{ color: APP_PALETTE.text.muted, fontSize: 11, marginLeft: 8 }}>{l.units_remaining} uds restantes</span>
 							</div>
 						))
 					) : (
-						<div style={{ padding: "10px 14px", color: "#aaa", fontSize: 13 }}>No se encontro ningun lote</div>
+						<div style={{ padding: "10px 14px", color: APP_PALETTE.text.muted, fontSize: 13 }}>No se encontro ningun lote</div>
 					)}
 				</div>
 			)}

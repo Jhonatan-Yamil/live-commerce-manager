@@ -28,6 +28,7 @@ SENDER_LABEL_PATTERNS = [
     r"cuenta\s+de\s+origen",
     r"cuenta\s+origen",
     r"de\s+la\s+cuenta",
+    r"^de$",
     r"nombre\s+del\s+originante",
     r"ordenante",
     r"remitente",
@@ -401,9 +402,14 @@ def parse_sender_name(raw_text: str) -> str | None:
         best_name, _ = max(scored_candidates, key=lambda item: item[1])
         return best_name
 
-    for line in lines:
-        if _is_name_candidate(line):
-            return line
+    for idx, line in enumerate(lines):
+        if not _is_name_candidate(line):
+            continue
+        start = max(0, idx - 2)
+        neighborhood = " ".join(lines[start:idx + 1]).lower()
+        if any(re.search(pattern, neighborhood, flags=re.IGNORECASE) for pattern in DESTINATION_HINT_PATTERNS):
+            continue
+        return line
 
     return None
 

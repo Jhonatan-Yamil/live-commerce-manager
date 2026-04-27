@@ -7,6 +7,7 @@ import {
 import { productsApi } from "../services/api";
 import SearchBar from "../components/common/SearchBar";
 import TablePager from "../components/common/TablePager";
+import { APP_PALETTE } from "../theme/palette";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
@@ -33,7 +34,7 @@ export default function ProductsPage() {
 
   return (
     <Box>
-      <Typography variant="h5" fontWeight={700} color="#1a1a2e" mb={0.5}>
+      <Typography variant="h5" fontWeight={700} color={APP_PALETTE.text.primary} mb={0.5}>
         Historial de productos vendidos
       </Typography>
       <Typography variant="caption" color="text.secondary" display="block" mb={3}>
@@ -42,9 +43,9 @@ export default function ProductsPage() {
 
       <Grid container spacing={2} mb={3}>
         {[
-          { label: "Productos distintos", value: products.length, icon: "🏷️", color: "#4f46e5" },
-          { label: "Unidades vendidas", value: totalUnits, icon: "📦", color: "#0891b2" },
-          { label: "Ingresos totales", value: `Bs. ${totalRevenue.toFixed(2)}`, icon: "💰", color: "#059669" },
+          { label: "Productos distintos", value: products.length, icon: "🏷️", color: APP_PALETTE.brand.primary },
+          { label: "Unidades vendidas", value: totalUnits, icon: "📦", color: APP_PALETTE.status.info },
+          { label: "Ingresos totales", value: `Bs. ${totalRevenue.toFixed(2)}`, icon: "💰", color: APP_PALETTE.status.success },
         ].map((s) => (
           <Grid item xs={12} sm={4} key={s.label}>
             <Paper sx={{ p: 2.5, borderRadius: 3, boxShadow: "0 1px 8px rgba(0,0,0,0.08)", borderTop: `4px solid ${s.color}` }}>
@@ -72,9 +73,9 @@ export default function ProductsPage() {
       <TableContainer component={Paper} sx={{ borderRadius: 3, boxShadow: "0 1px 8px rgba(0,0,0,0.08)" }}>
         <Table>
           <TableHead>
-            <TableRow sx={{ background: "#f8f9fc" }}>
+            <TableRow sx={{ background: APP_PALETTE.surfaces.subtle }}>
               {["Producto", "Unidades vendidas", "Pedidos", "Precio promedio", "Ingresos generados", "Lotes"].map((h) => (
-                <TableCell key={h} sx={{ fontWeight: 700, color: "#888", fontSize: 13 }}>{h}</TableCell>
+                <TableCell key={h} sx={{ fontWeight: 700, color: APP_PALETTE.text.muted, fontSize: 13 }}>{h}</TableCell>
               ))}
             </TableRow>
           </TableHead>
@@ -82,22 +83,22 @@ export default function ProductsPage() {
             {loading ? (
               <TableRow>
                 <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
-                  <CircularProgress size={28} sx={{ color: "#4f46e5" }} />
+                  <CircularProgress size={28} sx={{ color: APP_PALETTE.brand.primary }} />
                 </TableCell>
               </TableRow>
             ) : filtered.length > 0 ? (
               filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((p) => (
                 <Fragment key={p.product_id}>
                   <TableRow hover sx={{ borderBottom: expanded[p.product_id] ? "none" : undefined }}>
-                    <TableCell sx={{ fontWeight: 600, color: "#1a1a2e" }}>{p.name}</TableCell>
-                    <TableCell sx={{ color: "#4f46e5", fontWeight: 600 }}>{p.units_sold} uds</TableCell>
-                    <TableCell sx={{ color: "#666" }}>{p.orders_count} pedido(s)</TableCell>
-                    <TableCell sx={{ color: "#666" }}>Bs. {p.avg_price.toFixed(2)}</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: "#059669" }}>Bs. {p.total_revenue.toFixed(2)}</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: APP_PALETTE.text.primary }}>{p.name}</TableCell>
+                    <TableCell sx={{ color: APP_PALETTE.brand.primary, fontWeight: 600 }}>{p.units_sold} uds</TableCell>
+                    <TableCell sx={{ color: APP_PALETTE.text.secondary }}>{p.orders_count} pedido(s)</TableCell>
+                    <TableCell sx={{ color: APP_PALETTE.text.secondary }}>Bs. {p.avg_price.toFixed(2)}</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: APP_PALETTE.status.success }}>Bs. {p.total_revenue.toFixed(2)}</TableCell>
                     <TableCell>
                       {p.lots.length > 0 ? (
                         <Button size="small" variant="outlined" onClick={() => toggleExpand(p.product_id)}
-                          sx={{ color: "#4f46e5", borderColor: "#c7d2fe", background: "#e0e7ff", borderRadius: 2, fontSize: 12 }}>
+                          sx={{ color: APP_PALETTE.brand.primary, borderColor: APP_PALETTE.surfaces.brandBorderSoft, background: APP_PALETTE.brand.soft, borderRadius: 2, fontSize: 12 }}>
                           {expanded[p.product_id] ? "▲ Ocultar" : `▼ Ver ${p.lots.length} lote(s)`}
                         </Button>
                       ) : (
@@ -106,15 +107,15 @@ export default function ProductsPage() {
                     </TableCell>
                   </TableRow>
                   {expanded[p.product_id] && p.lots.map((l) => (
-                    <TableRow key={l.lot_id} sx={{ background: "#f8f9fc" }}>
-                      <TableCell sx={{ pl: 4, color: "#666", fontSize: 13 }}>
+                    <TableRow key={l.lot_id} sx={{ background: APP_PALETTE.surfaces.subtle }}>
+                      <TableCell sx={{ pl: 4, color: APP_PALETTE.text.secondary, fontSize: 13 }}>
                         └ <span style={{ fontWeight: 600 }}>{l.lot_name}</span>
-                        <span style={{ marginLeft: 6, color: "#aaa" }}>{l.brand}</span>
+                        <span style={{ marginLeft: 6, color: APP_PALETTE.text.muted }}>{l.brand}</span>
                       </TableCell>
-                      <TableCell sx={{ color: "#4f46e5", fontSize: 13 }}>{l.units_sold} uds</TableCell>
-                      <TableCell sx={{ color: "#aaa", fontSize: 13 }}>—</TableCell>
-                      <TableCell sx={{ color: "#aaa", fontSize: 13 }}>—</TableCell>
-                      <TableCell sx={{ color: "#059669", fontSize: 13, fontWeight: 600 }}>Bs. {l.revenue.toFixed(2)}</TableCell>
+                      <TableCell sx={{ color: APP_PALETTE.brand.primary, fontSize: 13 }}>{l.units_sold} uds</TableCell>
+                      <TableCell sx={{ color: APP_PALETTE.text.muted, fontSize: 13 }}>—</TableCell>
+                      <TableCell sx={{ color: APP_PALETTE.text.muted, fontSize: 13 }}>—</TableCell>
+                      <TableCell sx={{ color: APP_PALETTE.status.success, fontSize: 13, fontWeight: 600 }}>Bs. {l.revenue.toFixed(2)}</TableCell>
                       <TableCell />
                     </TableRow>
                   ))}
@@ -122,7 +123,7 @@ export default function ProductsPage() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 4, color: "#aaa" }}>
+                <TableCell colSpan={6} align="center" sx={{ py: 4, color: APP_PALETTE.text.muted }}>
                   {search ? "No se encontraron productos" : "No hay productos vendidos aún"}
                 </TableCell>
               </TableRow>

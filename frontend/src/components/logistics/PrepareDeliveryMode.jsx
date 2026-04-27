@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Box, Button, Paper, TextField, Typography } from "@mui/material";
 import { logisticsApi } from "../../services/api";
+import { APP_PALETTE } from "../../theme/palette";
 
 export default function PrepareDeliveryMode({ orders, logistics, onUpdate }) {
   const [search, setSearch] = useState("");
@@ -45,7 +46,7 @@ export default function PrepareDeliveryMode({ orders, logistics, onUpdate }) {
 
   return (
     <Paper sx={{ p: 3, mb: 3, borderRadius: 3, boxShadow: "0 1px 8px rgba(0,0,0,0.08)" }}>
-      <Typography variant="h6" fontWeight={700} color="#1a1a2e" mb={0.5}>Modo preparacion de entregas</Typography>
+      <Typography variant="h6" fontWeight={700} color={APP_PALETTE.text.primary} mb={0.5}>Modo preparacion de entregas</Typography>
       <Typography variant="caption" color="text.secondary" display="block" mb={2}>
         Busca un cliente para ver todos sus pedidos pendientes y marcarlos como entregados
       </Typography>
@@ -79,18 +80,18 @@ export default function PrepareDeliveryMode({ orders, logistics, onUpdate }) {
                 sx={{
                   p: 1.5,
                   cursor: "pointer",
-                  borderBottom: "1px solid #f5f5f5",
+                  borderBottom: `1px solid ${APP_PALETTE.surfaces.borderSoft}`,
                   display: "flex",
                   justifyContent: "space-between",
                   alignItems: "center",
-                  "&:hover": { background: "#f0f4ff" },
+                  "&:hover": { background: APP_PALETTE.brand.soft },
                 }}
               >
                 <Typography fontWeight={600}>{c.name}</Typography>
                 <span
                   style={{
-                    background: "#fef3c7",
-                    color: "#d97706",
+                    background: APP_PALETTE.surfaces.warningSoft,
+                    color: APP_PALETTE.status.warning,
                     borderRadius: 20,
                     padding: "2px 10px",
                     fontSize: 12,
@@ -119,7 +120,7 @@ export default function PrepareDeliveryMode({ orders, logistics, onUpdate }) {
                 size="small"
                 variant="contained"
                 onClick={() => handleMarkAllDelivered(selectedClient)}
-                sx={{ background: "#10b981", "&:hover": { background: "#059669" }, borderRadius: 2, fontSize: 12 }}
+                sx={{ background: APP_PALETTE.status.success, "&:hover": { background: APP_PALETTE.brand.primary }, borderRadius: 2, fontSize: 12 }}
               >
                 Marcar todos como entregados
               </Button>
@@ -130,7 +131,7 @@ export default function PrepareDeliveryMode({ orders, logistics, onUpdate }) {
                   setSelectedClient(null);
                   setSearch("");
                 }}
-                sx={{ color: "#666", borderColor: "#ddd", borderRadius: 2 }}
+                sx={{ color: APP_PALETTE.text.secondary, borderColor: APP_PALETTE.surfaces.border, borderRadius: 2 }}
               >
                 Limpiar
               </Button>
@@ -151,8 +152,8 @@ export default function PrepareDeliveryMode({ orders, logistics, onUpdate }) {
                     alignItems: "center",
                     p: 1.5,
                     borderRadius: 2,
-                    background: isDelivered ? "#f0fdf4" : "#f8f9fc",
-                    border: `1px solid ${isDelivered ? "#86efac" : "#e5e7eb"}`,
+                    background: isDelivered ? APP_PALETTE.surfaces.successSoft : APP_PALETTE.surfaces.subtle,
+                    border: `1px solid ${isDelivered ? APP_PALETTE.status.success : APP_PALETTE.surfaces.border}`,
                   }}
                 >
                   <Box>
@@ -160,7 +161,7 @@ export default function PrepareDeliveryMode({ orders, logistics, onUpdate }) {
                     <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
                       {new Date(o.created_at).toLocaleDateString("es-BO", { day: "numeric", month: "short", year: "numeric" })}
                     </Typography>
-                    <Typography variant="caption" fontWeight={600} color="#4f46e5" sx={{ ml: 1 }}>
+                    <Typography variant="caption" fontWeight={600} color={APP_PALETTE.brand.primary} sx={{ ml: 1 }}>
                       Bs. {Number(o.total).toFixed(2)}
                     </Typography>
                     <Typography variant="caption" color="text.secondary" sx={{ ml: 1 }}>
@@ -171,8 +172,8 @@ export default function PrepareDeliveryMode({ orders, logistics, onUpdate }) {
                   {isDelivered ? (
                     <span
                       style={{
-                        background: "#d1fae5",
-                        color: "#059669",
+                        background: APP_PALETTE.surfaces.successSoft,
+                        color: APP_PALETTE.status.success,
                         borderRadius: 20,
                         padding: "4px 12px",
                         fontSize: 12,
@@ -186,7 +187,7 @@ export default function PrepareDeliveryMode({ orders, logistics, onUpdate }) {
                       size="small"
                       variant="contained"
                       onClick={() => handleMarkDelivered(log.id)}
-                      sx={{ background: "#10b981", "&:hover": { background: "#059669" }, borderRadius: 2, fontSize: 12 }}
+                      sx={{ background: APP_PALETTE.status.success, "&:hover": { background: APP_PALETTE.brand.primary }, borderRadius: 2, fontSize: 12 }}
                     >
                       Marcar entregado
                     </Button>

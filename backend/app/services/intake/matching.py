@@ -47,11 +47,22 @@ def name_similarity(a: str | None, b: str | None) -> float:
     tb = set(normalize_name_tokens(b))
     if not ta or not tb:
         return 0.0
-    inter = len(ta.intersection(tb))
-    union = len(ta.union(tb))
-    if union == 0:
+    shared = len(ta.intersection(tb))
+    if shared == 0:
         return 0.0
-    return inter / union
+
+    smaller = min(len(ta), len(tb))
+    larger = max(len(ta), len(tb))
+    coverage = shared / smaller
+    overlap = shared / larger
+
+    if shared >= 2:
+        return max(coverage * 0.8, overlap)
+
+    if smaller == 1:
+        return overlap * 0.6
+
+    return 0.0
 
 
 def find_client_by_phone(db: Session, sender_phone: str | None) -> Client | None:
@@ -76,7 +87,7 @@ def find_client_by_name(db: Session, sender_name: str | None) -> Client | None:
             best_score = score
             best_client = client
 
-    return best_client if best_score >= 0.66 else None
+    return best_client if best_score >= 0.45 else None
 
 
 def find_best_order_match(db: Session, client_id: int, extracted_amount) -> Order | None:

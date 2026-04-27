@@ -18,6 +18,7 @@ import LocalShippingRoundedIcon from "@mui/icons-material/LocalShippingRounded";
 import GroupRoundedIcon from "@mui/icons-material/GroupRounded";
 import PointOfSaleRoundedIcon from "@mui/icons-material/PointOfSaleRounded";
 import { useAuth } from "../../context/AuthContext";
+import { APP_PALETTE } from "../../theme/palette";
 
 const navItems = [
   { to: "/", label: "Dashboard", icon: DashboardRoundedIcon, exact: true },
@@ -38,20 +39,20 @@ function SidebarContent({ onItemClick }) {
         height: "100%",
         display: "flex",
         flexDirection: "column",
-        bgcolor: "#1a1a2e",
-        color: "#ffffff",
+        bgcolor: APP_PALETTE.brand.primary,
+        color: "#fffdf9",
       }}
     >
-      <Box sx={{ px: 2.5, py: 2.5 }}>
-        <Typography fontWeight={800} fontSize={18} lineHeight={1.1}>
+      <Box sx={{ px: 2.5, py: 2.5, borderBottom: `1px solid rgba(255,255,255,0.14)` }}>
+        <Typography fontWeight={900} fontSize={19} lineHeight={1.05} sx={{ color: "#ffffff", letterSpacing: 0.2 }}>
           LiveSale
         </Typography>
-        <Typography color="rgba(255,255,255,0.6)" fontSize={12} mt={0.5}>
+        <Typography color={APP_PALETTE.surface} fontSize={12} mt={0.75} fontWeight={800} sx={{ letterSpacing: 0.9, textTransform: "uppercase" }}>
           Manager
         </Typography>
       </Box>
 
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.1)" }} />
+      <Divider sx={{ borderColor: "rgba(255,255,255,0.12)" }} />
 
       <List sx={{ px: 1.25, py: 1.5, flex: 1 }}>
         {navItems.map((item) => {
@@ -65,18 +66,22 @@ function SidebarContent({ onItemClick }) {
                 onClick={onItemClick}
                 sx={{
                   borderRadius: 2,
-                  color: "rgba(255,255,255,0.75)",
+                  color: APP_PALETTE.surface,
                   "&:hover": {
-                    bgcolor: "rgba(255,255,255,0.08)",
+                    bgcolor: "rgba(255,255,255,0.12)",
                     color: "#ffffff",
                   },
                   "&.active": {
-                    bgcolor: "rgba(79,70,229,0.35)",
-                    color: "#ffffff",
+                    bgcolor: APP_PALETTE.surface,
+                    color: APP_PALETTE.brand.primaryHover,
+                    boxShadow: "0 10px 22px rgba(0,0,0,0.18)",
                   },
                   "& .MuiListItemIcon-root": {
                     color: "inherit",
                     minWidth: 36,
+                  },
+                  "&.active .MuiListItemIcon-root": {
+                    color: APP_PALETTE.brand.primaryHover,
                   },
                 }}
               >
@@ -87,7 +92,8 @@ function SidebarContent({ onItemClick }) {
                   primary={item.label}
                   primaryTypographyProps={{
                     fontSize: 14,
-                    fontWeight: 600,
+                    fontWeight: 800,
+                    sx: { letterSpacing: 0.15, color: "inherit" },
                   }}
                 />
               </ListItemButton>
@@ -96,9 +102,9 @@ function SidebarContent({ onItemClick }) {
         })}
       </List>
 
-      <Divider sx={{ borderColor: "rgba(255,255,255,0.1)" }} />
+      <Divider sx={{ borderColor: "rgba(255,255,255,0.12)" }} />
       <Box sx={{ px: 2.5, py: 2 }}>
-        <Typography color="rgba(255,255,255,0.65)" fontSize={12} noWrap>
+        <Typography color={APP_PALETTE.surface} fontSize={12} noWrap fontWeight={700}>
           {user?.full_name || "Usuario"}
         </Typography>
       </Box>
@@ -120,6 +126,7 @@ export default function Sidebar({ drawerWidth, isMobile, mobileOpen, onMobileClo
             width: drawerWidth,
             boxSizing: "border-box",
             borderRight: "none",
+            backgroundImage: "none",
           },
         }}
       >
@@ -137,6 +144,7 @@ export default function Sidebar({ drawerWidth, isMobile, mobileOpen, onMobileClo
             width: drawerWidth,
             boxSizing: "border-box",
             borderRight: "none",
+            backgroundImage: "none",
           },
         }}
       >

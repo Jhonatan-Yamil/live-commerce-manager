@@ -2,6 +2,8 @@ import { Box, Button, Paper, Typography } from "@mui/material";
 import ClientAutocomplete from "./ClientAutocomplete";
 import LotAutocomplete from "./LotAutocomplete";
 import ProductAutocomplete from "./ProductAutocomplete";
+import FormFieldLabel from "../common/FormFieldLabel";
+import { APP_PALETTE } from "../../theme/palette";
 
 export default function OrderForm({
 	clients,
@@ -12,6 +14,7 @@ export default function OrderForm({
 	clientPhone,
 	form,
 	loading,
+	showRequiredLabels = false,
 	onClientInputChange,
 	onSelectClient,
 	onClientPhoneChange,
@@ -34,7 +37,7 @@ export default function OrderForm({
 	const inputStyle = {
 		width: "100%",
 		padding: "8px 10px",
-		border: "1px solid #ddd",
+		border: `1px solid ${APP_PALETTE.surfaces.border}`,
 		borderRadius: 6,
 		fontSize: 14,
 		boxSizing: "border-box",
@@ -44,26 +47,25 @@ export default function OrderForm({
 		display: "block",
 		marginBottom: 4,
 		fontWeight: 500,
-		color: "#555",
+		color: APP_PALETTE.text.secondary,
 		fontSize: 13,
 	};
 
 	return (
 		<Paper sx={{ p: 3, mb: 3, borderRadius: 3, boxShadow: "0 1px 8px rgba(0,0,0,0.08)" }}>
-			<Typography variant="h6" fontWeight={600} color="#333" mb={2.5}>
+			<Typography variant="h6" fontWeight={600} color={APP_PALETTE.text.primary} mb={2.5}>
 				Registrar nuevo pedido
 			</Typography>
 
 			<Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2, mb: 2.5 }}>
 				<div>
-					<label style={labelStyle}>
-						Cliente *
+					<FormFieldLabel label="Cliente" required showRequired={showRequiredLabels} style={labelStyle}>
 						{selectedClient && (
 							<span
 								style={{
 									marginLeft: 8,
-									background: "#d1fae5",
-									color: "#059669",
+									background: APP_PALETTE.surfaces.successSoft,
+									color: APP_PALETTE.status.success,
 									borderRadius: 20,
 									padding: "1px 8px",
 									fontSize: 11,
@@ -77,8 +79,8 @@ export default function OrderForm({
 							<span
 								style={{
 									marginLeft: 8,
-									background: "#fef3c7",
-									color: "#d97706",
+									background: APP_PALETTE.surfaces.warningSoft,
+									color: APP_PALETTE.status.warning,
 									borderRadius: 20,
 									padding: "1px 8px",
 									fontSize: 11,
@@ -88,7 +90,7 @@ export default function OrderForm({
 								Se creara nuevo
 							</span>
 						)}
-					</label>
+				</FormFieldLabel>
 
 					<ClientAutocomplete
 						clients={clients}
@@ -99,14 +101,14 @@ export default function OrderForm({
 
 					{!selectedClient && clientInput && (
 						<div style={{ marginTop: 10 }}>
-							<label style={labelStyle}>Celular del cliente *</label>
+					<FormFieldLabel label="Celular del cliente" required showRequired={showRequiredLabels} style={labelStyle} />
 							<input
 								value={clientPhone}
 								onChange={(e) => onClientPhoneChange(e.target.value)}
 								style={inputStyle}
 								placeholder="+591 7..."
 							/>
-							<Typography sx={{ mt: 0.5, fontSize: 12, color: "#b45309" }}>
+								<Typography sx={{ mt: 0.5, fontSize: 12, color: APP_PALETTE.status.warning }}>
 								Obligatorio para registrar cliente nuevo
 							</Typography>
 						</div>
@@ -125,14 +127,14 @@ export default function OrderForm({
 			</Box>
 
 			<Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1.5 }}>
-				<Typography fontWeight={600} color="#333">
+					<Typography fontWeight={600} color={APP_PALETTE.text.primary}>
 					Productos
 				</Typography>
 				<Button
 					size="small"
 					variant="outlined"
 					onClick={onAddItem}
-					sx={{ color: "#4f46e5", borderColor: "#4f46e5", borderRadius: 2 }}
+						sx={{ color: APP_PALETTE.brand.primary, borderColor: APP_PALETTE.brand.primary, borderRadius: 2 }}
 				>
 					+ Agregar item
 				</Button>
@@ -140,7 +142,7 @@ export default function OrderForm({
 
 			<Box
 				sx={{
-					background: "#f8f9fc",
+					background: APP_PALETTE.surfaces.subtle,
 					borderRadius: 2,
 					p: 1.5,
 					display: "flex",
@@ -152,7 +154,7 @@ export default function OrderForm({
 					<Paper key={i} variant="outlined" sx={{ p: 1.5, borderRadius: 2 }}>
 						<Box sx={{ display: "grid", gridTemplateColumns: "3fr 1fr 1fr auto", gap: 1.5, alignItems: "end", mb: 1 }}>
 							<div>
-								{i === 0 && <label style={labelStyle}>Descripcion del producto</label>}
+								{i === 0 && <FormFieldLabel label="Descripcion del producto" required showRequired={showRequiredLabels} style={labelStyle} />}
 								<ProductAutocomplete
 									products={productNames}
 									value={item.product_name}
@@ -162,7 +164,7 @@ export default function OrderForm({
 							</div>
 
 							<div>
-								{i === 0 && <label style={labelStyle}>Cantidad</label>}
+								{i === 0 && <FormFieldLabel label="Cantidad" required showRequired={showRequiredLabels} style={labelStyle} />}
 								<input
 									type="number"
 									min="1"
@@ -173,7 +175,7 @@ export default function OrderForm({
 							</div>
 
 							<div>
-								{i === 0 && <label style={labelStyle}>Precio (Bs.)</label>}
+								{i === 0 && <FormFieldLabel label="Precio (Bs.)" required showRequired={showRequiredLabels} style={labelStyle} />}
 								<input
 									type="number"
 									step="0.01"
@@ -190,8 +192,8 @@ export default function OrderForm({
 								disabled={form.items.length === 1}
 								style={{
 									padding: "8px 10px",
-									background: form.items.length === 1 ? "#f5f5f5" : "#fee2e2",
-									color: form.items.length === 1 ? "#ccc" : "#dc2626",
+									background: form.items.length === 1 ? APP_PALETTE.surfaces.borderSoft : APP_PALETTE.surfaces.errorSoft,
+									color: form.items.length === 1 ? APP_PALETTE.text.muted : APP_PALETTE.status.error,
 									border: "none",
 									borderRadius: 6,
 									cursor: form.items.length === 1 ? "not-allowed" : "pointer",
@@ -203,7 +205,7 @@ export default function OrderForm({
 						</Box>
 
 						<div>
-						<label style={labelStyle}>Lote *</label>
+						<FormFieldLabel label="Lote" required showRequired={showRequiredLabels} style={labelStyle} />
 							<LotAutocomplete
 								lots={lots}
 								value={item.lot_input}
@@ -218,7 +220,7 @@ export default function OrderForm({
 
 			<Box
 				sx={{
-					borderTop: "1px solid #f0f0f0",
+					borderTop: `1px solid ${APP_PALETTE.surfaces.borderSoft}`,
 					pt: 2,
 					mt: 2,
 					display: "flex",
@@ -227,17 +229,17 @@ export default function OrderForm({
 				}}
 			>
 				<Typography>
-					<span style={{ color: "#888", fontSize: 13 }}>{form.items.length} item(s) - </span>
-					<span style={{ fontWeight: 700, fontSize: 16, color: "#1a1a2e" }}>Total: Bs. {total.toFixed(2)}</span>
+						<span style={{ color: APP_PALETTE.text.muted, fontSize: 13 }}>{form.items.length} item(s) - </span>
+						<span style={{ fontWeight: 700, fontSize: 16, color: APP_PALETTE.text.primary }}>Total: Bs. {total.toFixed(2)}</span>
 				</Typography>
 
 				<Button
 					variant="contained"
 					onClick={onSubmit}
 					disabled={loading || !clientInput || missingPhoneForNewClient || form.items.some((i) => !i.product_name || !i.unit_price || !i.lot_id)}
-					sx={{
-						background: "#4f46e5",
-						"&:hover": { background: "#4338ca" },
+						sx={{
+							background: APP_PALETTE.brand.primary,
+							"&:hover": { background: APP_PALETTE.brand.primaryHover },
 						borderRadius: 2,
 						opacity: loading || !clientInput || missingPhoneForNewClient || form.items.some((i) => !i.product_name || !i.unit_price || !i.lot_id) ? 0.6 : 1,
 					}}

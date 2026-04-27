@@ -5,6 +5,7 @@ import PrepareDeliveryMode from "../components/logistics/PrepareDeliveryMode";
 import LogisticsCreateForm from "../components/logistics/LogisticsCreateForm";
 import LogisticsRecordCard from "../components/logistics/LogisticsRecordCard";
 import useLogisticsData from "../hooks/useLogisticsData";
+import { APP_PALETTE } from "../theme/palette";
 
 export default function LogisticsPage() {
   const {
@@ -61,9 +62,9 @@ export default function LogisticsPage() {
   return (
     <Box>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-        <Typography variant="h5" fontWeight={700} color="#1a1a2e">Logística</Typography>
+        <Typography variant="h5" fontWeight={700} color={APP_PALETTE.text.primary}>Logística</Typography>
         <Button variant="contained" onClick={() => setShowForm(!showForm)}
-          sx={{ background: "#4f46e5", "&:hover": { background: "#4338ca" }, borderRadius: 2 }}>
+          sx={{ background: APP_PALETTE.brand.primary, "&:hover": { background: APP_PALETTE.brand.primaryHover }, borderRadius: 2 }}>
           {showForm ? "Cancelar" : "+ Nuevo envío"}
         </Button>
       </Box>

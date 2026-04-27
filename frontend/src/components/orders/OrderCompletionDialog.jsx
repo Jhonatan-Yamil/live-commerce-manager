@@ -29,6 +29,7 @@ export default function OrderCompletionDialog({ open, suggestion, onClose, onCom
   const [form, setForm] = useState({ notes: "", items: [emptyItem()] });
   const [loading, setLoading] = useState(false);
   const [allowTotalOverride, setAllowTotalOverride] = useState(false);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -50,6 +51,7 @@ export default function OrderCompletionDialog({ open, suggestion, onClose, onCom
     setClientInput(prefillName);
     setForm({ notes: prefillNotes, items: [emptyItem()] });
     setAllowTotalOverride(false);
+    setSubmitAttempted(false);
 
     const existing = (clients || []).find((c) => c.id === suggestion.matched_client_id);
     if (existing && !(suggestion.matched_client_is_provisional)) {
@@ -68,6 +70,7 @@ export default function OrderCompletionDialog({ open, suggestion, onClose, onCom
     setClientPhone("");
     setForm({ notes: "", items: [emptyItem()] });
     setAllowTotalOverride(false);
+    setSubmitAttempted(false);
   }, [open, isIntakeMode]);
 
   const total = useMemo(
@@ -112,6 +115,8 @@ export default function OrderCompletionDialog({ open, suggestion, onClose, onCom
   };
 
   const handleSubmit = async () => {
+    setSubmitAttempted(true);
+
     if (mismatch && !allowTotalOverride) {
       notifyWarning("El total no coincide con el comprobante. Activa la confirmación de excepción para continuar.");
       return;
@@ -196,6 +201,7 @@ export default function OrderCompletionDialog({ open, suggestion, onClose, onCom
           clientPhone={clientPhone}
           form={form}
           loading={loading}
+          showRequiredLabels={submitAttempted}
           onClientInputChange={handleClientInputChange}
           onSelectClient={handleSelectClient}
           onClientPhoneChange={setClientPhone}

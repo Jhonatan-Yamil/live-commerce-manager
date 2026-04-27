@@ -7,6 +7,7 @@ import OrderCompletionDialog from "../components/orders/OrderCompletionDialog";
 import usePaymentsData from "../hooks/usePaymentsData";
 import PaymentSuggestionPanel from "../components/payments/PaymentSuggestionPanel";
 import PaymentRecordCard from "../components/payments/PaymentRecordCard";
+import { APP_PALETTE } from "../theme/palette";
 
 export default function PaymentsPage() {
   const {
@@ -72,7 +73,7 @@ export default function PaymentsPage() {
     <Box>
       <Box sx={{ mb: 3, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
         <Box>
-          <Typography variant="h5" fontWeight={700} color="#1a1a2e">Gestión de Pagos</Typography>
+          <Typography variant="h5" fontWeight={700} color={APP_PALETTE.text.primary}>Gestión de Pagos</Typography>
           {lastUpdatedAt && (
             <Typography variant="caption" color="text.secondary">
               Actualizado: {lastUpdatedAt.toLocaleTimeString("es-BO")}

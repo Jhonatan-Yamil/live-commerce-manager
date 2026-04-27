@@ -1,6 +1,7 @@
 import { Box, Button, MenuItem, Paper, TextField, Typography } from "@mui/material";
 import StatusBadge from "../common/StatusBadge";
 import { DELIVERY_STATUS, DELIVERY_TYPE_LABELS } from "../../utils/constants";
+import { APP_PALETTE } from "../../theme/palette";
 
 export default function LogisticsRecordCard({
   item,
@@ -32,7 +33,7 @@ export default function LogisticsRecordCard({
               Pedido #{item.order_id}
             </Typography>
             {relatedOrder?.client?.full_name && (
-              <Typography display="inline" color="#555" fontWeight={500} fontSize={14} sx={{ ml: 1 }}>
+              <Typography display="inline" color={APP_PALETTE.text.secondary} fontWeight={500} fontSize={14} sx={{ ml: 1 }}>
                 — {relatedOrder.client.full_name}
               </Typography>
             )}
@@ -55,8 +56,8 @@ export default function LogisticsRecordCard({
             {pendingOrders.length > 1 && (
               <span
                 style={{
-                  background: "#fef3c7",
-                  color: "#d97706",
+                  background: APP_PALETTE.surfaces.warningSoft,
+                  color: APP_PALETTE.status.warning,
                   borderRadius: 20,
                   padding: "2px 10px",
                   fontSize: 12,
@@ -69,8 +70,8 @@ export default function LogisticsRecordCard({
             {pendingOrders.length === 1 && (
               <span
                 style={{
-                  background: "#d1fae5",
-                  color: "#059669",
+                  background: APP_PALETTE.surfaces.successSoft,
+                  color: APP_PALETTE.status.success,
                   borderRadius: 20,
                   padding: "2px 10px",
                   fontSize: 12,
@@ -101,9 +102,9 @@ export default function LogisticsRecordCard({
               variant="outlined"
               onClick={onStartEdit}
               sx={{
-                color: "#4f46e5",
-                borderColor: "#c7d2fe",
-                background: "#e0e7ff",
+                color: APP_PALETTE.brand.primary,
+                borderColor: APP_PALETTE.surfaces.brandBorderSoft,
+                background: APP_PALETTE.brand.soft,
                 borderRadius: 2,
                 fontSize: 13,
               }}
@@ -144,7 +145,7 @@ export default function LogisticsRecordCard({
                   size="small"
                   variant="contained"
                   onClick={onSave}
-                  sx={{ background: "#10b981", "&:hover": { background: "#059669" }, borderRadius: 2, fontSize: 13 }}
+                  sx={{ background: APP_PALETTE.status.success, "&:hover": { background: APP_PALETTE.brand.primary }, borderRadius: 2, fontSize: 13 }}
                 >
                   Guardar
                 </Button>
@@ -153,7 +154,7 @@ export default function LogisticsRecordCard({
                   size="small"
                   variant="outlined"
                   onClick={onCancelEdit}
-                  sx={{ color: "#666", borderColor: "#ddd", borderRadius: 2, fontSize: 13 }}
+                  sx={{ color: APP_PALETTE.text.secondary, borderColor: APP_PALETTE.surfaces.border, borderRadius: 2, fontSize: 13 }}
                 >
                   Cancelar
                 </Button>

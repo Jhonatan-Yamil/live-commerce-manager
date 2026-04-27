@@ -14,6 +14,7 @@ import {
 } from "@mui/material";
 import { useState } from "react";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import { APP_PALETTE } from "../../theme/palette";
 
 export default function PaymentSuggestionPanel({
   suggestions,
@@ -38,7 +39,7 @@ export default function PaymentSuggestionPanel({
 
   return (
     <Paper sx={{ p: 2.5, mb: 2.5, borderRadius: 3, boxShadow: "0 1px 8px rgba(0,0,0,0.08)" }}>
-      <Typography variant="h6" fontWeight={700} color="#1a1a2e" mb={1.5}>
+      <Typography variant="h6" fontWeight={700} color={APP_PALETTE.text.primary} mb={1.5}>
         Pagos por revisar
       </Typography>
       {suggestions.length === 0 ? (
@@ -97,7 +98,23 @@ export default function PaymentSuggestionPanel({
 
                 <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
                   {s.needs_order_completion ? (
-                    <Button size="small" variant="contained" color="warning" disabled={processingAction[s.id]} onClick={() => onOpenOrderCompletion(s)}>
+                    <Button
+                      size="small"
+                      variant="contained"
+                      disabled={processingAction[s.id]}
+                      onClick={() => onOpenOrderCompletion(s)}
+                      sx={{
+                        backgroundColor: APP_PALETTE.surfaces.warningSoft,
+                        color: APP_PALETTE.status.warning,
+                        border: `1px solid ${APP_PALETTE.status.warning}33`,
+                        boxShadow: "none",
+                        fontWeight: 700,
+                        "&:hover": {
+                          backgroundColor: "#e7dfae",
+                          boxShadow: "none",
+                        },
+                      }}
+                    >
                       Aceptar y completar
                     </Button>
                   ) : (

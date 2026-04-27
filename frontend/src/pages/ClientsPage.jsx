@@ -11,6 +11,7 @@ import TablePager from "../components/common/TablePager";
 import { ORDER_STATUS_LABELS } from "../utils/constants";
 import useCrudForm from "../hooks/useCrudForm";
 import { useNotification } from "../context/NotificationContext";
+import { APP_PALETTE } from "../theme/palette";
 
 export default function ClientsPage() {
   const { notifyWarning } = useNotification();
@@ -20,6 +21,7 @@ export default function ClientsPage() {
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [expanded, setExpanded] = useState({});
+  const [submitAttempted, setSubmitAttempted] = useState(false);
 
   const load = () => {
     clientsApi.list().then((r) => setClients(r.data));
@@ -55,6 +57,12 @@ export default function ClientsPage() {
     },
   });
 
+  useEffect(() => {
+    if (!showForm) {
+      setSubmitAttempted(false);
+    }
+  }, [showForm]);
+
   const getClientOrders = (clientId) => orders.filter((o) => o.client_id === clientId);
 
   const filtered = clients.filter((c) =>
@@ -63,12 +71,17 @@ export default function ClientsPage() {
     (c.phone || "").includes(search)
   ).sort((a, b) => b.id - a.id);
 
+  const handleSubmit = () => {
+    setSubmitAttempted(true);
+    submitForm();
+  };
+
   return (
     <Box>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-        <Typography variant="h5" fontWeight={700} color="#1a1a2e">Clientes</Typography>
+        <Typography variant="h5" fontWeight={700} color={APP_PALETTE.text.primary}>Clientes</Typography>
         <Button variant="contained" onClick={toggleCreate}
-          sx={{ background: "#4f46e5", "&:hover": { background: "#4338ca" }, borderRadius: 2 }}>
+          sx={{ background: APP_PALETTE.brand.primary, "&:hover": { background: APP_PALETTE.brand.primaryHover }, borderRadius: 2 }}>
           {showForm ? "Cancelar" : "+ Nuevo cliente"}
         </Button>
       </Box>
@@ -78,11 +91,11 @@ export default function ClientsPage() {
           <Typography variant="h6" fontWeight={600} mb={2}>{editing ? "Editar cliente" : "Registrar cliente"}</Typography>
           <Grid container spacing={2} mb={2}>
             <Grid item xs={12} sm={6}>
-              <TextField label="Nombre completo *" size="small" fullWidth
+              <TextField label={submitAttempted ? "Nombre completo *" : "Nombre completo"} size="small" fullWidth
                 value={form.full_name} onChange={(e) => setForm({ ...form, full_name: e.target.value })} />
             </Grid>
             <Grid item xs={12} sm={6}>
-              <TextField label="Teléfono / WhatsApp *" size="small" fullWidth
+              <TextField label={submitAttempted ? "Teléfono / WhatsApp *" : "Teléfono / WhatsApp"} size="small" fullWidth
                 value={form.phone} onChange={(e) => setForm({ ...form, phone: e.target.value })} placeholder="+591 7..." />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -94,8 +107,8 @@ export default function ClientsPage() {
                 value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
             </Grid>
           </Grid>
-          <Button variant="contained" onClick={submitForm} disabled={!form.full_name || (!editing && !form.phone.trim())}
-            sx={{ background: "#4f46e5", "&:hover": { background: "#4338ca" }, borderRadius: 2 }}>
+          <Button variant="contained" onClick={handleSubmit} disabled={!form.full_name || (!editing && !form.phone.trim())}
+            sx={{ background: APP_PALETTE.brand.primary, "&:hover": { background: APP_PALETTE.brand.primaryHover }, borderRadius: 2 }}>
             {editing ? "Guardar cambios" : "Registrar"}
           </Button>
         </Paper>
@@ -113,9 +126,9 @@ export default function ClientsPage() {
       <TableContainer component={Paper} sx={{ borderRadius: 3, boxShadow: "0 1px 8px rgba(0,0,0,0.08)" }}>
         <Table>
           <TableHead>
-            <TableRow sx={{ background: "#f8f9fc" }}>
+            <TableRow sx={{ background: APP_PALETTE.surfaces.subtle }}>
               {["Nombre", "Teléfono", "Dirección", "Notas", "Pedidos", "Acciones"].map((h) => (
-                <TableCell key={h} sx={{ fontWeight: 700, color: "#888", fontSize: 13 }}>{h}</TableCell>
+                <TableCell key={h} sx={{ fontWeight: 700, color: APP_PALETTE.text.muted, fontSize: 13 }}>{h}</TableCell>
               ))}
             </TableRow>
           </TableHead>
@@ -127,14 +140,14 @@ export default function ClientsPage() {
                 <Fragment key={c.id}>
                   <TableRow key={c.id} hover>
                     <TableCell sx={{ fontWeight: 600 }}>{c.full_name}</TableCell>
-                    <TableCell sx={{ color: "#666" }}>{c.phone || "—"}</TableCell>
-                    <TableCell sx={{ color: "#666" }}>{c.address || "—"}</TableCell>
-                    <TableCell sx={{ color: "#888", fontSize: 13 }}>{c.notes || "—"}</TableCell>
+                    <TableCell sx={{ color: APP_PALETTE.text.secondary }}>{c.phone || "—"}</TableCell>
+                    <TableCell sx={{ color: APP_PALETTE.text.secondary }}>{c.address || "—"}</TableCell>
+                    <TableCell sx={{ color: APP_PALETTE.text.muted, fontSize: 13 }}>{c.notes || "—"}</TableCell>
                     <TableCell>
                       {clientOrders.length > 0 ? (
                         <Button size="small" variant="outlined"
                           onClick={() => setExpanded({ ...expanded, [c.id]: !isExpanded })}
-                          sx={{ color: "#4f46e5", borderColor: "#4f46e5", borderRadius: 2, fontSize: 12 }}>
+                          sx={{ color: APP_PALETTE.brand.primary, borderColor: APP_PALETTE.brand.primary, borderRadius: 2, fontSize: 12 }}>
                           {isExpanded ? "▲ Ocultar" : `▼ ${clientOrders.length} pedido(s)`}
                         </Button>
                       ) : (
@@ -143,20 +156,20 @@ export default function ClientsPage() {
                     </TableCell>
                     <TableCell>
                       <Button size="small" variant="outlined" onClick={() => openEdit(c)}
-                        sx={{ color: "#4f46e5", borderColor: "#c7d2fe", background: "#e0e7ff", borderRadius: 2, fontSize: 13 }}>
+                        sx={{ color: APP_PALETTE.brand.primary, borderColor: APP_PALETTE.surfaces.brandBorderSoft, background: APP_PALETTE.brand.soft, borderRadius: 2, fontSize: 13 }}>
                         Editar
                       </Button>
                     </TableCell>
                   </TableRow>
                   {isExpanded && clientOrders.map((o) => {
-                    const s = ORDER_STATUS_LABELS[o.status] || { label: o.status, color: "#888" };
+                    const s = ORDER_STATUS_LABELS[o.status] || { label: o.status, color: APP_PALETTE.text.muted };
                     return (
-                      <TableRow key={`order-${o.id}`} sx={{ background: "#f8f9fc" }}>
-                        <TableCell sx={{ pl: 4, color: "#666", fontSize: 13 }}>└ Pedido #{o.id}</TableCell>
-                        <TableCell sx={{ color: "#888", fontSize: 12 }}>
+                      <TableRow key={`order-${o.id}`} sx={{ background: APP_PALETTE.surfaces.subtle }}>
+                        <TableCell sx={{ pl: 4, color: APP_PALETTE.text.secondary, fontSize: 13 }}>└ Pedido #{o.id}</TableCell>
+                        <TableCell sx={{ color: APP_PALETTE.text.muted, fontSize: 12 }}>
                           {new Date(o.created_at).toLocaleDateString("es-BO", { day: "numeric", month: "short", year: "numeric" })}
                         </TableCell>
-                        <TableCell sx={{ fontWeight: 600, color: "#4f46e5", fontSize: 13 }}>Bs. {Number(o.total).toFixed(2)}</TableCell>
+                        <TableCell sx={{ fontWeight: 600, color: APP_PALETTE.brand.primary, fontSize: 13 }}>Bs. {Number(o.total).toFixed(2)}</TableCell>
                         <TableCell colSpan={2}><StatusBadge label={s.label} color={s.color} /></TableCell>
                         <TableCell />
                       </TableRow>
@@ -167,7 +180,7 @@ export default function ClientsPage() {
             })}
             {filtered.length === 0 && (
               <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 4, color: "#aaa" }}>
+                <TableCell colSpan={6} align="center" sx={{ py: 4, color: APP_PALETTE.text.muted }}>
                   {search ? "No se encontraron clientes" : "No hay clientes registrados"}
                 </TableCell>
               </TableRow>

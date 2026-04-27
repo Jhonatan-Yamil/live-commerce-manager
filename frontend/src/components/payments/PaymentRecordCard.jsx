@@ -1,6 +1,7 @@
 import { Box, Button, Paper, TextField, Typography } from "@mui/material";
 import { getBackendOrigin } from "../../services/api";
 import { NEXT_COLORS, STATUS_LABELS_NEXT } from "./constants";
+import { APP_PALETTE } from "../../theme/palette";
 
 const buildVoucherUrl = (voucherPath) => {
   if (!voucherPath) return null;
@@ -28,7 +29,7 @@ export default function PaymentRecordCard({
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 2 }}>
         <Box>
           <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
-            <Typography fontWeight={700} fontSize={15} color="#1a1a2e">
+            <Typography fontWeight={700} fontSize={15} color={APP_PALETTE.text.primary}>
               {payment.client_name || "Cliente desconocido"}
             </Typography>
             <span style={{ background: `${statusConfig.color}20`, color: statusConfig.color, borderRadius: 20, padding: "2px 10px", fontSize: 12, fontWeight: 600 }}>
@@ -37,14 +38,14 @@ export default function PaymentRecordCard({
           </Box>
           <Typography variant="caption" color="text.secondary">
             Pedido #{payment.order_id}
-            {payment.order_total && <span style={{ marginLeft: 8, fontWeight: 600, color: "#4f46e5" }}>Bs. {payment.order_total.toFixed(2)}</span>}
+            {payment.order_total && <span style={{ marginLeft: 8, fontWeight: 600, color: APP_PALETTE.brand.primary }}>Bs. {payment.order_total.toFixed(2)}</span>}
             {payment.order_created_at && <span style={{ marginLeft: 8 }}>{new Date(payment.order_created_at).toLocaleDateString("es-BO", { day: "numeric", month: "short", year: "numeric" })}</span>}
           </Typography>
           {payment.voucher_path && (
             <Box mt={0.5}>
               <Typography variant="caption" color="text.secondary">
                 Comprobante:{" "}
-                <a href={buildVoucherUrl(payment.voucher_path)} target="_blank" rel="noreferrer" style={{ color: "#4f46e5", fontWeight: 600 }}>
+                <a href={buildVoucherUrl(payment.voucher_path)} target="_blank" rel="noreferrer" style={{ color: APP_PALETTE.brand.primary, fontWeight: 600 }}>
                   Ver comprobante
                 </a>
               </Typography>
@@ -54,10 +55,10 @@ export default function PaymentRecordCard({
           {payment.reviewed_at && <Typography variant="caption" color="text.secondary" display="block">Revisado: {new Date(payment.reviewed_at).toLocaleString("es-BO")}</Typography>}
         </Box>
 
-        <Box sx={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 280 }}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 300 }}>
           {payment.status === "pending" && (
-            <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2, background: "#f8f9fc" }}>
-              <Typography variant="caption" fontWeight={500} color="#555" display="block" mb={1}>
+            <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2, background: APP_PALETTE.surfaces.subtle }}>
+              <Typography variant="caption" fontWeight={500} color={APP_PALETTE.text.secondary} display="block" mb={1}>
                 Subir comprobante (imagen o PDF)
               </Typography>
               <input
@@ -77,7 +78,7 @@ export default function PaymentRecordCard({
                 size="small"
                 disabled={!selectedFile || isUploading}
                 onClick={onUploadVoucher}
-                sx={{ background: selectedFile ? "#4f46e5" : "#e0e0e0", "&:hover": { background: "#4338ca" }, borderRadius: 2 }}
+                sx={{ background: selectedFile ? APP_PALETTE.brand.primary : APP_PALETTE.surfaces.borderSoft, "&:hover": { background: APP_PALETTE.brand.primaryHover }, borderRadius: 2 }}
               >
                 {isUploading ? "Subiendo..." : "Registrar comprobante"}
               </Button>
@@ -102,7 +103,21 @@ export default function PaymentRecordCard({
                     size="small"
                     variant="contained"
                     onClick={() => onChangeStatus(nextStatus)}
-                    sx={{ background: NEXT_COLORS[nextStatus], "&:hover": { filter: "brightness(0.9)" }, borderRadius: 2, fontSize: 12 }}
+                    sx={{
+                      backgroundColor: NEXT_COLORS[nextStatus].bg,
+                      color: NEXT_COLORS[nextStatus].color,
+                      border: `1px solid ${NEXT_COLORS[nextStatus].color}33`,
+                      boxShadow: "none",
+                      borderRadius: 2,
+                      fontSize: 12,
+                      fontWeight: 700,
+                      minHeight: 36,
+                      whiteSpace: "nowrap",
+                      "&:hover": {
+                        backgroundColor: NEXT_COLORS[nextStatus].hoverBg,
+                        boxShadow: "none",
+                      },
+                    }}
                   >
                     {STATUS_LABELS_NEXT[nextStatus]}
                   </Button>

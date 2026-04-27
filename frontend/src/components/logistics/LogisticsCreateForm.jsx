@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { Box, Button, Grid, MenuItem, Paper, TextField, Typography } from "@mui/material";
+import { APP_PALETTE } from "../../theme/palette";
 
 export default function LogisticsCreateForm({
   form,
@@ -9,6 +11,13 @@ export default function LogisticsCreateForm({
   onToggleOrder,
   onCreate,
 }) {
+  const [submitAttempted, setSubmitAttempted] = useState(false);
+
+  const handleCreate = () => {
+    setSubmitAttempted(true);
+    onCreate();
+  };
+
   return (
     <Paper sx={{ p: 3, mb: 3, borderRadius: 3, boxShadow: "0 1px 8px rgba(0,0,0,0.08)" }}>
       <Typography variant="h6" fontWeight={600} mb={2}>
@@ -16,8 +25,8 @@ export default function LogisticsCreateForm({
       </Typography>
       <Grid container spacing={2} mb={2}>
         <Grid item xs={12}>
-          <Typography variant="caption" fontWeight={500} color="#555" display="block" mb={1}>
-            Seleccionar pedidos a entregar (pago confirmado) — puedes seleccionar varios
+          <Typography variant="caption" fontWeight={500} color={APP_PALETTE.text.secondary} display="block" mb={1}>
+            Seleccionar pedidos a entregar (pago confirmado){submitAttempted ? " *" : ""} — puedes seleccionar varios
           </Typography>
           <Paper variant="outlined" sx={{ borderRadius: 2, p: 1 }}>
             <TextField
@@ -47,9 +56,9 @@ export default function LogisticsCreateForm({
                         p: 1,
                         borderRadius: 1.5,
                         cursor: "pointer",
-                        background: isSelected ? "#e0e7ff" : "#fff",
-                        border: `1px solid ${isSelected ? "#4f46e5" : "#f0f0f0"}`,
-                        "&:hover": { background: isSelected ? "#e0e7ff" : "#f8f9fc" },
+                        background: isSelected ? APP_PALETTE.brand.soft : APP_PALETTE.surface,
+                        border: `1px solid ${isSelected ? APP_PALETTE.brand.primary : APP_PALETTE.surfaces.borderSoft}`,
+                        "&:hover": { background: isSelected ? APP_PALETTE.brand.soft : APP_PALETTE.surfaces.subtle },
                       }}
                     >
                       <input
@@ -71,7 +80,7 @@ export default function LogisticsCreateForm({
                             year: "numeric",
                           })}
                         </Typography>
-                        <Typography variant="caption" fontWeight={600} color="#4f46e5" sx={{ ml: 1 }}>
+                        <Typography variant="caption" fontWeight={600} color={APP_PALETTE.brand.primary} sx={{ ml: 1 }}>
                           Bs. {Number(o.total).toFixed(2)}
                         </Typography>
                       </Box>
@@ -82,7 +91,7 @@ export default function LogisticsCreateForm({
             </Box>
           </Paper>
           {form.selected_orders?.length > 0 && (
-            <Typography variant="caption" fontWeight={600} color="#4f46e5" sx={{ mt: 0.5, display: "block" }}>
+            <Typography variant="caption" fontWeight={600} color={APP_PALETTE.brand.primary} sx={{ mt: 0.5, display: "block" }}>
               {form.selected_orders.length} pedido(s) seleccionado(s)
             </Typography>
           )}
@@ -121,9 +130,9 @@ export default function LogisticsCreateForm({
       </Grid>
       <Button
         variant="contained"
-        onClick={onCreate}
+        onClick={handleCreate}
         disabled={!form.selected_orders?.length}
-        sx={{ background: "#4f46e5", "&:hover": { background: "#4338ca" }, borderRadius: 2 }}
+        sx={{ background: APP_PALETTE.brand.primary, "&:hover": { background: APP_PALETTE.brand.primaryHover }, borderRadius: 2 }}
       >
         Crear registro
       </Button>
