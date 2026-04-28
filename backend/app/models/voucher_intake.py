@@ -92,11 +92,6 @@ class VoucherIntake(Base):
 
     @property
     def needs_order_completion(self) -> bool:
-        if self.matched_order_id is None:
-            return True
-        if self.created_order_id is None:
+        if self.matched_order_id is not None:
             return False
-        if self.matched_client_is_provisional:
-            return True
-        notes = (self.matched_order.notes or "").upper() if self.matched_order else ""
-        return "[AUTO_BASE]" in notes
+        return True

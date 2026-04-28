@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.models.lot import Lot
-from app.models.order import OrderItem
+from app.models.order import Order, OrderItem, OrderStatus
 from app.models.product import Product
 from app.repositories.crud_utils import create_entity, get_entity_by_id, list_entities, update_entity
 
@@ -31,7 +31,9 @@ def update_product(db: Session, product_id: int, payload: dict):
 def list_sales_rows(db: Session):
     return (
         db.query(OrderItem, Product, Lot)
+        .join(Order, Order.id == OrderItem.order_id)
         .join(Product, Product.id == OrderItem.product_id)
         .outerjoin(Lot, Lot.id == OrderItem.lot_id)
+        .filter(Order.status == OrderStatus.payment_confirmed)
         .all()
     )

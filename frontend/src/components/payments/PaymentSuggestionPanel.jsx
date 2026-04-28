@@ -15,6 +15,9 @@ import {
 import { useState } from "react";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { APP_PALETTE } from "../../theme/palette";
+import ConfirmDialog from "../common/ConfirmDialog";
+
+const OPEN_ORDER_STATUSES = new Set(["pending_payment", "payment_in_review", "payment_rejected"]);
 
 export default function PaymentSuggestionPanel({
   suggestions,
@@ -28,6 +31,8 @@ export default function PaymentSuggestionPanel({
   onOpenOrderCompletion,
 }) {
   const [advancedMenu, setAdvancedMenu] = useState({ anchorEl: null, suggestionId: null });
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [confirmPayload, setConfirmPayload] = useState(null);
 
   const openAdvancedMenu = (event, suggestionId) => {
     setAdvancedMenu({ anchorEl: event.currentTarget, suggestionId });
@@ -38,7 +43,8 @@ export default function PaymentSuggestionPanel({
   };
 
   return (
-    <Paper sx={{ p: 2.5, mb: 2.5, borderRadius: 3, boxShadow: "0 1px 8px rgba(0,0,0,0.08)" }}>
+    <>
+      <Paper sx={{ p: 2.5, mb: 2.5, borderRadius: 3, boxShadow: "0 1px 8px rgba(0,0,0,0.08)" }}>
       <Typography variant="h6" fontWeight={700} color={APP_PALETTE.text.primary} mb={1.5}>
         Pagos por revisar
       </Typography>
@@ -48,6 +54,7 @@ export default function PaymentSuggestionPanel({
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
           {suggestions.slice(0, 8).map((s) => {
             const reassignCandidates = orders.filter((o) => {
+              if (!OPEN_ORDER_STATUSES.has(o.status)) return false;
               if (!s.matched_client_name) return true;
               return (o.client?.full_name || "").toLowerCase().includes(s.matched_client_name.toLowerCase());
             });
@@ -139,7 +146,17 @@ export default function PaymentSuggestionPanel({
                       )}
                       sx={{ width: 360 }}
                     />
-                    <Button size="small" variant="outlined" disabled={processingAction[s.id]} onClick={() => onSuggestionAction(s.id, "reassign")}>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      disabled={processingAction[s.id] || !reassignOrder[s.id]?.id}
+                      onClick={() => {
+                        const selected = reassignOrder[s.id];
+                        if (!selected?.id) return;
+                        setConfirmPayload({ intakeId: s.id, order: selected });
+                        setConfirmOpen(true);
+                      }}
+                    >
                       Guardar pedido correcto
                     </Button>
                   </Box>
@@ -177,6 +194,36 @@ export default function PaymentSuggestionPanel({
           })}
         </Box>
       )}
-    </Paper>
+      </Paper>
+
+      <ConfirmDialog
+        open={confirmOpen}
+        title="Confirmar reasignación"
+        description="¿Confirmas asignar este comprobante al pedido seleccionado?"
+        confirmText="Confirmar"
+        cancelText="Cancelar"
+        onCancel={() => {
+          setConfirmOpen(false);
+          setConfirmPayload(null);
+        }}
+        onConfirm={async () => {
+          setConfirmOpen(false);
+          if (!confirmPayload) return;
+          try {
+            await onSuggestionAction(confirmPayload.intakeId, "reassign");
+          } finally {
+            setConfirmPayload(null);
+          }
+        }}
+      >
+        {confirmPayload?.order && (
+          <Box sx={{ mt: 1 }}>
+            <Typography variant="body2" fontWeight={700}>Pedido #{confirmPayload.order.id}</Typography>
+            <Typography variant="caption">Cliente: {confirmPayload.order.client?.full_name || "-"}</Typography>
+            <Typography variant="caption" display="block">Total: Bs. {Number(confirmPayload.order.total || 0).toFixed(2)}</Typography>
+          </Box>
+        )}
+      </ConfirmDialog>
+    </>
   );
 }

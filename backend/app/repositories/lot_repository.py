@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.models.lot import Lot
-from app.models.order import OrderItem
+from app.models.order import Order, OrderItem, OrderStatus
 from app.repositories.crud_utils import create_entity, get_entity_by_id, list_entities, update_entity
 
 
@@ -23,4 +23,9 @@ def update_lot(db: Session, lot_id: int, payload: dict):
 
 
 def list_order_items_by_lot(db: Session, lot_id: int):
-    return db.query(OrderItem).filter(OrderItem.lot_id == lot_id).all()
+    return (
+        db.query(OrderItem)
+        .join(Order, Order.id == OrderItem.order_id)
+        .filter(OrderItem.lot_id == lot_id, Order.status == OrderStatus.payment_confirmed)
+        .all()
+    )

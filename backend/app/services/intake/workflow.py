@@ -14,6 +14,7 @@ from app.models.voucher_intake import VoucherSourceChannel, VoucherMatchStatus
 from app.repositories import payment_repository
 from app.repositories import voucher_intake_repository
 from app.services.intake_queue_service import enqueue_intake_processing
+from app.services.client_service import normalize_client_name
 from app.services.payment_service import register_voucher, update_payment_status
 
 
@@ -55,7 +56,7 @@ def build_pending_intake_payload(
 
 
 def create_provisional_client(db: Session, intake) -> Client:
-    provisional_name = (intake.extracted_sender_name or "Cliente provisional").strip()
+    provisional_name = normalize_client_name(intake.extracted_sender_name or "Cliente provisional") or "Cliente provisional"
     phone = intake.sender_phone.strip() if intake.sender_phone else None
 
     client = Client(
