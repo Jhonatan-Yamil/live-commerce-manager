@@ -16,22 +16,7 @@ import { deliverySchedulesApi } from "../../services/api";
 import { summarizeItems, sumItems, toDateIso } from "../../utils/logistics";
 import DeliverySlip from "./DeliverySlip";
 import PrintIcon from "@mui/icons-material/Print";
-
-const normalizeLocationLabel = (value) => {
-  const raw = String(value || "").trim();
-  if (!raw) return "-";
-  if (raw.toLowerCase().startsWith("otra ciudad/departamento")) return raw;
-
-  const parts = raw
-    .split("/")
-    .map((item) => item.trim())
-    .filter(Boolean);
-  if (parts.length <= 1) return raw;
-
-  const first = parts[0].toLowerCase();
-  const allEqual = parts.every((item) => item.toLowerCase() === first);
-  return allEqual ? parts[0] : raw;
-};
+import { normalizeLocationLabel } from "../../utils/logistics";
 
 export default function DeliveriesTodayPanel({ orders = [], onUpdate, brandLogoUrl }) {
   const [todaySchedules, setTodaySchedules] = useState([]);

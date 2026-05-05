@@ -19,7 +19,7 @@ import {
 } from "@mui/material";
 import { APP_PALETTE } from "../../theme/palette";
 import { deliverySchedulesApi } from "../../services/api";
-import { toDateIso, summarizeItems, sumItems } from "../../utils/logistics";
+import { toDateIso, summarizeItems, sumItems, normalizeLocationLabel } from "../../utils/logistics";
 import DeliverySlip from "./DeliverySlip";
 import PrintIcon from "@mui/icons-material/Print";
 import TablePager from "../common/TablePager";
@@ -29,22 +29,6 @@ const STATUS_LABELS = {
   rescheduled: "Reprogramado",
   not_delivered: "No entregado",
   delivered: "Entregado",
-};
-
-const normalizeLocationLabel = (value) => {
-  const raw = String(value || "").trim();
-  if (!raw) return "-";
-  if (raw.toLowerCase().startsWith("otra ciudad/departamento")) return raw;
-
-  const parts = raw
-    .split("/")
-    .map((item) => item.trim())
-    .filter(Boolean);
-  if (parts.length <= 1) return raw;
-
-  const first = parts[0].toLowerCase();
-  const allEqual = parts.every((item) => item.toLowerCase() === first);
-  return allEqual ? parts[0] : raw;
 };
 
 export default function ScheduledDeliveriesPanel({ orders = [], onUpdate, brandLogoUrl }) {
