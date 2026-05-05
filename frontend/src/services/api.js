@@ -53,6 +53,16 @@ export const authApi = {
   login: (data) => api.post("/auth/login", data),
 };
 
+export const usersApi = {
+  uploadLogo: (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return api.post("/users/me/logo", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+};
+
 export const clientsApi = createCrudApi("/clients", { includeGet: true });
 
 export const productsApi = {
@@ -90,4 +100,18 @@ export const intakeApi = {
   reject: (id) => api.post(`/intake/vouchers/${id}/reject`),
   reassign: (id, orderId) => api.post(`/intake/vouchers/${id}/reassign`, { order_id: Number(orderId) }),
   reprocess: (id) => api.post(`/intake/vouchers/${id}/reprocess`),
+};
+
+export const deliverySchedulesApi = {
+  list: () => api.get(`/delivery-schedules/`),
+  listToday: () => api.get(`/delivery-schedules/today`),
+  listByDate: (d) => api.get(`/delivery-schedules/date/${d}`),
+  listByClient: (clientId) => api.get(`/delivery-schedules/client/${clientId}`),
+  create: (data) => api.post(`/delivery-schedules/`, data),
+  getByOrder: (orderId) => api.get(`/delivery-schedules/order/${orderId}`),
+  markDelivered: (id, data) => api.patch(`/delivery-schedules/${id}/delivered`, data),
+  markNotDelivered: (id, data) => api.patch(`/delivery-schedules/${id}/not-delivered`, data),
+  reschedule: (id, data) => api.patch(`/delivery-schedules/${id}/reschedule`, data),
+  updateLocation: (id, data) => api.patch(`/delivery-schedules/${id}/location`, data),
+  delete: (id) => api.delete(`/delivery-schedules/${id}`),
 };

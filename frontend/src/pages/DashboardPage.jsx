@@ -4,7 +4,7 @@ import {
   Table, TableBody, TableCell, TableContainer,
   TableHead, TableRow, CircularProgress,
 } from "@mui/material";
-import { ordersApi, paymentsApi, lotsApi, logisticsApi } from "../services/api";
+import { ordersApi, paymentsApi, lotsApi, logisticsApi, deliverySchedulesApi } from "../services/api";
 import StatusBadge from "../components/common/StatusBadge";
 import { ORDER_STATUS_LABELS } from "../utils/constants";
 import { APP_PALETTE } from "../theme/palette";
@@ -22,12 +22,21 @@ export default function DashboardPage() {
   const [payments, setPayments] = useState([]);
   const [lots, setLots] = useState([]);
   const [logistics, setLogistics] = useState([]);
+  const [todayDeliveriesCount, setTodayDeliveriesCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([ordersApi.list(), paymentsApi.list(), lotsApi.list(), logisticsApi.list()])
       .then(([o, p, l, lg]) => { setOrders(o.data); setPayments(p.data); setLots(l.data); setLogistics(lg.data); setLoading(false); })
       .catch(() => setLoading(false));
+    // load deliveries for today (compact alert)
+    deliverySchedulesApi.listToday()
+      .then((res) => {
+        const today = new Date().toISOString().slice(0, 10);
+        const strictToday = (res.data || []).filter((schedule) => String(schedule.scheduled_date).slice(0, 10) === today && schedule.status === "scheduled");
+        setTodayDeliveriesCount(strictToday.length);
+      })
+      .catch(() => setTodayDeliveriesCount(0));
   }, []);
 
   const today = new Date();
@@ -130,6 +139,15 @@ export default function DashboardPage() {
                   <Typography color={APP_PALETTE.text.secondary} fontSize={12} mt={0.3}>{lowStockLots.map((l) => `${l.name} (${l.units_remaining} uds)`).join(" · ")}</Typography>
                 </Box>
                 <Button component="a" href="/lotes" size="small" variant="contained" sx={{ background: APP_PALETTE.brand.secondary, "&:hover": { background: APP_PALETTE.brand.secondaryHover }, borderRadius: 2, fontSize: 13 }}>Ver lotes</Button>
+              </AlertCard>
+            )}
+            {todayDeliveriesCount > 0 && (
+              <AlertCard background={APP_PALETTE.surfaces.infoSoft} border={APP_PALETTE.surfaces.brandBorderSoft}>
+                <Box>
+                  <Typography fontWeight={600} color={APP_PALETTE.text.primary} fontSize={14}>🚚 {todayDeliveriesCount} entrega(s) programada(s) para hoy</Typography>
+                  <Typography color={APP_PALETTE.text.secondary} fontSize={12} mt={0.3}>Revisa la página de logística → Entregas para hoy</Typography>
+                </Box>
+                <Button component="a" href="/logistica" size="small" variant="contained" sx={{ background: APP_PALETTE.brand.primary, borderRadius: 2, fontSize: 13 }}>Ir a logística</Button>
               </AlertCard>
             )}
             {clientsMultiplePending.length > 0 && (

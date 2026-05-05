@@ -38,7 +38,7 @@ export default function ClientsPage() {
     openEdit,
     submitForm,
   } = useCrudForm({
-    initialForm: { full_name: "", phone: "", address: "", notes: "" },
+    initialForm: { full_name: "", phone: "", address: "", delivery_city: "", delivery_department: "", notes: "" },
     loadData: load,
     createItem: (payload) => clientsApi.create(payload),
     updateItem: (id, payload) => clientsApi.update(id, payload),
@@ -46,6 +46,8 @@ export default function ClientsPage() {
       full_name: c.full_name,
       phone: c.phone || "",
       address: c.address || "",
+      delivery_city: c.delivery_city || "",
+      delivery_department: c.delivery_department || "",
       notes: c.notes || "",
     }),
     validateCreate: (payload) => {
@@ -103,6 +105,14 @@ export default function ClientsPage() {
                 value={form.address} onChange={(e) => setForm({ ...form, address: e.target.value })} />
             </Grid>
             <Grid item xs={12} sm={6}>
+              <TextField label="Ciudad de entrega" size="small" fullWidth
+                value={form.delivery_city} onChange={(e) => setForm({ ...form, delivery_city: e.target.value })} placeholder="La Paz" />
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <TextField label="Departamento de entrega" size="small" fullWidth
+                value={form.delivery_department} onChange={(e) => setForm({ ...form, delivery_department: e.target.value })} placeholder="Chuquisaca" />
+            </Grid>
+            <Grid item xs={12} sm={6}>
               <TextField label="Notas" size="small" fullWidth
                 value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
             </Grid>
@@ -127,7 +137,7 @@ export default function ClientsPage() {
         <Table>
           <TableHead>
             <TableRow sx={{ background: APP_PALETTE.surfaces.subtle }}>
-              {["Nombre", "Teléfono", "Dirección", "Notas", "Pedidos", "Acciones"].map((h) => (
+              {["Nombre", "Teléfono", "Dirección", "Ciudad", "Departamento", "Notas", "Pedidos", "Acciones"].map((h) => (
                 <TableCell key={h} sx={{ fontWeight: 700, color: APP_PALETTE.text.muted, fontSize: 13 }}>{h}</TableCell>
               ))}
             </TableRow>
@@ -142,6 +152,8 @@ export default function ClientsPage() {
                     <TableCell sx={{ fontWeight: 600 }}>{c.full_name}</TableCell>
                     <TableCell sx={{ color: APP_PALETTE.text.secondary }}>{c.phone || "—"}</TableCell>
                     <TableCell sx={{ color: APP_PALETTE.text.secondary }}>{c.address || "—"}</TableCell>
+                    <TableCell sx={{ color: APP_PALETTE.text.secondary }}>{c.delivery_city || "—"}</TableCell>
+                    <TableCell sx={{ color: APP_PALETTE.text.secondary }}>{c.delivery_department || "—"}</TableCell>
                     <TableCell sx={{ color: APP_PALETTE.text.muted, fontSize: 13 }}>{c.notes || "—"}</TableCell>
                     <TableCell>
                       {clientOrders.length > 0 ? (
@@ -170,7 +182,7 @@ export default function ClientsPage() {
                           {new Date(o.created_at).toLocaleDateString("es-BO", { day: "numeric", month: "short", year: "numeric" })}
                         </TableCell>
                         <TableCell sx={{ fontWeight: 600, color: APP_PALETTE.brand.primary, fontSize: 13 }}>Bs. {Number(o.total).toFixed(2)}</TableCell>
-                        <TableCell colSpan={2}><StatusBadge label={s.label} color={s.color} /></TableCell>
+                        <TableCell colSpan={4}><StatusBadge label={s.label} color={s.color} /></TableCell>
                         <TableCell />
                       </TableRow>
                     );

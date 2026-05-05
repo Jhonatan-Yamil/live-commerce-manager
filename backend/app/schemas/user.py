@@ -15,9 +15,11 @@ class UserOut(BaseModel):
     email: str
     role: UserRole
     is_active: bool
+    logo_path: str | None = None
     model_config = {"from_attributes": True}
 
 
 class UserUpdate(BaseModel):
     full_name: str | None = None
     is_active: bool | None = None
+    logo_path: str | None = None

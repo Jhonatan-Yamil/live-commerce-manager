@@ -3,6 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel
 from app.models.order import OrderStatus
 from app.schemas.client import ClientOut
+from app.schemas.product import ProductOut
 
 
 class OrderItemCreate(BaseModel):
@@ -19,6 +20,7 @@ class OrderItemOut(BaseModel):
     quantity: int
     unit_price: Decimal
     subtotal: Decimal
+    product: ProductOut | None = None
     model_config = {"from_attributes": True}
 
 

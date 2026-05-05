@@ -1,6 +1,6 @@
 import { Outlet, Navigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   AppBar,
   Box,
@@ -13,14 +13,19 @@ import {
 } from "@mui/material";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import LogoutRoundedIcon from "@mui/icons-material/LogoutRounded";
+import UploadFileRoundedIcon from "@mui/icons-material/UploadFileRounded";
 import Sidebar from "./Sidebar";
 import { APP_PALETTE } from "../../theme/palette";
+import { useNotification } from "../../context/NotificationContext";
+import { usersApi } from "../../services/api";
 
 export default function MainLayout() {
-  const { user, loading, logout } = useAuth();
+  const { user, loading, logout, updateUser } = useAuth();
+  const { notifySuccess, notifyError } = useNotification();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("md"));
   const [mobileOpen, setMobileOpen] = useState(false);
+  const logoInputRef = useRef(null);
 
   const drawerWidth = 260;
 
@@ -30,6 +35,20 @@ export default function MainLayout() {
 
   const handleDrawerClose = () => {
     setMobileOpen(false);
+  };
+
+  const handleLogoUpload = async (event) => {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) return;
+
+    try {
+      const res = await usersApi.uploadLogo(file);
+      updateUser({ ...user, ...res.data });
+      notifySuccess("Logo actualizado");
+    } catch {
+      notifyError("No se pudo subir el logo");
+    }
   };
 
   if (loading) return <div style={{ padding: 40, textAlign: "center" }}>Cargando...</div>;
@@ -72,6 +91,33 @@ export default function MainLayout() {
           >
             {user?.full_name}
           </Typography>
+
+          <input
+            ref={logoInputRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={handleLogoUpload}
+          />
+
+          <Button
+            variant="outlined"
+            startIcon={<UploadFileRoundedIcon />}
+            onClick={() => logoInputRef.current?.click()}
+            sx={{
+              mr: 1,
+              borderRadius: 999,
+              px: 1.5,
+              textTransform: "none",
+              fontWeight: 700,
+              borderColor: APP_PALETTE.surfaces.border,
+              color: APP_PALETTE.text.primary,
+            }}
+          >
+            <Box component="span" sx={{ display: { xs: "none", sm: "inline" } }}>
+              Logo
+            </Box>
+          </Button>
 
           <Button
             color="inherit"

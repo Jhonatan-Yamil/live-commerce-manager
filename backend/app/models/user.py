@@ -16,3 +16,4 @@ class User(Base):
     hashed_password = Column(String, nullable=False)
     role = Column(SAEnum(UserRole), default=UserRole.seller, nullable=False)
     is_active = Column(Boolean, default=True)
+    logo_path = Column(String, nullable=True)

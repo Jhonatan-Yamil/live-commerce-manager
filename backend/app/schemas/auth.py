@@ -12,3 +12,4 @@ class Token(BaseModel):
     user_id: int
     role: str
     full_name: str
+    logo_path: str | None = None

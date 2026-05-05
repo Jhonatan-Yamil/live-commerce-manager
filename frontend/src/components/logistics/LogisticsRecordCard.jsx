@@ -109,7 +109,7 @@ export default function LogisticsRecordCard({
                 fontSize: 13,
               }}
             >
-              Actualizar
+              Editar
             </Button>
           ) : (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 280 }}>

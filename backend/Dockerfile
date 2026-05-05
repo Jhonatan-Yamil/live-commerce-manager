@@ -18,6 +18,8 @@ COPY requirements.txt ./
 RUN pip install --upgrade pip \
     && pip install -r requirements.txt
 
+COPY alembic ./alembic
+COPY alembic.ini ./
 COPY app ./app
 COPY seed_data.py ./seed_data.py
 
