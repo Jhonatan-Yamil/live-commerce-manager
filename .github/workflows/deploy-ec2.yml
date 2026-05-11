@@ -43,15 +43,19 @@ jobs:
             --exclude '.env.prod' \
             -e "ssh -i ~/.ssh/ec2_key" ./ "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/opt/live-commerce-manager/"
 
-      - name: Deploy containers
+      - name: Write production env file on EC2
+        env:
+          PROD_ENV_FILE: ${{ secrets.PROD_ENV_FILE }}
         run: |
           ssh -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" << 'EOF'
             set -euo pipefail
             cd /opt/live-commerce-manager
-            if [ ! -f .env.prod ]; then
-              cp .env.prod.example .env.prod
-              echo "Created .env.prod from example. Edit it once with your real secrets before the next deploy."
-              exit 0
-            fi
+            umask 077
+            python3 - <<'PY'
+from pathlib import Path
+import os
+
+Path('.env.prod').write_text(os.environ['PROD_ENV_FILE'], encoding='utf-8')
+PY
             docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
           EOF
