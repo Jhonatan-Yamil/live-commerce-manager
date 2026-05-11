@@ -3,6 +3,7 @@ from sqlalchemy import Column, Integer, Text, Numeric, ForeignKey, DateTime, Enu
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.models.base import Base
+from app.models.delivery_schedule import DeliverySchedule
 
 
 class OrderStatus(str, enum.Enum):
@@ -29,6 +30,7 @@ class Order(Base):
     items = relationship("OrderItem", back_populates="order", cascade="all, delete-orphan")
     payment = relationship("Payment", back_populates="order", uselist=False)
     logistics = relationship("Logistics", back_populates="order", uselist=False)
+    delivery_schedules = relationship(DeliverySchedule, back_populates="order", cascade="all, delete-orphan")
 
 
 class OrderItem(Base):

@@ -19,6 +19,7 @@ def create_token_for_user(user: User) -> dict:
         "user_id": user.id,
         "role": user.role,
         "full_name": user.full_name,
+        "logo_path": user.logo_path,
     }
 
 

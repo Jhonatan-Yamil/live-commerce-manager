@@ -1,62 +1,52 @@
-import { useState, useEffect } from "react";
-import {
-  Box, Button, TextField, MenuItem, Typography, Paper,
-} from "@mui/material";
-import { paymentsApi } from "../services/api";
+import { useMemo, useState } from "react";
+import { Box, Button, Paper, Typography } from "@mui/material";
 import SearchBar from "../components/common/SearchBar";
 import TablePager from "../components/common/TablePager";
 import { PAYMENT_STATUS_CONFIG } from "../utils/constants";
-
-const STATUS_LABELS_NEXT = {
-  in_review: "Marcar en revisión",
-  confirmed: "Confirmar pago ✓",
-  rejected: "Rechazar pago ✗",
-};
-
-const NEXT_COLORS = {
-  confirmed: "#10b981",
-  rejected: "#ef4444",
-  in_review: "#3b82f6",
-};
+import OrderCompletionDialog from "../components/orders/OrderCompletionDialog";
+import usePaymentsData from "../hooks/usePaymentsData";
+import PaymentSuggestionPanel from "../components/payments/PaymentSuggestionPanel";
+import PaymentRecordCard from "../components/payments/PaymentRecordCard";
+import { APP_PALETTE } from "../theme/palette";
 
 export default function PaymentsPage() {
-  const [payments, setPayments] = useState([]);
-  const [notes, setNotes] = useState({});
-  const [files, setFiles] = useState({});
-  const [uploading, setUploading] = useState({});
+  const {
+    payments,
+    suggestions,
+    orders,
+    notes,
+    setNotes,
+    files,
+    setFiles,
+    uploading,
+    reassignOrder,
+    setReassignOrder,
+    processingAction,
+    showReassign,
+    setShowReassign,
+    completionSuggestion,
+    setCompletionSuggestion,
+    isRefreshing,
+    lastUpdatedAt,
+    load,
+    changeStatus,
+    uploadVoucher,
+    handleSuggestionAction,
+  } = usePaymentsData();
+
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [page, setPage] = useState(0);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-
-  const load = () => paymentsApi.list().then((r) => setPayments(r.data));
-  useEffect(() => { load(); }, []);
-
-  const changeStatus = async (id, status) => {
-    await paymentsApi.updateStatus(id, { status, notes: notes[id] || null });
-    load();
-  };
-
-  const uploadVoucher = async (orderId) => {
-    const file = files[orderId];
-    if (!file) return alert("Selecciona un archivo primero");
-    setUploading({ ...uploading, [orderId]: true });
-    try {
-      await paymentsApi.uploadVoucher(orderId, file);
-      setFiles({ ...files, [orderId]: null });
-      load();
-    } catch {
-      alert("Error al subir el comprobante");
-    } finally {
-      setUploading({ ...uploading, [orderId]: false });
-    }
-  };
-
-  const filtered = payments.filter((p) => {
-    const matchSearch = !search || String(p.order_id).includes(search) || (p.client_name || "").toLowerCase().includes(search.toLowerCase());
-    const matchStatus = statusFilter === "all" || p.status === statusFilter;
-    return matchSearch && matchStatus;
-  }).sort((a, b) => b.id - a.id);
+  const filtered = useMemo(() => {
+    return payments
+      .filter((p) => {
+        const matchSearch = !search || String(p.order_id).includes(search) || (p.client_name || "").toLowerCase().includes(search.toLowerCase());
+        const matchStatus = statusFilter === "all" || p.status === statusFilter;
+        return matchSearch && matchStatus;
+      })
+      .sort((a, b) => b.id - a.id);
+  }, [payments, search, statusFilter]);
 
   const statusFilters = [
     {
@@ -81,7 +71,36 @@ export default function PaymentsPage() {
 
   return (
     <Box>
-      <Typography variant="h5" fontWeight={700} color="#1a1a2e" mb={3}>Gestión de Pagos</Typography>
+      <Box sx={{ mb: 3, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+        <Box>
+          <Typography variant="h5" fontWeight={700} color={APP_PALETTE.text.primary}>Gestión de Pagos</Typography>
+          {lastUpdatedAt && (
+            <Typography variant="caption" color="text.secondary">
+              Actualizado: {lastUpdatedAt.toLocaleTimeString("es-BO")}
+            </Typography>
+          )}
+        </Box>
+        <Button
+          variant="outlined"
+          size="small"
+          disabled={isRefreshing}
+          onClick={() => load(true)}
+        >
+          {isRefreshing ? "Actualizando..." : "Actualizar ahora"}
+        </Button>
+      </Box>
+
+      <PaymentSuggestionPanel
+        suggestions={suggestions}
+        orders={orders}
+        processingAction={processingAction}
+        showReassign={showReassign}
+        setShowReassign={setShowReassign}
+        reassignOrder={reassignOrder}
+        setReassignOrder={setReassignOrder}
+        onSuggestionAction={handleSuggestionAction}
+        onOpenOrderCompletion={setCompletionSuggestion}
+      />
 
       <SearchBar
         search={search}
@@ -102,73 +121,18 @@ export default function PaymentsPage() {
         {filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((p) => {
           const s = PAYMENT_STATUS_CONFIG[p.status];
           return (
-            <Paper key={p.id} sx={{ p: 2.5, borderRadius: 3, boxShadow: "0 1px 8px rgba(0,0,0,0.08)", borderLeft: `4px solid ${s.color}` }}>
-              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 2 }}>
-                <Box>
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 0.5 }}>
-                    <Typography fontWeight={700} fontSize={15} color="#1a1a2e">
-                      {p.client_name || "Cliente desconocido"}
-                    </Typography>
-                    <span style={{ background: s.color + "20", color: s.color, borderRadius: 20, padding: "2px 10px", fontSize: 12, fontWeight: 600 }}>{s.label}</span>
-                  </Box>
-                  <Typography variant="caption" color="text.secondary">
-                    Pedido #{p.order_id}
-                    {p.order_total && <span style={{ marginLeft: 8, fontWeight: 600, color: "#4f46e5" }}>Bs. {p.order_total.toFixed(2)}</span>}
-                    {p.order_created_at && <span style={{ marginLeft: 8 }}>{new Date(p.order_created_at).toLocaleDateString("es-BO", { day: "numeric", month: "short", year: "numeric" })}</span>}
-                  </Typography>
-                  {p.voucher_path && (
-                    <Box mt={0.5}>
-                      <Typography variant="caption" color="text.secondary">
-                        Comprobante:{" "}
-                        <a href={`http://localhost:8000/uploads/${p.voucher_path}`} target="_blank" rel="noreferrer"
-                          style={{ color: "#4f46e5", fontWeight: 600 }}>Ver comprobante</a>
-                      </Typography>
-                    </Box>
-                  )}
-                  {p.notes && <Typography variant="caption" color="text.secondary" display="block">Nota: {p.notes}</Typography>}
-                  {p.reviewed_at && <Typography variant="caption" color="text.secondary" display="block">Revisado: {new Date(p.reviewed_at).toLocaleString("es-BO")}</Typography>}
-                </Box>
-
-                <Box sx={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 280 }}>
-                  {p.status === "pending" && (
-                    <Paper variant="outlined" sx={{ p: 1.5, borderRadius: 2, background: "#f8f9fc" }}>
-                      <Typography variant="caption" fontWeight={500} color="#555" display="block" mb={1}>
-                        Subir comprobante (imagen o PDF)
-                      </Typography>
-                      <input type="file" accept=".jpg,.jpeg,.png,.pdf"
-                        onChange={(e) => setFiles({ ...files, [p.order_id]: e.target.files[0] })}
-                        style={{ width: "100%", marginBottom: 8, fontSize: 13 }} />
-                      {files[p.order_id] && (
-                        <Typography variant="caption" color="text.secondary" display="block" mb={1}>
-                          📎 {files[p.order_id].name}
-                        </Typography>
-                      )}
-                      <Button fullWidth variant="contained" size="small"
-                        disabled={!files[p.order_id] || uploading[p.order_id]}
-                        onClick={() => uploadVoucher(p.order_id)}
-                        sx={{ background: files[p.order_id] ? "#4f46e5" : "#e0e0e0", "&:hover": { background: "#4338ca" }, borderRadius: 2 }}>
-                        {uploading[p.order_id] ? "Subiendo..." : "Registrar comprobante"}
-                      </Button>
-                    </Paper>
-                  )}
-                  {s.next.length > 0 && (
-                    <Box>
-                      <TextField size="small" fullWidth placeholder="Notas (opcional)" value={notes[p.id] || ""}
-                        onChange={(e) => setNotes({ ...notes, [p.id]: e.target.value })} sx={{ mb: 1 }} />
-                      <Box sx={{ display: "flex", gap: 1 }}>
-                        {s.next.map((ns) => (
-                          <Button key={ns} fullWidth size="small" variant="contained"
-                            onClick={() => changeStatus(p.id, ns)}
-                            sx={{ background: NEXT_COLORS[ns], "&:hover": { filter: "brightness(0.9)" }, borderRadius: 2, fontSize: 12 }}>
-                            {STATUS_LABELS_NEXT[ns]}
-                          </Button>
-                        ))}
-                      </Box>
-                    </Box>
-                  )}
-                </Box>
-              </Box>
-            </Paper>
+            <PaymentRecordCard
+              key={p.id}
+              payment={p}
+              statusConfig={s}
+              noteValue={notes[p.id] || ""}
+              onNoteChange={(value) => setNotes((prev) => ({ ...prev, [p.id]: value }))}
+              selectedFile={files[p.order_id]}
+              onFileChange={(file) => setFiles((prev) => ({ ...prev, [p.order_id]: file }))}
+              isUploading={uploading[p.order_id]}
+              onUploadVoucher={() => uploadVoucher(p.order_id)}
+              onChangeStatus={(nextStatus) => changeStatus(p.id, nextStatus)}
+            />
           );
         })}
         {filtered.length === 0 && (
@@ -187,6 +151,13 @@ export default function PaymentsPage() {
           onRowsPerPageChange={(value) => { setRowsPerPage(value); setPage(0); }}
         />
       )}
+
+      <OrderCompletionDialog
+        open={Boolean(completionSuggestion)}
+        suggestion={completionSuggestion}
+        onClose={() => setCompletionSuggestion(null)}
+        onCompleted={load}
+      />
     </Box>
   );
 }

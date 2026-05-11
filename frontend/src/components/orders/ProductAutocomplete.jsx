@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { APP_PALETTE } from "../../theme/palette";
 
 export default function ProductAutocomplete({ products, value, onChange, onSelect }) {
 	const [open, setOpen] = useState(false);
@@ -63,7 +64,7 @@ export default function ProductAutocomplete({ products, value, onChange, onSelec
 				style={{
 					width: "100%",
 					padding: "8px 10px",
-					border: "1px solid #ddd",
+					border: `1px solid ${APP_PALETTE.surfaces.border}`,
 					borderRadius: 6,
 					fontSize: 14,
 					boxSizing: "border-box",
@@ -77,8 +78,8 @@ export default function ProductAutocomplete({ products, value, onChange, onSelec
 						top: "100%",
 						left: 0,
 						right: 0,
-						background: "#fff",
-						border: "1px solid #ddd",
+						background: APP_PALETTE.surface,
+						border: `1px solid ${APP_PALETTE.surfaces.border}`,
 						borderRadius: 8,
 						boxShadow: "0 4px 16px rgba(0,0,0,0.1)",
 						zIndex: 100,
@@ -97,8 +98,8 @@ export default function ProductAutocomplete({ products, value, onChange, onSelec
 								padding: "10px 14px",
 								cursor: "pointer",
 								fontSize: 14,
-								borderBottom: "1px solid #f5f5f5",
-								background: i === highlighted ? "#f0f4ff" : "#fff",
+								borderBottom: `1px solid ${APP_PALETTE.surfaces.borderSoft}`,
+ 								background: i === highlighted ? APP_PALETTE.brand.soft : APP_PALETTE.surface,
 							}}
 							onMouseEnter={() => setHighlighted(i)}
 						>

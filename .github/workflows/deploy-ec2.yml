@@ -1,0 +1,57 @@
+name: Deploy to EC2
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "frontend/**"
+      - "docker-compose.prod.yml"
+      - "Caddyfile"
+      - ".github/workflows/deploy-ec2.yml"
+      - ".env.prod.example"
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          printf '%s\n' "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/ec2_key
+          chmod 600 ~/.ssh/ec2_key
+          ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Sync project to EC2
+        run: |
+          rsync -az --delete \
+            --exclude '.git/' \
+            --exclude '.github/' \
+            --exclude '.venv/' \
+            --exclude 'backend/venv/' \
+            --exclude 'backend/__pycache__/' \
+            --exclude 'backend/uploads/' \
+            --exclude 'frontend/node_modules/' \
+            --exclude 'frontend/build/' \
+            --exclude 'frontend/.cache/' \
+            --exclude '.env' \
+            --exclude '.env.prod' \
+            -e "ssh -i ~/.ssh/ec2_key" ./ "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/opt/live-commerce-manager/"
+
+      - name: Deploy containers
+        run: |
+          ssh -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" << 'EOF'
+            set -euo pipefail
+            cd /opt/live-commerce-manager
+            if [ ! -f .env.prod ]; then
+              cp .env.prod.example .env.prod
+              echo "Created .env.prod from example. Edit it once with your real secrets before the next deploy."
+              exit 0
+            fi
+            docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+          EOF

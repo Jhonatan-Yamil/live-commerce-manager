@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.models.user import User
+from app.repositories.crud_utils import create_entity, list_entities
 
 
 def get_by_email(db: Session, email: str):
@@ -12,12 +13,8 @@ def get_active_by_email(db: Session, email: str):
 
 
 def create_user(db: Session, payload: dict):
-    user = User(**payload)
-    db.add(user)
-    db.commit()
-    db.refresh(user)
-    return user
+    return create_entity(db, User, payload)
 
 
 def list_users(db: Session):
-    return db.query(User).all()
+    return list_entities(db, User)

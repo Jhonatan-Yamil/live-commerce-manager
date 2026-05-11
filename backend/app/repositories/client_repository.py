@@ -1,32 +1,21 @@
 from sqlalchemy.orm import Session
 
 from app.models.client import Client
+from app.repositories.crud_utils import create_entity, get_entity_by_id, list_entities, update_entity
 
 
 def create_client(db: Session, payload: dict):
-    client = Client(**payload)
-    db.add(client)
-    db.commit()
-    db.refresh(client)
-    return client
+    return create_entity(db, Client, payload)
 
 
 def list_clients(db: Session):
-    return db.query(Client).all()
+    return list_entities(db, Client)
 
 
 def get_client_by_id(db: Session, client_id: int):
-    return db.query(Client).filter(Client.id == client_id).first()
+    return get_entity_by_id(db, Client, client_id)
 
 
 def update_client(db: Session, client_id: int, payload: dict):
     client = get_client_by_id(db, client_id)
-    if not client:
-        return None
-
-    for key, value in payload.items():
-        setattr(client, key, value)
-
-    db.commit()
-    db.refresh(client)
-    return client
+    return update_entity(db, client, payload)

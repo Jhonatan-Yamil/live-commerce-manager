@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext";
 import {
   Box, Button, TextField, Typography, Paper, Alert, CircularProgress,
 } from "@mui/material";
+import { APP_PALETTE } from "../theme/palette";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -11,9 +12,11 @@ export default function LoginPage() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setSubmitAttempted(true);
     setError("");
     setLoading(true);
     try {
@@ -27,9 +30,9 @@ export default function LoginPage() {
   };
 
   return (
-    <Box sx={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: "#f0f2f5" }}>
+    <Box sx={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: APP_PALETTE.background }}>
       <Paper sx={{ p: 5, borderRadius: 3, width: 380, boxShadow: "0 4px 20px rgba(0,0,0,0.1)" }}>
-        <Typography variant="h5" fontWeight={700} color="#1a1a2e" textAlign="center" mb={0.5}>
+        <Typography variant="h5" fontWeight={700} color={APP_PALETTE.text.primary} textAlign="center" mb={0.5}>
           LiveSale Manager
         </Typography>
         <Typography color="text.secondary" textAlign="center" fontSize={14} mb={3}>
@@ -42,7 +45,7 @@ export default function LoginPage() {
 
         <Box component="form" onSubmit={handleSubmit}>
           <TextField
-            label="Email"
+            label={submitAttempted ? "Email *" : "Email"}
             type="email"
             fullWidth
             size="small"
@@ -52,7 +55,7 @@ export default function LoginPage() {
             sx={{ mb: 2 }}
           />
           <TextField
-            label="Contraseña"
+            label={submitAttempted ? "Contraseña *" : "Contraseña"}
             type="password"
             fullWidth
             size="small"
@@ -66,7 +69,7 @@ export default function LoginPage() {
             fullWidth
             variant="contained"
             disabled={loading}
-            sx={{ py: 1.5, background: "#4f46e5", "&:hover": { background: "#4338ca" }, borderRadius: 2, fontSize: 15, fontWeight: 600 }}
+            sx={{ py: 1.5, background: APP_PALETTE.brand.primary, "&:hover": { background: APP_PALETTE.brand.primaryHover }, borderRadius: 2, fontSize: 15, fontWeight: 600 }}
           >
             {loading ? <CircularProgress size={22} color="inherit" /> : "Ingresar"}
           </Button>

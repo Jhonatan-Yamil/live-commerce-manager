@@ -13,6 +13,7 @@ from app.services.payment_service import (
     register_voucher as register_voucher_service,
     update_payment_status,
 )
+from app.routers.utils import require_found
 
 router = APIRouter()
 
@@ -28,17 +29,13 @@ def list_payments(db: Session = Depends(get_db), _=Depends(get_current_user)):
 @router.get("/{payment_id}", response_model=PaymentOut)
 def get_payment(payment_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
     p = get_payment_service(db, payment_id)
-    if not p:
-        raise HTTPException(status_code=404, detail="Pago no encontrado")
-    return p
+    return require_found(p, "Pago no encontrado")
 
 
 @router.patch("/{payment_id}/status", response_model=PaymentOut)
 def change_payment_status(payment_id: int, data: PaymentStatusUpdate, db: Session = Depends(get_db), _=Depends(get_current_user)):
     p = update_payment_status(db, payment_id, data.status, data.notes)
-    if not p:
-        raise HTTPException(status_code=404, detail="Pago no encontrado")
-    return p
+    return require_found(p, "Pago no encontrado")
 
 
 @router.post("/order/{order_id}/voucher", response_model=PaymentOut)
@@ -49,8 +46,7 @@ def upload_voucher(
     _=Depends(get_current_user),
 ):
     payment = get_payment_by_order_service(db, order_id)
-    if not payment:
-        raise HTTPException(status_code=404, detail="Pago no encontrado para este pedido")
+    require_found(payment, "Pago no encontrado para este pedido")
 
     ext = os.path.splitext(file.filename)[1].lower()
     if ext not in [".jpg", ".jpeg", ".png", ".pdf"]:

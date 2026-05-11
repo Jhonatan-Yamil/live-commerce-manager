@@ -1,0 +1,20 @@
+#!/bin/bash
+set -euxo pipefail
+
+dnf update -y
+dnf install -y git docker docker-compose-plugin
+systemctl enable docker
+systemctl start docker
+
+usermod -aG docker ec2-user
+
+mkdir -p /opt/${project_name}
+chown -R ec2-user:ec2-user /opt/${project_name}
+
+cat >/etc/motd <<'EOF'
+${project_name} host is ready.
+Next steps:
+1) Upload project files to /opt/${project_name}
+2) Create /opt/${project_name}/.env from .env.prod.example
+3) Run: docker compose -f docker-compose.prod.yml up -d --build
+EOF

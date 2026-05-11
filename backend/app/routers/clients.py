@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.auth.dependencies import get_current_user
@@ -9,6 +9,7 @@ from app.services.client_service import (
     list_clients as list_clients_service,
     update_client as update_client_service,
 )
+from app.routers.utils import require_found
 
 router = APIRouter()
 
@@ -26,14 +27,10 @@ def list_clients(db: Session = Depends(get_db), _=Depends(get_current_user)):
 @router.get("/{client_id}", response_model=ClientOut)
 def get_client(client_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
     c = get_client_service(db, client_id)
-    if not c:
-        raise HTTPException(status_code=404, detail="Cliente no encontrado")
-    return c
+    return require_found(c, "Cliente no encontrado")
 
 
 @router.put("/{client_id}", response_model=ClientOut)
 def update_client(client_id: int, data: ClientUpdate, db: Session = Depends(get_db), _=Depends(get_current_user)):
     c = update_client_service(db, client_id, data.model_dump(exclude_unset=True))
-    if not c:
-        raise HTTPException(status_code=404, detail="Cliente no encontrado")
-    return c
+    return require_found(c, "Cliente no encontrado")

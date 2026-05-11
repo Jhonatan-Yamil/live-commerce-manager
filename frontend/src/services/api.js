@@ -1,6 +1,20 @@
 import axios from "axios";
 
-const api = axios.create({ baseURL: "http://localhost:8000/api" });
+const rawApiBaseUrl = process.env.REACT_APP_API_URL || "http://localhost:8000/api";
+const api = axios.create({ baseURL: rawApiBaseUrl });
+
+export const getBackendOrigin = () => {
+  if (rawApiBaseUrl.startsWith("/")) {
+    if (typeof window !== "undefined") return window.location.origin;
+    return "http://localhost:8000";
+  }
+
+  try {
+    return new URL(rawApiBaseUrl).origin;
+  } catch {
+    return "http://localhost:8000";
+  }
+};
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
@@ -21,21 +35,38 @@ api.interceptors.response.use(
 
 export default api;
 
+const createCrudApi = (basePath, options = {}) => {
+  const crudApi = {
+    list: () => api.get(basePath),
+    create: (data) => api.post(basePath, data),
+    update: (id, data) => api.put(`${basePath}/${id}`, data),
+  };
+
+  if (options.includeGet) {
+    crudApi.get = (id) => api.get(`${basePath}/${id}`);
+  }
+
+  return crudApi;
+};
+
 export const authApi = {
   login: (data) => api.post("/auth/login", data),
 };
 
-export const clientsApi = {
-  list: () => api.get("/clients"),
-  create: (d) => api.post("/clients", d),
-  update: (id, d) => api.put(`/clients/${id}`, d),
-  get: (id) => api.get(`/clients/${id}`),
+export const usersApi = {
+  uploadLogo: (file) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    return api.post("/users/me/logo", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
 };
 
+export const clientsApi = createCrudApi("/clients", { includeGet: true });
+
 export const productsApi = {
-  list: () => api.get("/products"),
-  create: (d) => api.post("/products", d),
-  update: (id, d) => api.put(`/products/${id}`, d),
+  ...createCrudApi("/products"),
   sold: () => api.get("/products/sold"),
   names: () => api.get("/products/names"),
 };
@@ -59,14 +90,33 @@ export const paymentsApi = {
   },
 };
 
-export const logisticsApi = {
-  list: () => api.get("/logistics"),
-  create: (d) => api.post("/logistics", d),
-  update: (id, d) => api.put(`/logistics/${id}`, d),
+export const logisticsApi = createCrudApi("/logistics");
+
+export const lotsApi = createCrudApi("/lots");
+
+export const intakeApi = {
+  listSuggestions: (status) => api.get("/intake/suggestions", { params: status ? { status } : {} }),
+  confirm: (id) => api.post(`/intake/vouchers/${id}/confirm`),
+  reject: (id) => api.post(`/intake/vouchers/${id}/reject`),
+  reassign: (id, orderId) => api.post(`/intake/vouchers/${id}/reassign`, { order_id: Number(orderId) }),
+  reprocess: (id) => api.post(`/intake/vouchers/${id}/reprocess`),
 };
 
-export const lotsApi = {
-  list: () => api.get("/lots"),
-  create: (d) => api.post("/lots", d),
-  update: (id, d) => api.put(`/lots/${id}`, d),
+export const deliverySchedulesApi = {
+  list: () => api.get(`/delivery-schedules/`),
+  listToday: () => api.get(`/delivery-schedules/today`),
+  listByDate: (d) => api.get(`/delivery-schedules/date/${d}`),
+  listByClient: (clientId) => api.get(`/delivery-schedules/client/${clientId}`),
+  create: (data) => api.post(`/delivery-schedules/`, data),
+  getByOrder: (orderId) => api.get(`/delivery-schedules/order/${orderId}`),
+  markDelivered: (id, data) => api.patch(`/delivery-schedules/${id}/delivered`, data),
+  markNotDelivered: (id, data) => api.patch(`/delivery-schedules/${id}/not-delivered`, data),
+  reschedule: (id, data) => api.patch(`/delivery-schedules/${id}/reschedule`, data),
+  updateLocation: (id, data) => api.patch(`/delivery-schedules/${id}/location`, data),
+  delete: (id) => api.delete(`/delivery-schedules/${id}`),
+};
+
+export const cashFlowApi = {
+  getReport: (dateFrom, dateTo) => 
+    api.get("/cash-flow", { params: { date_from: dateFrom, date_to: dateTo } }),
 };

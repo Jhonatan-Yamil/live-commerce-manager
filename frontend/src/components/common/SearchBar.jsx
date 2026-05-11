@@ -1,4 +1,5 @@
 import { Box, TextField, MenuItem, Button, Typography } from "@mui/material";
+import { APP_PALETTE } from "../../theme/palette";
 
 export default function SearchBar({
   search,
@@ -11,7 +12,7 @@ export default function SearchBar({
 
   return (
     <Box sx={{
-      background: "#fff",
+      background: APP_PALETTE.surface,
       borderRadius: 3,
       p: 2,
       mb: 2,
@@ -58,7 +59,7 @@ export default function SearchBar({
       )}
 
       {hasActiveFilters && onClear && (
-        <Button size="small" onClick={onClear} sx={{ color: "#666" }}>
+        <Button size="small" onClick={onClear} sx={{ color: APP_PALETTE.text.secondary }}>
           Limpiar
         </Button>
       )}

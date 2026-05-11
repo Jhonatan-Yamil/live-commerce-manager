@@ -1,15 +1,37 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, field_validator
 
 
 class ClientCreate(BaseModel):
     full_name: str
-    phone: str | None = None
+    phone: str
     address: str | None = None
+    delivery_city: str | None = None
+    delivery_department: str | None = None
     notes: str | None = None
 
+    @field_validator("full_name", "phone")
+    @classmethod
+    def not_empty(cls, value: str) -> str:
+        value = value.strip()
+        if not value:
+            raise ValueError("Campo obligatorio")
+        return value
 
-class ClientUpdate(ClientCreate):
-    pass
+
+class ClientUpdate(BaseModel):
+    full_name: str | None = None
+    phone: str | None = None
+    address: str | None = None
+    delivery_city: str | None = None
+    delivery_department: str | None = None
+    notes: str | None = None
+
+    @field_validator("full_name", "phone", mode="before")
+    @classmethod
+    def strip_optional(cls, value):
+        if isinstance(value, str):
+            return value.strip()
+        return value
 
 
 class ClientOut(BaseModel):
@@ -17,5 +39,7 @@ class ClientOut(BaseModel):
     full_name: str
     phone: str | None
     address: str | None
+    delivery_city: str | None
+    delivery_department: str | None
     notes: str | None
     model_config = {"from_attributes": True}

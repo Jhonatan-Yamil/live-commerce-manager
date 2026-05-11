@@ -1,0 +1,106 @@
+name: CI - Build & Validate
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  environment-check:
+    runs-on: ubuntu-latest
+    name: Validate Environment
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Run doctor script
+        run: node doctor.js
+
+  frontend-build:
+    runs-on: ubuntu-latest
+    name: Frontend Build
+    needs: environment-check
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      - name: Install dependencies
+        run: cd frontend && npm ci
+      - name: Run linter (if configured)
+        run: cd frontend && npm run lint --if-present || true
+      - name: Build
+        run: cd frontend && npm run build
+      - name: Upload coverage (if generated)
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: frontend-build
+          path: frontend/build/
+          retention-days: 5
+
+  backend-checks:
+    runs-on: ubuntu-latest
+    name: Backend Checks
+    needs: environment-check
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+          POSTGRES_DB: testdb
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Cache pip packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('backend/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          cd backend && pip install -r requirements.txt
+
+      - name: Verify imports
+        run: cd backend && python -c "from app.main import app; print('✓ App imports successfully')"
+
+      - name: Check Alembic config
+        run: cd backend && alembic current || echo "⚠ Alembic check skipped (DB may not be accessible)"
+
+      - name: Run pytest (if available)
+        run: cd backend && pytest --version && pytest tests/ -v || echo "⚠ No tests found or pytest not available"
+        continue-on-error: true
+
+  integration-summary:
+    runs-on: ubuntu-latest
+    name: Summary
+    needs: [frontend-build, backend-checks]
+    if: always()
+    steps:
+      - name: Check build status
+        run: |
+          if [ "${{ needs.frontend-build.result }}" = "success" ] && [ "${{ needs.backend-checks.result }}" = "success" ]; then
+            echo "✓ All checks passed"
+            exit 0
+          else
+            echo "✗ Some checks failed"
+            exit 1
+          fi

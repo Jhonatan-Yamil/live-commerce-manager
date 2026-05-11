@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session, joinedload
 
-from app.models.order import Order
+from app.models.order import Order, OrderItem
 from app.models.product import Product
 
 
@@ -22,7 +22,7 @@ def create_product(db: Session, name: str, price):
 def list_orders(db: Session, skip: int = 0, limit: int = 100):
     return (
         db.query(Order)
-        .options(joinedload(Order.client), joinedload(Order.items))
+        .options(joinedload(Order.client), joinedload(Order.items).joinedload(OrderItem.product))
         .offset(skip)
         .limit(limit)
         .all()
@@ -34,7 +34,7 @@ def get_order_by_id(db: Session, order_id: int):
         db.query(Order)
         .options(
             joinedload(Order.client),
-            joinedload(Order.items),
+            joinedload(Order.items).joinedload(OrderItem.product),
             joinedload(Order.payment),
             joinedload(Order.logistics),
         )

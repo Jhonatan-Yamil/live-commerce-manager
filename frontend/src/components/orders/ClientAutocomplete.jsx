@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { APP_PALETTE } from "../../theme/palette";
 
 export default function ClientAutocomplete({ clients, value, onChange, onSelect }) {
 	const [open, setOpen] = useState(false);
@@ -65,7 +66,7 @@ export default function ClientAutocomplete({ clients, value, onChange, onSelect 
 				style={{
 					width: "100%",
 					padding: "8px 10px",
-					border: "1px solid #ddd",
+					border: `1px solid ${APP_PALETTE.surfaces.border}`,
 					borderRadius: 6,
 					fontSize: 14,
 					boxSizing: "border-box",
@@ -79,8 +80,8 @@ export default function ClientAutocomplete({ clients, value, onChange, onSelect 
 						top: "100%",
 						left: 0,
 						right: 0,
-						background: "#fff",
-						border: "1px solid #ddd",
+						background: APP_PALETTE.surface,
+						border: `1px solid ${APP_PALETTE.surfaces.border}`,
 						borderRadius: 8,
 						boxShadow: "0 4px 16px rgba(0,0,0,0.1)",
 						zIndex: 100,
@@ -89,7 +90,7 @@ export default function ClientAutocomplete({ clients, value, onChange, onSelect 
 					}}
 				>
 					{filtered.length > 0 ? (
-						filtered.map((c, i) => (
+						filtered.map((c, i) => ( 
 							<div
 								key={c.id}
 								onMouseDown={() => {
@@ -100,17 +101,17 @@ export default function ClientAutocomplete({ clients, value, onChange, onSelect 
 									padding: "10px 14px",
 									cursor: "pointer",
 									fontSize: 14,
-									borderBottom: "1px solid #f5f5f5",
-									background: i === highlighted ? "#f0f4ff" : "#fff",
+									borderBottom: `1px solid ${APP_PALETTE.surfaces.borderSoft}`,
+ 									background: i === highlighted ? APP_PALETTE.brand.soft : APP_PALETTE.surface,
 								}}
 								onMouseEnter={() => setHighlighted(i)}
 							>
 								<span style={{ fontWeight: 600 }}>{c.full_name}</span>
-								{c.phone && <span style={{ color: "#888", fontSize: 12, marginLeft: 8 }}>{c.phone}</span>}
+								{c.phone && <span style={{ color: APP_PALETTE.text.muted, fontSize: 12, marginLeft: 8 }}>{c.phone}</span>}
 							</div>
 						))
 					) : (
-						<div style={{ padding: "10px 14px", color: "#888", fontSize: 13 }}>
+						<div style={{ padding: "10px 14px", color: APP_PALETTE.text.muted, fontSize: 13 }}>
 							No encontrado - se creara <strong>"{value}"</strong> como nuevo cliente
 						</div>
 					)}
