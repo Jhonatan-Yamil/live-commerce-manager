@@ -51,4 +51,4 @@ jobs:
         env:
           PROD_ENV_FILE: ${{ secrets.PROD_ENV_FILE }}
         run: |
-          printf '%s' "$PROD_ENV_FILE" | ssh -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'set -euo pipefail; cd /opt/live-commerce-manager; umask 077; cat > .env.prod; sudo docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build'
+          printf '%s' "$PROD_ENV_FILE" | ssh -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'set -euo pipefail; cd /opt/live-commerce-manager; umask 077; cat > .env.prod; sudo /usr/local/bin/docker-compose -f docker-compose.prod.yml --env-file .env.prod up -d --build || sudo docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build'
