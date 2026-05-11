@@ -8,12 +8,24 @@ EMAIL="${2:-admin@livesale.bo}"
 
 echo "🔐 Initializing SSL/TLS with Nginx + Certbot for domain: $DOMAIN"
 
+install_packages() {
+    if command -v apt-get >/dev/null 2>&1; then
+        sudo apt-get update
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y nginx certbot python3-certbot-nginx
+    elif command -v dnf >/dev/null 2>&1; then
+        sudo dnf install -y nginx certbot python3-certbot-nginx
+    elif command -v yum >/dev/null 2>&1; then
+        sudo yum install -y nginx certbot python3-certbot-nginx
+    else
+        echo "❌ No supported package manager found (apt-get, dnf, yum)"
+        exit 1
+    fi
+}
+
 # Install Nginx and Certbot if not present
 if ! command -v nginx &> /dev/null; then
     echo "📦 Installing Nginx and Certbot..."
-    sudo apt-get update
-    sudo apt-get install -y nginx certbot python3-certbot-nginx
-    sudo systemctl disable nginx  # We'll manage it ourselves
+    install_packages
 else
     echo "✅ Nginx already installed"
 fi
@@ -21,7 +33,11 @@ fi
 # Create required directories
 sudo mkdir -p /var/www/certbot
 sudo mkdir -p /etc/letsencrypt/live/$DOMAIN
-sudo chown -R nginx:nginx /var/www/certbot
+if id nginx >/dev/null 2>&1; then
+    sudo chown -R nginx:nginx /var/www/certbot
+elif id www-data >/dev/null 2>&1; then
+    sudo chown -R www-data:www-data /var/www/certbot
+fi
 
 # Copy nginx config
 echo "📝 Installing Nginx configuration..."
