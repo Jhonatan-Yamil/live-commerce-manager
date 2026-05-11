@@ -5,6 +5,7 @@ set -euo pipefail
 
 DOMAIN="${1:-livecommerce.duckdns.org}"
 EMAIL="${2:-admin@livesale.bo}"
+PUBLIC_IP="${PUBLIC_IP:-}"
 
 echo "🔐 Initializing SSL/TLS with Nginx + Certbot for domain: $DOMAIN"
 
@@ -51,6 +52,36 @@ free_http_ports() {
     sudo fuser -k 80/tcp >/dev/null 2>&1 || true
     sudo fuser -k 443/tcp >/dev/null 2>&1 || true
     sudo systemctl stop nginx >/dev/null 2>&1 || true
+}
+
+wait_for_public_dns() {
+    echo "🔎 Verifying public DNS for $DOMAIN..."
+    local max_attempts=30
+    local attempt=1
+    while [ "$attempt" -le "$max_attempts" ]; do
+        if curl -fsS --max-time 5 "https://dns.google/resolve?name=$DOMAIN&type=A" >/tmp/duckdns-resolve.json 2>/dev/null; then
+            if grep -q '"Answer"' /tmp/duckdns-resolve.json; then
+                echo "✅ Public DNS is resolving for $DOMAIN"
+                if [ -n "$PUBLIC_IP" ]; then
+                    if grep -q "$PUBLIC_IP" /tmp/duckdns-resolve.json; then
+                        echo "✅ DNS A record matches expected public IP $PUBLIC_IP"
+                    else
+                        echo "⚠️ DNS resolves, but not to $PUBLIC_IP yet"
+                    fi
+                fi
+                return 0
+            fi
+        fi
+
+        echo "⏳ DNS not ready yet ($attempt/$max_attempts). Waiting 10s..."
+        sleep 10
+        attempt=$((attempt + 1))
+    done
+
+    echo "❌ Public DNS for $DOMAIN is not resolving yet."
+    echo "   Let\'s Encrypt needs the domain to be publicly resolvable before certificate issuance."
+    echo "   If you use DuckDNS, make sure the record is updated and propagated before deploy."
+    exit 1
 }
 
 write_nginx_http_config() {
@@ -203,6 +234,7 @@ EOF
 # Configure temporary HTTP nginx and obtain certificate if needed
 free_http_ports
 write_nginx_http_config
+wait_for_public_dns
 
 if [ ! -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
     echo "🎯 Generating Let's Encrypt certificate for $DOMAIN..."
