@@ -105,13 +105,24 @@ jobs:
         run: |
           ssh -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'set -euo pipefail
           cd "${{ env.APP_DIR }}"
+          compose_cmd() {
+            if docker compose version >/dev/null 2>&1; then
+              docker compose "$@"
+            elif command -v docker-compose >/dev/null 2>&1; then
+              docker-compose "$@"
+            else
+              echo "❌ Docker Compose is not available"
+              exit 1
+            fi
+          }
+
           echo "🐳 Starting Docker services..."
-          docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+          compose_cmd -f docker-compose.prod.yml --env-file .env.prod up -d --build
           
           # Wait for backend to be healthy
           echo "⏳ Waiting for backend to be healthy..."
           for i in {1..60}; do
-            if docker compose -f docker-compose.prod.yml exec -T backend curl -s http://localhost:8000/openapi.json >/dev/null 2>&1; then
+            if compose_cmd -f docker-compose.prod.yml exec -T backend curl -s http://localhost:8000/openapi.json >/dev/null 2>&1; then
               echo "✅ Backend is healthy"
               break
             fi
@@ -124,10 +135,21 @@ jobs:
         run: |
           ssh -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'set -euo pipefail
           cd "${{ env.APP_DIR }}"
+          compose_cmd() {
+            if docker compose version >/dev/null 2>&1; then
+              docker compose "$@"
+            elif command -v docker-compose >/dev/null 2>&1; then
+              docker-compose "$@"
+            else
+              echo "❌ Docker Compose is not available"
+              exit 1
+            fi
+          }
+
           echo "🗄️ Running Alembic migrations..."
-          docker compose -f docker-compose.prod.yml --env-file .env.prod exec -T backend alembic upgrade head || {
+          compose_cmd -f docker-compose.prod.yml --env-file .env.prod exec -T backend alembic upgrade head || {
             echo "⚠️ Migrations failed, but continuing..."
-            docker compose -f docker-compose.prod.yml --env-file .env.prod logs backend | tail -20
+            compose_cmd -f docker-compose.prod.yml --env-file .env.prod logs backend | tail -20
           }
           '
 
@@ -163,6 +185,16 @@ jobs:
         run: |
           ssh -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'set -euo pipefail
           echo "🔍 Running health checks..."
+          compose_cmd() {
+            if docker compose version >/dev/null 2>&1; then
+              docker compose "$@"
+            elif command -v docker-compose >/dev/null 2>&1; then
+              docker-compose "$@"
+            else
+              echo "❌ Docker Compose is not available"
+              exit 1
+            fi
+          }
           
           # Check Nginx
           if curl -k -s https://127.0.0.1 >/dev/null 2>&1; then
@@ -173,7 +205,7 @@ jobs:
           
           # Check Docker services
           cd "${{ env.APP_DIR }}"
-          docker compose -f docker-compose.prod.yml ps
+          compose_cmd -f docker-compose.prod.yml ps
           '
 
       - name: Deployment summary
