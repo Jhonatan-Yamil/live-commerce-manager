@@ -59,18 +59,18 @@ wait_for_public_dns() {
     local max_attempts=30
     local attempt=1
     while [ "$attempt" -le "$max_attempts" ]; do
-        if curl -fsS --max-time 5 "https://dns.google/resolve?name=$DOMAIN&type=A" >/tmp/duckdns-resolve.json 2>/dev/null; then
-            if grep -q '"Answer"' /tmp/duckdns-resolve.json; then
-                echo "✅ Public DNS is resolving for $DOMAIN"
-                if [ -n "$PUBLIC_IP" ]; then
-                    if grep -q "$PUBLIC_IP" /tmp/duckdns-resolve.json; then
-                        echo "✅ DNS A record matches expected public IP $PUBLIC_IP"
-                    else
-                        echo "⚠️ DNS resolves, but not to $PUBLIC_IP yet"
-                    fi
-                fi
-                return 0
+        local google_a cloudflare_a google_aaaa cloudflare_aaaa
+        google_a=$(curl -fsS --max-time 5 "https://dns.google/resolve?name=$DOMAIN&type=A" 2>/dev/null || true)
+        cloudflare_a=$(curl -fsS --max-time 5 "https://cloudflare-dns.com/dns-query?name=$DOMAIN&type=A" -H 'accept: application/dns-json' 2>/dev/null || true)
+        google_aaaa=$(curl -fsS --max-time 5 "https://dns.google/resolve?name=$DOMAIN&type=AAAA" 2>/dev/null || true)
+        cloudflare_aaaa=$(curl -fsS --max-time 5 "https://cloudflare-dns.com/dns-query?name=$DOMAIN&type=AAAA" -H 'accept: application/dns-json' 2>/dev/null || true)
+
+        if echo "$google_a$cloudflare_a$google_aaaa$cloudflare_aaaa" | grep -q '"Answer"'; then
+            echo "✅ Public DNS is resolving for $DOMAIN"
+            if [ -n "$PUBLIC_IP" ] && echo "$google_a$cloudflare_a" | grep -q "$PUBLIC_IP"; then
+                echo "✅ DNS A record matches expected public IP $PUBLIC_IP"
             fi
+            return 0
         fi
 
         echo "⏳ DNS not ready yet ($attempt/$max_attempts). Waiting 10s..."
@@ -242,16 +242,32 @@ if [ ! -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
     sudo systemctl start nginx || sudo nginx
     sleep 2
 
-    sudo certbot certonly \
-        --webroot \
-        -w /var/www/certbot \
-        --non-interactive \
-        --agree-tos \
-        --email "$EMAIL" \
-        --domain "$DOMAIN" \
-        --expand
+    certbot_attempt=1
+    certbot_max_attempts=6
+    while [ "$certbot_attempt" -le "$certbot_max_attempts" ]; do
+        if sudo certbot certonly \
+            --webroot \
+            -w /var/www/certbot \
+            --non-interactive \
+            --agree-tos \
+            --email "$EMAIL" \
+            --domain "$DOMAIN" \
+            --expand; then
+            echo "✅ Certificate obtained successfully"
+            break
+        fi
 
-    echo "✅ Certificate obtained successfully"
+        echo "⚠️ Certbot attempt $certbot_attempt/$certbot_max_attempts failed. Rechecking public DNS before retrying..."
+        wait_for_public_dns
+        if [ "$certbot_attempt" -eq "$certbot_max_attempts" ]; then
+            echo "❌ Failed to obtain certificate after $certbot_max_attempts attempts."
+            echo "   This is usually caused by DuckDNS/DNS propagation or nameserver instability."
+            exit 1
+        fi
+
+        sleep 30
+        certbot_attempt=$((certbot_attempt + 1))
+    done
 else
     echo "✅ Certificate already exists, skipping generation"
 fi
