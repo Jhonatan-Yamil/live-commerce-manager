@@ -115,3 +115,8 @@ export const deliverySchedulesApi = {
   updateLocation: (id, data) => api.patch(`/delivery-schedules/${id}/location`, data),
   delete: (id) => api.delete(`/delivery-schedules/${id}`),
 };
+
+export const cashFlowApi = {
+  getReport: (dateFrom, dateTo) => 
+    api.get("/cash-flow", { params: { date_from: dateFrom, date_to: dateTo } }),
+};

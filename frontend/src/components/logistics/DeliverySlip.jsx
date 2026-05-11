@@ -104,12 +104,12 @@ export default function DeliverySlip({ open, onClose, delivery, order, client, b
   const slipRef = useRef();
   const [paperSize, setPaperSize] = useState("auto");
   const [orientation, setOrientation] = useState("landscape");
+  const [downloading, setDownloading] = useState(false);
 
   const safeClientName = client?.full_name || "";
   const safePhone = client?.phone || "";
-  
-  // Usar directamente location o destination_city según lo que esté disponible
   const locationForPrint = extractPrintableCity(delivery);
+
   const printableHtml = buildPrintHtml({
     clientName: safeClientName,
     phone: safePhone,
@@ -140,10 +140,7 @@ export default function DeliverySlip({ open, onClose, delivery, order, client, b
 
     frame.onload = () => {
       const frameWindow = frame.contentWindow;
-      if (!frameWindow) {
-        cleanup();
-        return;
-      }
+      if (!frameWindow) { cleanup(); return; }
       frameWindow.document.open();
       frameWindow.document.write(printableHtml);
       frameWindow.document.close();
@@ -157,122 +154,43 @@ export default function DeliverySlip({ open, onClose, delivery, order, client, b
     frame.srcdoc = printableHtml;
   };
 
-  const handleDownloadPDF = () => {
-    const opt = {
-      margin: 0,
-      filename: `remito-${order.id}-${new Date().toISOString().slice(0, 10)}.pdf`,
-      image: { type: "jpeg", quality: 0.98 },
-      pagebreak: { mode: ["avoid-all", "css", "legacy"] },
-      html2canvas: {
-        scale: 2,
-        useCORS: true,
-        allowTaint: false,
-        backgroundColor: "#ffffff",
-        windowWidth: 1280,
-        windowHeight: 960,
-        scrollX: 0,
-        scrollY: 0,
-      },
-      jsPDF: {
-        orientation,
-        unit: "mm",
-        format: (PAPER_SIZES[paperSize]?.mm || PAPER_SIZES.a4.mm),
-      },
-    };
+  const handleDownloadPDF = async () => {
+    setDownloading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const backendUrl = process.env.REACT_APP_API_URL?.replace("/api", "") || "http://localhost:8000";
+      const psParam = paperSize === "auto" ? "a4" : paperSize;
 
-    const ensureHtml2Pdf = () => {
-      return new Promise((resolve) => {
-        if (window.html2pdf) return resolve(window.html2pdf);
-        const script = document.createElement("script");
-        script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
-        script.onload = () => resolve(window.html2pdf);
-        script.onerror = () => resolve(null);
-        document.head.appendChild(script);
-      });
-    };
-
-    const waitImagesLoaded = (root, timeout = 3000) =>
-      new Promise((resolve) => {
-        try {
-          const imgs = Array.from(root?.images || root?.querySelectorAll?.("img") || []);
-          if (imgs.length === 0) return resolve(true);
-          let loaded = 0;
-          const onDone = () => {
-            loaded += 1;
-            if (loaded >= imgs.length) resolve(true);
-          };
-          imgs.forEach((img) => {
-            if (img.complete) return onDone();
-            img.addEventListener("load", onDone);
-            img.addEventListener("error", onDone);
-          });
-          // safety timeout
-          setTimeout(() => resolve(true), timeout);
-        } catch (e) {
-          resolve(true);
+      const response = await fetch(
+        `${backendUrl}/api/logistics/delivery/${delivery.id}/remito.pdf?orientation=${orientation}&paper_size=${psParam}`,
+        {
+          method: "GET",
+          headers: { Authorization: `Bearer ${token}` },
         }
-      });
+      );
 
-    (async () => {
-      const html2pdfLib = await ensureHtml2Pdf();
-      if (!html2pdfLib) return;
-
-      const source = slipRef.current;
-      if (!source) return;
-
-      if (document.fonts?.ready) {
-        try {
-          await document.fonts.ready;
-        } catch (e) {
-          // ignore
-        }
+      if (!response.ok) {
+        const text = await response.text();
+        console.error("Error servidor:", response.status, text);
+        alert(`Error ${response.status}: ${text}`);
+        throw new Error("Error descargando PDF");
       }
 
-      await waitImagesLoaded(document);
-
-      const rect = source.getBoundingClientRect();
-
-      const exportWrap = document.createElement("div");
-      exportWrap.style.position = "fixed";
-      exportWrap.style.left = "0";
-      exportWrap.style.top = "0";
-      exportWrap.style.background = "#ffffff";
-      exportWrap.style.zIndex = "-1";
-      exportWrap.style.pointerEvents = "none";
-      exportWrap.style.padding = "0";
-      exportWrap.style.margin = "0";
-      exportWrap.style.width = `${Math.ceil(rect.width)}px`;
-      exportWrap.style.height = `${Math.ceil(rect.height)}px`;
-      exportWrap.style.overflow = "visible";
-      exportWrap.style.display = "flex";
-      exportWrap.style.justifyContent = "center";
-      exportWrap.style.alignItems = "flex-start";
-
-      const clone = source.cloneNode(true);
-      clone.style.width = "100%";
-      clone.style.maxWidth = "none";
-      clone.style.height = "100%";
-      clone.style.minHeight = `${Math.ceil(rect.height)}px`;
-      clone.style.boxSizing = "border-box";
-      clone.style.margin = "0";
-      clone.style.transform = "none";
-      clone.style.overflow = "visible";
-      exportWrap.appendChild(clone);
-      document.body.appendChild(exportWrap);
-
-      await waitImagesLoaded(exportWrap);
-
-      const cleanup = () => {
-        setTimeout(() => {
-          if (exportWrap.parentNode) exportWrap.parentNode.removeChild(exportWrap);
-        }, 50);
-      };
-
-      requestAnimationFrame(() => {
-        // eslint-disable-next-line no-undef
-        html2pdf().set(opt).from(clone).save().then(cleanup).catch(cleanup);
-      });
-    })();
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `remito-${order.id}-${new Date().toISOString().slice(0, 10)}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error("Error descargando PDF:", error);
+      alert("Error al descargar el remito PDF");
+    } finally {
+      setDownloading(false);
+    }
   };
 
   return (
@@ -287,9 +205,7 @@ export default function DeliverySlip({ open, onClose, delivery, order, client, b
             onChange={(e) => setPaperSize(e.target.value)}
           >
             {Object.entries(PAPER_SIZES).map(([key, item]) => (
-              <MenuItem key={key} value={key}>
-                {item.label}
-              </MenuItem>
+              <MenuItem key={key} value={key}>{item.label}</MenuItem>
             ))}
           </TextField>
           <TextField
@@ -322,12 +238,6 @@ export default function DeliverySlip({ open, onClose, delivery, order, client, b
             textAlign: "center",
             fontFamily: "Arial, sans-serif",
             gap: 3,
-            "@media print": {
-              border: "none",
-              height: "auto",
-              minHeight: "auto",
-              p: 2,
-            },
           }}
         >
           {brandLogoUrl ? (
@@ -347,15 +257,19 @@ export default function DeliverySlip({ open, onClose, delivery, order, client, b
             />
           ) : null}
 
-          <Box sx={{ flex: 1, display: "flex", flexDirection: "column", justifyContent: "space-evenly", width: "100%" }}>
+          <Box sx={{
+            flex: 1,
+            display: "flex",
+            flexDirection: "column",
+            justifyContent: "space-evenly",
+            width: "100%",
+          }}>
             <Box sx={{ fontSize: { xs: "50px", md: "76px" }, fontWeight: 900, color: "#000", lineHeight: 1.04 }}>
               {client.full_name || "Sin cliente"}
             </Box>
-
             <Box sx={{ fontSize: { xs: "40px", md: "64px" }, fontWeight: 800, color: "#000", lineHeight: 1.04 }}>
               {client.phone || "-"}
             </Box>
-
             <Box sx={{ fontSize: { xs: "38px", md: "60px" }, fontWeight: 800, color: "#000", lineHeight: 1.04 }}>
               {locationForPrint || "Sin destino"}
             </Box>
@@ -366,10 +280,15 @@ export default function DeliverySlip({ open, onClose, delivery, order, client, b
           <Button variant="outlined" startIcon={<PrintIcon />} onClick={handlePrint}>
             Imprimir
           </Button>
-          <Button variant="outlined" startIcon={<DownloadIcon />} onClick={handleDownloadPDF}>
-            Exportar PDF
+          <Button
+            variant="contained"
+            startIcon={<DownloadIcon />}
+            onClick={handleDownloadPDF}
+            disabled={downloading}
+          >
+            {downloading ? "Descargando..." : "Descargar PDF"}
           </Button>
-          <Button variant="contained" onClick={onClose}>
+          <Button variant="outlined" onClick={onClose}>
             Cerrar
           </Button>
         </Box>

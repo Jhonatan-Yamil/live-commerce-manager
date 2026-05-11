@@ -187,7 +187,7 @@ export default function ScheduledDeliveriesPanel({ orders = [], onUpdate, brandL
   return (
     <Paper sx={{ p: 3, mb: 3, borderRadius: 3, boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}>
       <Typography variant="h6" fontWeight={700} color={APP_PALETTE.text.primary} mb={0.5}>
-        Agendados (general)
+        Agendados Global 
       </Typography>
       <Typography variant="caption" color="text.secondary" display="block" mb={2}>
         Vista compacta en tabla para editar agendados futuros o pendientes sin ocupar demasiado espacio.

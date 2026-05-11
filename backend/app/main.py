@@ -5,7 +5,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
-from app.routers import auth, users, clients, products, orders, payments, lots, intake, telegram_integration, delivery_schedules
+from app.routers import auth, users, clients, products, orders, payments, lots, intake, telegram_integration, delivery_schedules, cash_flow
 from app.routers import logistics as logistics_router
 from app.services.intake_processing_service import process_intake_job
 from app.services.intake_queue_service import start_intake_worker, stop_intake_worker
@@ -41,6 +41,7 @@ app.include_router(logistics_router.router, prefix="/api/logistics", tags=["Logi
 app.include_router(lots.router, prefix="/api/lots", tags=["Lots"])
 app.include_router(intake.router, prefix="/api/intake", tags=["Intake"])
 app.include_router(delivery_schedules.router, prefix="/api/delivery-schedules", tags=["Delivery Schedules"])
+app.include_router(cash_flow.router, prefix="/api/cash-flow", tags=["Cash Flow"])
 app.include_router(telegram_integration.router, prefix="/api/integrations/telegram", tags=["Telegram Integration"])
 
 
