@@ -39,6 +39,20 @@ elif id www-data >/dev/null 2>&1; then
     sudo chown -R www-data:www-data /var/www/certbot
 fi
 
+free_http_ports() {
+    if command -v docker >/dev/null 2>&1; then
+        echo "🧹 Stopping any Docker containers bound to ports 80/443..."
+        sudo docker ps --format '{{.ID}} {{.Ports}}' \
+            | awk '/:80->|:443->|0.0.0.0:80|0.0.0.0:443/ {print $1}' \
+            | xargs -r sudo docker stop >/dev/null 2>&1 || true
+    fi
+
+    echo "🧹 Releasing any leftover listeners on 80/443..."
+    sudo fuser -k 80/tcp >/dev/null 2>&1 || true
+    sudo fuser -k 443/tcp >/dev/null 2>&1 || true
+    sudo systemctl stop nginx >/dev/null 2>&1 || true
+}
+
 write_nginx_http_config() {
     echo "📝 Installing temporary Nginx HTTP configuration..."
     sudo tee /etc/nginx/nginx.conf > /dev/null <<EOF
@@ -187,12 +201,13 @@ EOF
 }
 
 # Configure temporary HTTP nginx and obtain certificate if needed
+free_http_ports
 write_nginx_http_config
 
 if [ ! -f "/etc/letsencrypt/live/$DOMAIN/fullchain.pem" ]; then
     echo "🎯 Generating Let's Encrypt certificate for $DOMAIN..."
     sudo systemctl enable nginx >/dev/null 2>&1 || true
-    sudo systemctl restart nginx
+    sudo systemctl start nginx || sudo nginx
     sleep 2
 
     sudo certbot certonly \
@@ -237,8 +252,8 @@ sudo chmod +x /etc/letsencrypt/renewal-hooks/post/nginx.sh
 
 # Start Nginx
 echo "🚀 Starting Nginx..."
-sudo systemctl enable nginx
-sudo systemctl restart nginx
+sudo systemctl enable nginx >/dev/null 2>&1 || true
+sudo systemctl restart nginx || sudo systemctl start nginx || sudo nginx
 
 # Verify Nginx is running
 if curl -k -s https://127.0.0.1 >/dev/null 2>&1; then
