@@ -21,7 +21,6 @@ RUN pip install --upgrade pip \
 COPY alembic ./alembic
 COPY alembic.ini ./
 COPY app ./app
-COPY seed_data.py ./seed_data.py
 
 RUN mkdir -p uploads/intake
 
