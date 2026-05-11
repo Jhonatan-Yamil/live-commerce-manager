@@ -67,6 +67,11 @@ resource "aws_instance" "app_server" {
   vpc_security_group_ids      = [aws_security_group.app.id]
   key_name                    = var.key_pair_name != "" ? var.key_pair_name : null
   associate_public_ip_address = true
+  user_data_replace_on_change = true
+
+  metadata_options {
+    http_tokens = "required"
+  }
 
   root_block_device {
     volume_size = 30

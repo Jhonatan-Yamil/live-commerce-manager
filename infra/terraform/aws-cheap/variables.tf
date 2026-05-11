@@ -12,13 +12,13 @@ variable "project_name" {
 
 variable "instance_type" {
   type        = string
-  description = "EC2 instance type (cheap baseline: t3a.small)"
-  default     = "t3a.small"
+  description = "EC2 instance type (free-tier friendly: t3.micro)"
+  default     = "t3.micro"
 }
 
 variable "ssh_cidr" {
   type        = string
-  description = "Allowed CIDR for SSH access"
+  description = "Allowed CIDR for SSH access (set to your public IP /32)"
   default     = "0.0.0.0/0"
 }
 

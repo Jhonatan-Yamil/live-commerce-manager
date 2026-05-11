@@ -10,5 +10,5 @@ output "ssh_example" {
 
 output "app_url" {
   description = "Application URL (after DNS setup)"
-  value       = "https://<your-domain>"
+  value       = "http://${aws_instance.app_server.public_ip}"
 }
