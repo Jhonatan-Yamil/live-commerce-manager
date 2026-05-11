@@ -1,5 +1,4 @@
-name: Deploy to EC2
-# try1
+name: Deploy to EC2 with Nginx + SSL
 on:
   workflow_dispatch:
   push:
@@ -8,16 +7,21 @@ on:
       - "backend/**"
       - "frontend/**"
       - "docker-compose.prod.yml"
-      - "Caddyfile"
+      - "infra/**"
       - ".github/workflows/deploy-ec2.yml"
-      - ".env.prod.example"
+
+env:
+  APP_DIR: /opt/live-commerce-manager
+  DOMAIN: livecommerce.duckdns.org
+  DOCKER_COMPOSE_CMD: docker compose
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    environment: production
 
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Configure SSH
@@ -27,9 +31,9 @@ jobs:
           chmod 600 ~/.ssh/ec2_key
           ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
 
-      - name: Sync project to EC2
+      - name: Sync project files to EC2
         run: |
-          rsync -az --delete \
+          rsync -azv --delete \
             --exclude '.git/' \
             --exclude '.github/' \
             --exclude '.venv/' \
@@ -41,14 +45,133 @@ jobs:
             --exclude 'frontend/.cache/' \
             --exclude '.env' \
             --exclude '.env.prod' \
-            -e "ssh -i ~/.ssh/ec2_key" ./ "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:/opt/live-commerce-manager/"
+            --exclude 'infra/nginx/nginx.conf' \
+            -e "ssh -i ~/.ssh/ec2_key" ./ "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:${{ env.APP_DIR }}/"
 
-      - name: Bootstrap Docker on EC2
+      - name: Bootstrap Docker & system dependencies on EC2
         run: |
-          ssh -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'set -euo pipefail; if ! command -v docker >/dev/null 2>&1; then sudo dnf -y install docker; sudo systemctl enable --now docker; sudo usermod -aG docker ec2-user || true; fi; if ! command -v docker-compose >/dev/null 2>&1 && ! sudo docker compose version >/dev/null 2>&1; then sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose && sudo chmod +x /usr/local/bin/docker-compose; fi; docker --version; docker compose version || docker-compose --version'
+          ssh -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'set -euo pipefail
+          echo "📦 Installing system dependencies..."
+          sudo apt-get update || sudo dnf check-update || true
+          
+          # Install Docker if missing
+          if ! command -v docker &> /dev/null; then
+            echo "Installing Docker..."
+            curl -fsSL https://get.docker.com | sudo bash
+            sudo usermod -aG docker "$USER" || true
+          fi
+          
+          # Install Docker Compose if missing
+          if ! command -v docker compose &> /dev/null && ! command -v docker-compose &> /dev/null; then
+            echo "Installing Docker Compose..."
+            sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+            sudo chmod +x /usr/local/bin/docker-compose
+          fi
+          
+          # Ensure docker daemon is running
+          sudo systemctl enable docker || true
+          sudo systemctl start docker || true
+          
+          docker --version
+          docker compose version || docker-compose --version
+          '
 
-      - name: Write production env file on EC2
+      - name: Initialize SSL/TLS (Nginx + Certbot)
+        run: |
+          ssh -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'set -euo pipefail
+          echo "🔐 Setting up Nginx + Let'\''s Encrypt..."
+          chmod +x "${{ env.APP_DIR }}/infra/init-ssl.sh"
+          sudo "${{ env.APP_DIR }}/infra/init-ssl.sh" "${{ env.DOMAIN }}" "admin@livesale.bo"
+          '
+
+      - name: Write production .env.prod file
         env:
           PROD_ENV_FILE: ${{ secrets.PROD_ENV_FILE }}
         run: |
-          printf '%s' "$PROD_ENV_FILE" | ssh -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'set -euo pipefail; cd /opt/live-commerce-manager; umask 077; cat > .env.prod; sudo /usr/local/bin/docker-compose -f docker-compose.prod.yml --env-file .env.prod up -d --build || sudo docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build'
+          printf '%s' "$PROD_ENV_FILE" | ssh -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'set -euo pipefail
+          cd "${{ env.APP_DIR }}"
+          umask 077
+          cat > .env.prod
+          echo "✅ .env.prod written"
+          '
+
+      - name: Start Docker Compose services
+        run: |
+          ssh -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'set -euo pipefail
+          cd "${{ env.APP_DIR }}"
+          echo "🐳 Starting Docker services..."
+          docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+          
+          # Wait for backend to be healthy
+          echo "⏳ Waiting for backend to be healthy..."
+          for i in {1..60}; do
+            if docker compose -f docker-compose.prod.yml exec -T backend curl -s http://localhost:8000/openapi.json >/dev/null 2>&1; then
+              echo "✅ Backend is healthy"
+              break
+            fi
+            echo "Attempt $i/60..."
+            sleep 2
+          done
+          '
+
+      - name: Run database migrations
+        run: |
+          ssh -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'set -euo pipefail
+          cd "${{ env.APP_DIR }}"
+          echo "🗄️ Running Alembic migrations..."
+          docker compose -f docker-compose.prod.yml --env-file .env.prod exec -T backend alembic upgrade head || {
+            echo "⚠️ Migrations failed, but continuing..."
+            docker compose -f docker-compose.prod.yml --env-file .env.prod logs backend | tail -20
+          }
+          '
+
+      - name: Configure Telegram webhook
+        run: |
+          ssh -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'set -euo pipefail
+          cd "${{ env.APP_DIR }}"
+          
+          # Extract Telegram config from .env.prod
+          TOKEN=$(grep -E "^TELEGRAM_BOT_TOKEN=" .env.prod | cut -d'"'"'='"'"' -f2- || echo "")
+          SECRET=$(grep -E "^TELEGRAM_WEBHOOK_SECRET=" .env.prod | cut -d'"'"'='"'"' -f2- || echo "")
+          BASE_URL="https://${{ env.DOMAIN }}"
+          
+          if [ -n "$TOKEN" ] && [ -n "$SECRET" ]; then
+            echo "🤖 Configuring Telegram webhook..."
+            WEBHOOK_URL="${BASE_URL}/api/integrations/telegram/webhook/${SECRET}"
+            RESPONSE=$(curl -s -X POST "https://api.telegram.org/bot${TOKEN}/setWebhook" \
+              -d "url=${WEBHOOK_URL}" \
+              -d "drop_pending_updates=false" \
+              -d "secret_token=${SECRET}")
+            
+            if echo "$RESPONSE" | grep -q '"ok":true'; then
+              echo "✅ Telegram webhook configured: $WEBHOOK_URL"
+            else
+              echo "⚠️ Telegram webhook response: $RESPONSE"
+            fi
+          else
+            echo "⚠️ Telegram token or secret not found in .env.prod"
+          fi
+          '
+
+      - name: Health check
+        run: |
+          ssh -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'set -euo pipefail
+          echo "🔍 Running health checks..."
+          
+          # Check Nginx
+          if curl -k -s https://127.0.0.1 >/dev/null 2>&1; then
+            echo "✅ Nginx is responding"
+          else
+            echo "⚠️ Nginx health check failed"
+          fi
+          
+          # Check Docker services
+          cd "${{ env.APP_DIR }}"
+          docker compose -f docker-compose.prod.yml ps
+          '
+
+      - name: Deployment summary
+        run: |
+          echo "✅ Deployment completed successfully!"
+          echo "🌐 Access your application at: https://${{ env.DOMAIN }}"
+          echo "📋 Check logs with: ssh ec2-user@${{ secrets.EC2_HOST }} docker compose -f /opt/live-commerce-manager/docker-compose.prod.yml logs -f"

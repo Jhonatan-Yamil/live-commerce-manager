@@ -86,6 +86,8 @@ services:
       args:
         REACT_APP_API_URL: /api
     restart: unless-stopped
+    ports:
+      - "127.0.0.1:3000:80"
     depends_on:
       backend:
         condition: service_healthy
@@ -101,28 +103,9 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  caddy:
-    image: caddy:2-alpine
-    restart: unless-stopped
+  backend:
     ports:
-      - "80:80"
-      - "443:443"
-    environment:
-      DOMAIN_NAME: ${DOMAIN_NAME}
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      frontend:
-        condition: service_healthy
-      backend:
-        condition: service_healthy
-    logging:
-      driver: json-file
-      options:
-        max-size: "10m"
-        max-file: "3"
+      - "127.0.0.1:8000:8000"
 
   db_backup:
     image: prodrigestivill/postgres-backup-local:16
@@ -152,6 +135,4 @@ services:
 volumes:
   pgdata:
   redisdata:
-  caddy_data:
-  caddy_config:
   pgbackups:
