@@ -28,6 +28,7 @@ const log = {
 
 let checksPassed = 0;
 let checksFailed = 0;
+const isCI = process.env.CI === 'true' || process.env.GITHUB_ACTIONS === 'true';
 
 const runCheck = (label, fn) => {
   try {
@@ -108,6 +109,9 @@ runCheck('.env file exists', () => {
   if (fileExists(path.join(__dirname, '.env'))) {
     return { success: true, details: 'root .env found' };
   }
+  if (isCI) {
+    return { success: true, details: 'skipped in CI' };
+  }
   return { success: false, message: 'Missing root .env file (copy from .env.example)' };
 });
 
@@ -116,6 +120,9 @@ runCheck('backend/.env or root .env', () => {
   const hasBackend = fileExists(path.join(__dirname, 'backend', '.env'));
   if (hasRoot || hasBackend) {
     return { success: true, details: hasRoot ? 'root .env' : 'backend/.env' };
+  }
+  if (isCI) {
+    return { success: true, details: 'skipped in CI' };
   }
   return { success: false, message: 'No backend environment configuration found' };
 });
