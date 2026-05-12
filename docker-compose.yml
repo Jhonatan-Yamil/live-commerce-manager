@@ -31,7 +31,7 @@ services:
       INTAKE_MAX_FILE_SIZE_MB: ${INTAKE_MAX_FILE_SIZE_MB:-10}
       INTAKE_HASH_DEDUP_WINDOW_HOURS: ${INTAKE_HASH_DEDUP_WINDOW_HOURS:-24}
       REDIS_URL: redis://redis:6379/0
-      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000,http://127.0.0.1:3000,https://livecommerce.duckdns.org}
       UPLOADS_DIR: ${UPLOADS_DIR:-uploads}
     volumes:
       - ./backend/uploads:/app/uploads
@@ -45,7 +45,7 @@ services:
     build:
       context: ./frontend
       args:
-        REACT_APP_API_URL: ${REACT_APP_API_URL:-http://localhost:8000/api}
+        REACT_APP_API_URL: ${REACT_APP_API_URL:-/api}
     ports:
       - "3000:80"
     depends_on:
