@@ -24,13 +24,20 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Build frontend artifacts
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Build frontend in CI
         run: |
           cd frontend
           npm ci
-          npm run build
-          echo "✅ Frontend build completed"
-
+          REACT_APP_API_URL=/api npm run build
+          echo "✅ Frontend built in GitHub Actions"
+      
       - name: Configure SSH
         run: |
           mkdir -p ~/.ssh
@@ -58,12 +65,21 @@ jobs:
             --exclude 'backend/uploads/' \
             --exclude 'frontend/node_modules/' \
             --exclude 'frontend/.cache/' \
+            --exclude 'frontend/src/' \
+            --exclude 'frontend/public/' \
             --exclude '.env' \
             --exclude '.env.prod' \
             --exclude 'infra/nginx/nginx.conf' \
             -e "ssh -i ~/.ssh/ec2_key -o ServerAliveInterval=60" ./ "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:${{ env.APP_DIR }}/"
-          echo "✅ Project files synced to EC2"
+          echo "✅ Project files synced"
 
+      - name: Sync frontend build to EC2
+        run: |
+          rsync -azv --delete \
+            -e "ssh -i ~/.ssh/ec2_key -o ServerAliveInterval=60" \
+            frontend/build/ "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:${{ env.APP_DIR }}/frontend/build/"
+          echo "✅ Frontend build synced to EC2"
+          
       - name: Bootstrap Docker & system dependencies on EC2
         run: |
           ssh -o ServerAliveInterval=60 -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'set -euo pipefail
@@ -132,10 +148,9 @@ jobs:
             fi
           }
 
-          echo "🐳 Rebuilding and starting all Docker services..."
+          echo "🐳 Building and starting Docker services..."
           compose_cmd -f docker-compose.prod.yml --env-file .env.prod up -d --build --force-recreate
-          
-          # Wait for backend to be healthy
+
           echo "⏳ Waiting for backend to respond on 127.0.0.1:8000..."
           backend_ready=false
           for i in {1..90}; do

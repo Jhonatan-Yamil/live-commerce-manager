@@ -85,8 +85,7 @@ services:
   frontend:
     build:
       context: ./frontend
-      args:
-        REACT_APP_API_URL: /api
+      dockerfile: Dockerfile.prebuilt
     restart: unless-stopped
     ports:
       - "127.0.0.1:3000:80"
