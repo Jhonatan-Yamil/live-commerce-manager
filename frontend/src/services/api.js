@@ -38,7 +38,7 @@ export default api;
 const createCrudApi = (basePath, options = {}) => {
   const createPath = `${basePath}/`;
   const crudApi = {
-    list: () => api.get(basePath),
+    list: () => api.get(createPath),
     create: (data) => api.post(createPath, data),
     update: (id, data) => api.put(`${basePath}/${id}`, data),
   };
@@ -73,19 +73,19 @@ export const productsApi = {
 };
 
 export const ordersApi = {
-  list: () => api.get("/orders"),
-  create: (d) => api.post("/orders", d),
+  list: () => api.get("/orders/"),
+  create: (d) => api.post("/orders/", d),
   get: (id) => api.get(`/orders/${id}`),
-  updateStatus: (id, status) => api.patch(`/orders/${id}/status`, { status }),
+  updateStatus: (id, status) => api.patch(`/orders/${id}/status/`, { status }),
 };
 
 export const paymentsApi = {
-  list: () => api.get("/payments"),
-  updateStatus: (id, data) => api.patch(`/payments/${id}/status`, data),
+  list: () => api.get("/payments/"),
+  updateStatus: (id, data) => api.patch(`/payments/${id}/status/`, data),
   uploadVoucher: (orderId, file) => {
     const formData = new FormData();
     formData.append("file", file);
-    return api.post(`/payments/order/${orderId}/voucher`, formData, {
+    return api.post(`/payments/order/${orderId}/voucher/`, formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
@@ -96,11 +96,11 @@ export const logisticsApi = createCrudApi("/logistics");
 export const lotsApi = createCrudApi("/lots");
 
 export const intakeApi = {
-  listSuggestions: (status) => api.get("/intake/suggestions", { params: status ? { status } : {} }),
-  confirm: (id) => api.post(`/intake/vouchers/${id}/confirm`),
-  reject: (id) => api.post(`/intake/vouchers/${id}/reject`),
-  reassign: (id, orderId) => api.post(`/intake/vouchers/${id}/reassign`, { order_id: Number(orderId) }),
-  reprocess: (id) => api.post(`/intake/vouchers/${id}/reprocess`),
+  listSuggestions: (status) => api.get("/intake/suggestions/", { params: status ? { status } : {} }),
+  confirm: (id) => api.post(`/intake/vouchers/${id}/confirm/`),
+  reject: (id) => api.post(`/intake/vouchers/${id}/reject/`),
+  reassign: (id, orderId) => api.post(`/intake/vouchers/${id}/reassign/`, { order_id: Number(orderId) }),
+  reprocess: (id) => api.post(`/intake/vouchers/${id}/reprocess/`),
 };
 
 export const deliverySchedulesApi = {
