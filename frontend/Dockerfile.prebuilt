@@ -1,5 +1,6 @@
 FROM nginx:1.27-alpine
 
+# This Dockerfile is for production use with a pre-built frontend. It assumes the React app has already been built and the build output is available in the `build` directory.
 COPY build /usr/share/nginx/html
 
 RUN printf '%s\n' \

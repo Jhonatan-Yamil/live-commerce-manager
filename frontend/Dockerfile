@@ -8,7 +8,7 @@ RUN npm install
 COPY public ./public
 COPY src ./src
 
-# Use a relative API URL by default for production behind a proxy
+# Use a relative API URL by default for production behind a proxyy
 ARG REACT_APP_API_URL=/api
 ENV REACT_APP_API_URL=${REACT_APP_API_URL}
 
