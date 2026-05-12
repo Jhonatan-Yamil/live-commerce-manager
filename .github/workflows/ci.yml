@@ -1,5 +1,4 @@
 name: CI - Build & Validate
-# /
 on:
   push:
     branches: [main, develop]

@@ -24,12 +24,28 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Build frontend artifacts
+        run: |
+          cd frontend
+          npm ci
+          npm run build
+          echo "✅ Frontend build completed"
+
       - name: Configure SSH
         run: |
           mkdir -p ~/.ssh
-          printf '%s\n' "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/ec2_key
+          echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/ec2_key
           chmod 600 ~/.ssh/ec2_key
           ssh-keyscan -H "${{ secrets.EC2_HOST }}" >> ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host ec2
+            HostName ${{ secrets.EC2_HOST }}
+            User ${{ secrets.EC2_USER }}
+            IdentityFile ~/.ssh/ec2_key
+            StrictHostKeyChecking no
+            ServerAliveInterval 60
+            ServerAliveCountMax 5
+          EOF
 
       - name: Sync project files to EC2
         run: |
@@ -41,16 +57,16 @@ jobs:
             --exclude 'backend/__pycache__/' \
             --exclude 'backend/uploads/' \
             --exclude 'frontend/node_modules/' \
-            --exclude 'frontend/build/' \
             --exclude 'frontend/.cache/' \
             --exclude '.env' \
             --exclude '.env.prod' \
             --exclude 'infra/nginx/nginx.conf' \
-            -e "ssh -i ~/.ssh/ec2_key" ./ "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:${{ env.APP_DIR }}/"
+            -e "ssh -i ~/.ssh/ec2_key -o ServerAliveInterval=60" ./ "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}:${{ env.APP_DIR }}/"
+          echo "✅ Project files synced to EC2"
 
       - name: Bootstrap Docker & system dependencies on EC2
         run: |
-          ssh -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'set -euo pipefail
+          ssh -o ServerAliveInterval=60 -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'set -euo pipefail
           echo "📦 Installing system dependencies..."
           if command -v apt-get >/dev/null 2>&1; then
             sudo apt-get update
@@ -84,7 +100,7 @@ jobs:
 
       - name: Initialize SSL/TLS (Nginx + Certbot)
         run: |
-          ssh -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'set -euo pipefail
+          ssh -o ServerAliveInterval=60 -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'set -euo pipefail
           echo "🔐 Setting up Nginx + Let'\''s Encrypt..."
           chmod +x "${{ env.APP_DIR }}/infra/init-ssl.sh"
           sudo "${{ env.APP_DIR }}/infra/init-ssl.sh" "${{ env.DOMAIN }}" "admin@livesale.bo"
@@ -94,7 +110,7 @@ jobs:
         env:
           PROD_ENV_FILE: ${{ secrets.PROD_ENV_FILE }}
         run: |
-          printf '%s' "$PROD_ENV_FILE" | ssh -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'set -euo pipefail
+          printf '%s' "$PROD_ENV_FILE" | ssh -o ServerAliveInterval=60 -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'set -euo pipefail
           cd "${{ env.APP_DIR }}"
           umask 077
           cat > .env.prod
@@ -103,7 +119,7 @@ jobs:
 
       - name: Start Docker Compose services
         run: |
-          ssh -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'set -euo pipefail
+          ssh -o ServerAliveInterval=60 -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'set -euo pipefail
           cd "${{ env.APP_DIR }}"
           compose_cmd() {
             if docker compose version >/dev/null 2>&1; then
@@ -116,8 +132,12 @@ jobs:
             fi
           }
 
-          echo "🐳 Starting Docker services..."
-          compose_cmd -f docker-compose.prod.yml --env-file .env.prod up -d --build
+          echo "🐳 Starting Docker services (frontend already built)..."
+          # Only rebuild backend, frontend is pre-built in CI
+          compose_cmd -f docker-compose.prod.yml --env-file .env.prod up -d --build backend db redis
+          
+          # Start other services without rebuild
+          compose_cmd -f docker-compose.prod.yml --env-file .env.prod up -d
           
           # Wait for backend to be healthy
           echo "⏳ Waiting for backend to respond on 127.0.0.1:8000..."
@@ -141,7 +161,7 @@ jobs:
 
       - name: Run database migrations
         run: |
-          ssh -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'set -euo pipefail
+          ssh -o ServerAliveInterval=60 -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'set -euo pipefail
           cd "${{ env.APP_DIR }}"
           compose_cmd() {
             if docker compose version >/dev/null 2>&1; then
@@ -163,7 +183,7 @@ jobs:
 
       - name: Configure Telegram webhook
         run: |
-          ssh -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'set -euo pipefail
+          ssh -o ServerAliveInterval=60 -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'set -euo pipefail
           cd "${{ env.APP_DIR }}"
           
           # Extract Telegram config from .env.prod
@@ -191,7 +211,7 @@ jobs:
 
       - name: Health check
         run: |
-          ssh -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'set -euo pipefail
+          ssh -o ServerAliveInterval=60 -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'set -euo pipefail
           echo "🔍 Running health checks..."
           compose_cmd() {
             if docker compose version >/dev/null 2>&1; then
