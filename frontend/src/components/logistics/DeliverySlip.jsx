@@ -3,6 +3,7 @@ import { Box, Button, Dialog, DialogContent, MenuItem, TextField } from "@mui/ma
 import PrintIcon from "@mui/icons-material/Print";
 import DownloadIcon from "@mui/icons-material/Download";
 import { extractPrintableCity } from "../../utils/logistics";
+import { getBackendOrigin } from "../../services/api";
 
 const PAPER_SIZES = {
   auto: { label: "Automático (impresora)" },
@@ -158,7 +159,7 @@ export default function DeliverySlip({ open, onClose, delivery, order, client, b
     setDownloading(true);
     try {
       const token = localStorage.getItem("token");
-      const backendUrl = process.env.REACT_APP_API_URL?.replace("/api", "") || "http://localhost:8000";
+      const backendUrl = getBackendOrigin();
       const psParam = paperSize === "auto" ? "a4" : paperSize;
 
       const response = await fetch(
