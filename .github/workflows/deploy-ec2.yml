@@ -132,12 +132,8 @@ jobs:
             fi
           }
 
-          echo "🐳 Starting Docker services (frontend already built)..."
-          # Only rebuild backend, frontend is pre-built in CI
-          compose_cmd -f docker-compose.prod.yml --env-file .env.prod up -d --build backend db redis
-          
-          # Start other services without rebuild
-          compose_cmd -f docker-compose.prod.yml --env-file .env.prod up -d
+          echo "🐳 Rebuilding and starting all Docker services..."
+          compose_cmd -f docker-compose.prod.yml --env-file .env.prod up -d --build --force-recreate
           
           # Wait for backend to be healthy
           echo "⏳ Waiting for backend to respond on 127.0.0.1:8000..."
