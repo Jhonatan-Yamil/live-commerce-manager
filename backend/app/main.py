@@ -15,6 +15,7 @@ app = FastAPI(
     title="LiveSale Manager",
     description="Sistema de gestión de ventas para comercio electrónico en transmisiones en vivo",
     version="1.0.0",
+    redirect_slashes=False,
 )
 
 UPLOADS_DIR = os.getenv("UPLOADS_DIR", "uploads")

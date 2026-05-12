@@ -36,11 +36,10 @@ api.interceptors.response.use(
 export default api;
 
 const createCrudApi = (basePath, options = {}) => {
-  const createPath = `${basePath}/`;
   const crudApi = {
-    list: () => api.get(createPath),
-    create: (data) => api.post(createPath, data),
-    update: (id, data) => api.put(`${basePath}/${id}`, data),
+    list: () => api.get(`${basePath}/`),
+    create: (data) => api.post(`${basePath}/`, data),
+    update: (id, data) => api.put(`${basePath}/${id}/`, data),
   };
 
   if (options.includeGet) {
