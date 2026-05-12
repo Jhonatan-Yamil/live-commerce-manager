@@ -43,7 +43,7 @@ const createCrudApi = (basePath, options = {}) => {
   };
 
   if (options.includeGet) {
-    crudApi.get = (id) => api.get(`${basePath}/${id}`);
+    crudApi.get = (id) => api.get(`${basePath}/${id}/`);
   }
 
   return crudApi;
