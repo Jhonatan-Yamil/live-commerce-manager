@@ -4,6 +4,7 @@ import LotAutocomplete from "./LotAutocomplete";
 import ProductAutocomplete from "./ProductAutocomplete";
 import FormFieldLabel from "../common/FormFieldLabel";
 import { APP_PALETTE } from "../../theme/palette";
+import { formatCurrencyBs } from "../../utils/formatters";
 
 export default function OrderForm({
 	clients,

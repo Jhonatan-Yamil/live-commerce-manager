@@ -13,6 +13,7 @@ import {
 import OrderForm from "./OrderForm";
 import { clientsApi, intakeApi, lotsApi, ordersApi, productsApi } from "../../services/api";
 import { useNotification } from "../../context/NotificationContext";
+import { formatCurrencyBs } from "../../utils/formatters";
 
 const emptyItem = () => ({ product_name: "", quantity: 1, unit_price: "", lot_id: null, lot_input: "" });
 
