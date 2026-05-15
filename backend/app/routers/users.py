@@ -20,7 +20,7 @@ def register_user(data: UserCreate, db: Session = Depends(get_db), _=Depends(req
         raise HTTPException(status_code=400, detail="Email ya registrado")
     return user
 
-
+# 1
 @router.get("/me", response_model=UserOut)
 def get_me(current_user: User = Depends(get_current_user)):
     return current_user
