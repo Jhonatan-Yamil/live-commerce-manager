@@ -8,6 +8,7 @@ import { productsApi } from "../services/api";
 import SearchBar from "../components/common/SearchBar";
 import TablePager from "../components/common/TablePager";
 import { APP_PALETTE } from "../theme/palette";
+import { formatCurrencyBs } from "../utils/formatters";
 
 export default function ProductsPage() {
   const [products, setProducts] = useState([]);
@@ -45,7 +46,7 @@ export default function ProductsPage() {
         {[
           { label: "Productos distintos", value: products.length, icon: "🏷️", color: APP_PALETTE.brand.primary },
           { label: "Unidades vendidas", value: totalUnits, icon: "📦", color: APP_PALETTE.status.info },
-          { label: "Ingresos totales", value: `Bs. ${totalRevenue.toFixed(2)}`, icon: "💰", color: APP_PALETTE.status.success },
+          { label: "Ingresos totales", value: formatCurrencyBs(totalRevenue), icon: "💰", color: APP_PALETTE.status.success },
         ].map((s) => (
           <Grid item xs={12} sm={4} key={s.label}>
             <Paper sx={{ p: 2.5, borderRadius: 3, boxShadow: "0 1px 8px rgba(0,0,0,0.08)", borderTop: `4px solid ${s.color}` }}>
@@ -93,8 +94,8 @@ export default function ProductsPage() {
                     <TableCell sx={{ fontWeight: 600, color: APP_PALETTE.text.primary }}>{p.name}</TableCell>
                     <TableCell sx={{ color: APP_PALETTE.brand.primary, fontWeight: 600 }}>{p.units_sold} uds</TableCell>
                     <TableCell sx={{ color: APP_PALETTE.text.secondary }}>{p.orders_count} pedido(s)</TableCell>
-                    <TableCell sx={{ color: APP_PALETTE.text.secondary }}>Bs. {p.avg_price.toFixed(2)}</TableCell>
-                    <TableCell sx={{ fontWeight: 700, color: APP_PALETTE.status.success }}>Bs. {p.total_revenue.toFixed(2)}</TableCell>
+                    <TableCell sx={{ color: APP_PALETTE.text.secondary }}>{formatCurrencyBs(p.avg_price)}</TableCell>
+                    <TableCell sx={{ fontWeight: 700, color: APP_PALETTE.status.success }}>{formatCurrencyBs(p.total_revenue)}</TableCell>
                     <TableCell>
                       {p.lots.length > 0 ? (
                         <Button size="small" variant="outlined" onClick={() => toggleExpand(p.product_id)}
@@ -115,7 +116,7 @@ export default function ProductsPage() {
                       <TableCell sx={{ color: APP_PALETTE.brand.primary, fontSize: 13 }}>{l.units_sold} uds</TableCell>
                       <TableCell sx={{ color: APP_PALETTE.text.muted, fontSize: 13 }}>—</TableCell>
                       <TableCell sx={{ color: APP_PALETTE.text.muted, fontSize: 13 }}>—</TableCell>
-                      <TableCell sx={{ color: APP_PALETTE.status.success, fontSize: 13, fontWeight: 600 }}>Bs. {l.revenue.toFixed(2)}</TableCell>
+                      <TableCell sx={{ color: APP_PALETTE.status.success, fontSize: 13, fontWeight: 600 }}>{formatCurrencyBs(l.revenue)}</TableCell>
                       <TableCell />
                     </TableRow>
                   ))}

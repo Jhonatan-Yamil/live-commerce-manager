@@ -1,11 +1,10 @@
-import os
-import shutil
 from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.auth.dependencies import get_current_user
 from app.schemas.payment import PaymentOut, PaymentStatusUpdate
+from app.core.file_utils import save_uploaded_file
 from app.services.payment_service import (
     get_payment as get_payment_service,
     get_payment_by_order as get_payment_by_order_service,
@@ -18,7 +17,6 @@ from app.routers.utils import require_found
 router = APIRouter()
 
 UPLOAD_DIR = "uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 @router.get("/", response_model=list[PaymentOut])
@@ -48,14 +46,12 @@ def upload_voucher(
     payment = get_payment_by_order_service(db, order_id)
     require_found(payment, "Pago no encontrado para este pedido")
 
-    ext = os.path.splitext(file.filename)[1].lower()
-    if ext not in [".jpg", ".jpeg", ".png", ".pdf"]:
-        raise HTTPException(status_code=400, detail="Solo se permiten imágenes JPG, PNG o PDF")
-
-    filename = f"voucher_order{order_id}_{int(datetime.now().timestamp())}{ext}"
-    filepath = os.path.join(UPLOAD_DIR, filename)
-
-    with open(filepath, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    filename = save_uploaded_file(
+        file=file,
+        directory=UPLOAD_DIR,
+        allowed_extensions={".jpg", ".jpeg", ".png", ".pdf"},
+        filename_builder=lambda ext: f"voucher_order{order_id}_{int(datetime.now().timestamp())}{ext}",
+        error_message="Solo se permiten imágenes JPG, PNG o PDF",
+    )
 
     return register_voucher_service(db, order_id, filename)

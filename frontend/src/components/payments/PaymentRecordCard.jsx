@@ -2,6 +2,7 @@ import { Box, Button, Paper, TextField, Typography } from "@mui/material";
 import { getBackendOrigin } from "../../services/api";
 import { NEXT_COLORS, STATUS_LABELS_NEXT } from "./constants";
 import { APP_PALETTE } from "../../theme/palette";
+import { formatCurrencyBs, formatDateEsBo } from "../../utils/formatters";
 
 const buildVoucherUrl = (voucherPath) => {
   if (!voucherPath) return null;
@@ -38,8 +39,8 @@ export default function PaymentRecordCard({
           </Box>
           <Typography variant="caption" color="text.secondary">
             Pedido #{payment.order_id}
-            {payment.order_total && <span style={{ marginLeft: 8, fontWeight: 600, color: APP_PALETTE.brand.primary }}>Bs. {payment.order_total.toFixed(2)}</span>}
-            {payment.order_created_at && <span style={{ marginLeft: 8 }}>{new Date(payment.order_created_at).toLocaleDateString("es-BO", { day: "numeric", month: "short", year: "numeric" })}</span>}
+            {payment.order_total && <span style={{ marginLeft: 8, fontWeight: 600, color: APP_PALETTE.brand.primary }}>{formatCurrencyBs(payment.order_total)}</span>}
+            {payment.order_created_at && <span style={{ marginLeft: 8 }}>{formatDateEsBo(payment.order_created_at, { day: "numeric", month: "short", year: "numeric" })}</span>}
           </Typography>
           {payment.voucher_path && (
             <Box mt={0.5}>
@@ -52,7 +53,7 @@ export default function PaymentRecordCard({
             </Box>
           )}
           {payment.notes && <Typography variant="caption" color="text.secondary" display="block">Nota: {payment.notes}</Typography>}
-          {payment.reviewed_at && <Typography variant="caption" color="text.secondary" display="block">Revisado: {new Date(payment.reviewed_at).toLocaleString("es-BO")}</Typography>}
+          {payment.reviewed_at && <Typography variant="caption" color="text.secondary" display="block">Revisado: {formatDateEsBo(payment.reviewed_at, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}</Typography>}
         </Box>
 
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1, minWidth: 300 }}>

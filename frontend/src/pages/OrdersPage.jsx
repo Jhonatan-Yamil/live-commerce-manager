@@ -18,6 +18,7 @@ import TablePager from "../components/common/TablePager";
 import OrderCompletionDialog from "../components/orders/OrderCompletionDialog";
 import { ORDER_STATUS_LABELS } from "../utils/constants";
 import { APP_PALETTE } from "../theme/palette";
+import { formatCurrencyBs, formatDateEsBo } from "../utils/formatters";
 
 export default function OrdersPage() {
   const [orders, setOrders] = useState([]);
@@ -142,12 +143,12 @@ export default function OrdersPage() {
                   <TableCell sx={{ fontWeight: 600, color: APP_PALETTE.text.secondary }}>#{o.id}</TableCell>
                   <TableCell>{o.client?.full_name}</TableCell>
                   <TableCell sx={{ color: APP_PALETTE.text.secondary, fontSize: 13 }}>{o.items?.length || 0} ítem(s)</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Bs. {Number(o.total).toFixed(2)}</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>{formatCurrencyBs(o.total)}</TableCell>
                   <TableCell>
                     <StatusBadge label={s.label} color={s.color} />
                   </TableCell>
                   <TableCell sx={{ color: APP_PALETTE.text.muted, fontSize: 13 }}>
-                    {new Date(o.created_at).toLocaleDateString("es-BO")}
+                    {formatDateEsBo(o.created_at)}
                   </TableCell>
                 </TableRow>
               );

@@ -5,6 +5,7 @@ import {
 } from "@mui/material";
 import { APP_PALETTE } from "../theme/palette";
 import { cashFlowApi } from "../services/api";
+import { formatCurrencyBs, formatDateEsBo } from "../utils/formatters";
 
 const CashFlowPage = () => {
   const [cashFlowData, setCashFlowData] = useState(null);
@@ -57,28 +58,28 @@ const CashFlowPage = () => {
   const summaryCards = [
     {
       label: "Ingresos",
-      value: `Bs. ${summary.income.toFixed(2)}`,
+      value: formatCurrencyBs(summary.income),
       color: APP_PALETTE.status.success,
       bg: APP_PALETTE.surfaces.successSoft,
       border: APP_PALETTE.status.success,
     },
     {
       label: "Egresos",
-      value: `Bs. ${summary.expenses.toFixed(2)}`,
+      value: formatCurrencyBs(summary.expenses),
       color: APP_PALETTE.status.error,
       bg: APP_PALETTE.surfaces.errorSoft,
       border: APP_PALETTE.status.error,
     },
     {
       label: "Neto",
-      value: `Bs. ${summary.net.toFixed(2)}`,
+      value: formatCurrencyBs(summary.net),
       color: summary.net >= 0 ? APP_PALETTE.status.success : APP_PALETTE.status.error,
       bg: summary.net >= 0 ? APP_PALETTE.surfaces.successSoft : APP_PALETTE.surfaces.errorSoft,
       border: summary.net >= 0 ? APP_PALETTE.status.success : APP_PALETTE.status.error,
     },
     {
       label: "Período",
-      value: `${new Date(dateFrom + "T00:00:00").toLocaleDateString("es-BO")} — ${new Date(dateTo + "T00:00:00").toLocaleDateString("es-BO")}`,
+      value: `${formatDateEsBo(dateFrom + "T00:00:00")} — ${formatDateEsBo(dateTo + "T00:00:00")}`,
       color: APP_PALETTE.brand.primary,
       bg: APP_PALETTE.surfaces.infoSoft,
       border: APP_PALETTE.brand.primary,
@@ -88,14 +89,12 @@ const CashFlowPage = () => {
 
   return (
     <Box>
-      {/* Header */}
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
         <Typography variant="h5" fontWeight={700} color={APP_PALETTE.text.primary}>
           Flujo de Caja
         </Typography>
       </Box>
 
-      {/* Tarjetas resumen */}
       <Box sx={{ display: "grid", gridTemplateColumns: { xs: "1fr 1fr", md: "repeat(4, 1fr)" }, gap: 2, mb: 3 }}>
         {summaryCards.map((card) => (
           <Paper
@@ -122,7 +121,6 @@ const CashFlowPage = () => {
         ))}
       </Box>
 
-      {/* Tabla */}
       <Paper sx={{ p: 3, borderRadius: 3, boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}>
         <Typography variant="h6" fontWeight={700} color={APP_PALETTE.text.primary} mb={0.5}>
           Transacciones
@@ -131,7 +129,6 @@ const CashFlowPage = () => {
           Detalle de ingresos y egresos en el período seleccionado
         </Typography>
 
-        {/* Filtros */}
         <Box sx={{ display: "flex", gap: 1, mb: 2, flexWrap: "wrap" }}>
           <TextField
             size="small"
@@ -196,16 +193,16 @@ const CashFlowPage = () => {
               transactions.map((tx, idx) => (
                 <TableRow key={idx} hover>
                   <TableCell sx={{ color: APP_PALETTE.text.secondary, whiteSpace: "nowrap" }}>
-                    {new Date(tx.date + "T00:00:00").toLocaleDateString("es-BO")}
+                    {formatDateEsBo(tx.date + "T00:00:00")}
                   </TableCell>
                   <TableCell sx={{ color: APP_PALETTE.text.primary }}>
                     {tx.description}
                   </TableCell>
                   <TableCell align="right" sx={{ color: APP_PALETTE.status.success, fontWeight: 600 }}>
-                    {tx.type === "income" ? `Bs. ${Number(tx.amount).toFixed(2)}` : "—"}
+                    {tx.type === "income" ? formatCurrencyBs(tx.amount) : "—"}
                   </TableCell>
                   <TableCell align="right" sx={{ color: APP_PALETTE.status.error, fontWeight: 600 }}>
-                    {tx.type === "expense" ? `Bs. ${Number(tx.amount).toFixed(2)}` : "—"}
+                    {tx.type === "expense" ? formatCurrencyBs(tx.amount) : "—"}
                   </TableCell>
                   <TableCell
                     align="right"
@@ -214,7 +211,7 @@ const CashFlowPage = () => {
                       fontWeight: 700,
                     }}
                   >
-                    Bs. {Number(tx.balance).toFixed(2)}
+                    {formatCurrencyBs(tx.balance)}
                   </TableCell>
                 </TableRow>
               ))

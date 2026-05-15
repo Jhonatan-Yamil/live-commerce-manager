@@ -12,6 +12,7 @@ import { ORDER_STATUS_LABELS } from "../utils/constants";
 import useCrudForm from "../hooks/useCrudForm";
 import { useNotification } from "../context/NotificationContext";
 import { APP_PALETTE } from "../theme/palette";
+import { formatCurrencyBs, formatDateEsBo } from "../utils/formatters";
 
 export default function ClientsPage() {
   const { notifyWarning } = useNotification();
@@ -179,9 +180,9 @@ export default function ClientsPage() {
                       <TableRow key={`order-${o.id}`} sx={{ background: APP_PALETTE.surfaces.subtle }}>
                         <TableCell sx={{ pl: 4, color: APP_PALETTE.text.secondary, fontSize: 13 }}>└ Pedido #{o.id}</TableCell>
                         <TableCell sx={{ color: APP_PALETTE.text.muted, fontSize: 12 }}>
-                          {new Date(o.created_at).toLocaleDateString("es-BO", { day: "numeric", month: "short", year: "numeric" })}
+                          {formatDateEsBo(o.created_at, { day: "numeric", month: "short", year: "numeric" })}
                         </TableCell>
-                        <TableCell sx={{ fontWeight: 600, color: APP_PALETTE.brand.primary, fontSize: 13 }}>Bs. {Number(o.total).toFixed(2)}</TableCell>
+                        <TableCell sx={{ fontWeight: 600, color: APP_PALETTE.brand.primary, fontSize: 13 }}>{formatCurrencyBs(o.total)}</TableCell>
                         <TableCell colSpan={4}><StatusBadge label={s.label} color={s.color} /></TableCell>
                         <TableCell />
                       </TableRow>

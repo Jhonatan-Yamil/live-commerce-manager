@@ -8,6 +8,7 @@ import { ordersApi, paymentsApi, lotsApi, logisticsApi, deliverySchedulesApi } f
 import StatusBadge from "../components/common/StatusBadge";
 import { ORDER_STATUS_LABELS } from "../utils/constants";
 import { APP_PALETTE } from "../theme/palette";
+import { formatCurrencyBs, formatDateEsBo } from "../utils/formatters";
 
 function AlertCard({ background, border, children }) {
   return (
@@ -29,7 +30,6 @@ export default function DashboardPage() {
     Promise.all([ordersApi.list(), paymentsApi.list(), lotsApi.list(), logisticsApi.list()])
       .then(([o, p, l, lg]) => { setOrders(o.data); setPayments(p.data); setLots(l.data); setLogistics(lg.data); setLoading(false); })
       .catch(() => setLoading(false));
-    // load deliveries for today (compact alert)
     deliverySchedulesApi.listToday()
       .then((res) => {
         const today = new Date().toISOString().slice(0, 10);
@@ -77,14 +77,14 @@ export default function DashboardPage() {
       <Box mb={3}>
         <Typography variant="h5" fontWeight={700} color={APP_PALETTE.text.primary}>Dashboard</Typography>
         <Typography variant="caption" color={APP_PALETTE.text.secondary} fontWeight={600}>
-          {new Date().toLocaleDateString("es-BO", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+          {formatDateEsBo(new Date(), { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
         </Typography>
       </Box>
 
       <Grid container spacing={2} mb={3}>
         {[
           { label: "Pedidos hoy", value: todayOrders.length, color: APP_PALETTE.brand.primary, icon: "📦" },
-          { label: "Recaudado hoy", value: `Bs. ${todayRevenue.toFixed(2)}`, color: APP_PALETTE.status.success, icon: "💰" },
+          { label: "Recaudado hoy", value: formatCurrencyBs(todayRevenue), color: APP_PALETTE.status.success, icon: "💰" },
           { label: "Pagos en revisión", value: pendingPayments.length, color: APP_PALETTE.status.info, icon: "⏳" },
           { label: "Total pedidos", value: orders.length, color: APP_PALETTE.status.neutral, icon: "🗂️" },
         ].map((c) => (
@@ -185,10 +185,10 @@ export default function DashboardPage() {
                 <TableRow key={o.id} hover>
                   <TableCell sx={{ fontWeight: 600, color: APP_PALETTE.text.secondary }}>#{o.id}</TableCell>
                   <TableCell>{o.client?.full_name}</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Bs. {Number(o.total).toFixed(2)}</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>{formatCurrencyBs(o.total)}</TableCell>
                   <TableCell><StatusBadge label={s.label} color={s.color} /></TableCell>
                   <TableCell sx={{ color: APP_PALETTE.text.secondary, fontSize: 13, fontWeight: 600 }}>
-                    {new Date(o.created_at).toLocaleDateString("es-BO", { day: "numeric", month: "short" })}
+                    {formatDateEsBo(o.created_at, { day: "numeric", month: "short" })}
                   </TableCell>
                 </TableRow>
               );

@@ -18,6 +18,7 @@ import {
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { APP_PALETTE } from "../../theme/palette";
 import { deliverySchedulesApi } from "../../services/api";
+import { emitDeliverySchedulesUpdated } from "../../hooks/useDeliverySchedulesUpdates";
 
 const todayIso = () => {
   const now = new Date();
@@ -521,7 +522,6 @@ export default function PrepareDeliveryMode({ orders, logistics = [], onUpdate }
 
         await deliverySchedulesApi.create(apiPayload);
 
-        // Guardar config del cliente para próximos pedidos
         if (order?.client_id) {
           saveClientConfig(order.client_id, {
             deliveryMode: draft.deliveryMode || "same_city",
@@ -567,11 +567,7 @@ export default function PrepareDeliveryMode({ orders, logistics = [], onUpdate }
       const schedulesRes = await deliverySchedulesApi.list();
       setAllSchedules(schedulesRes.data || []);
       await onUpdate?.();
-      try {
-        window.dispatchEvent(new CustomEvent("deliverySchedulesUpdated"));
-      } catch (e) {
-        // ignore
-      }
+      emitDeliverySchedulesUpdated();
     } finally {
       setCreating(false);
     }
@@ -732,7 +728,7 @@ export default function PrepareDeliveryMode({ orders, logistics = [], onUpdate }
                       {order.client?.full_name || "Sin cliente"}
                     </Typography>
                     <Typography variant="caption" color="text.secondary" display="block">
-                      Pedido #{order.id} · {totalItems} prenda(s) · Bs. {Number(order.total).toFixed(2)}
+                      Pedido #{order.id} · {totalItems} prenda(s) · {formatCurrencyBs(order.total)}
                     </Typography>
                   </Box>
                 </Box>
@@ -845,7 +841,7 @@ export default function PrepareDeliveryMode({ orders, logistics = [], onUpdate }
                     </Box>
                   )}
                   <Typography variant="caption" color="text.secondary">
-                    {totalItems} prenda(s) · Bs. {Number(order?.total || 0).toFixed(2)}
+                    {totalItems} prenda(s) · {formatCurrencyBs(order?.total)}
                   </Typography>
                 </Box>
               </DialogContent>

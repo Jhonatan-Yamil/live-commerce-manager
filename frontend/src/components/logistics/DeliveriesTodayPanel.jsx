@@ -17,6 +17,8 @@ import { summarizeItems, sumItems, toDateIso } from "../../utils/logistics";
 import DeliverySlip from "./DeliverySlip";
 import PrintIcon from "@mui/icons-material/Print";
 import { normalizeLocationLabel } from "../../utils/logistics";
+import { emitDeliverySchedulesUpdated, useDeliverySchedulesUpdates } from "../../hooks/useDeliverySchedulesUpdates";
+import { formatCurrencyBs } from "../../utils/formatters";
 
 export default function DeliveriesTodayPanel({ orders = [], onUpdate, brandLogoUrl }) {
   const [todaySchedules, setTodaySchedules] = useState([]);
@@ -28,16 +30,14 @@ export default function DeliveriesTodayPanel({ orders = [], onUpdate, brandLogoU
 
   const loadToday = async () => {
     const res = await deliverySchedulesApi.listToday();
-    // El endpoint ya filtra por hoy y status=scheduled, confiar en él
     setTodaySchedules(res.data || []);
   };
 
   useEffect(() => {
     loadToday();
-    const handler = () => loadToday();
-    window.addEventListener("deliverySchedulesUpdated", handler);
-    return () => window.removeEventListener("deliverySchedulesUpdated", handler);
   }, []);
+
+  useDeliverySchedulesUpdates(loadToday);
 
   const orderById = useMemo(() => {
     return new Map(orders.map((order) => [order.id, order]));
@@ -61,11 +61,7 @@ export default function DeliveriesTodayPanel({ orders = [], onUpdate, brandLogoU
   const refresh = async () => {
     await loadToday();
     if (onUpdate) onUpdate();
-    try {
-      window.dispatchEvent(new CustomEvent("deliverySchedulesUpdated"));
-    } catch (e) {
-      // ignore
-    }
+    emitDeliverySchedulesUpdated();
   };
 
   const markDelivered = async () => {
@@ -149,7 +145,7 @@ export default function DeliveriesTodayPanel({ orders = [], onUpdate, brandLogoU
                     {order?.id ? ` — Pedido #${order.id}` : ""}
                   </Typography>
                   <Typography variant="caption" color="text.secondary" display="block">
-                    {client?.phone || "Sin teléfono"} · {itemCount} prenda(s) · Bs. {Number(order?.total || 0).toFixed(2)}
+                    {client?.phone || "Sin teléfono"} · {itemCount} prenda(s) · {formatCurrencyBs(order?.total)}
                   </Typography>
                   <Typography variant="caption" color="text.secondary" display="block">
                     {itemSummary}

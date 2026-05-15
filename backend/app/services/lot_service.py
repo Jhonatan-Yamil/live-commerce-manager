@@ -44,26 +44,26 @@ def get_lot(db: Session, lot_id: int):
 
 def get_lots_with_stats(db: Session):
     lots = lot_repository.list_lots(db)
-    result = []
-    for lot in lots:
-        items = lot_repository.list_order_items_by_lot(db, lot.id)
-        units_sold = sum(i.quantity for i in items)
-        total_revenue = sum(i.subtotal for i in items)
-        profit = total_revenue - lot.total_cost
-        units_remaining = max(0, lot.total_units - units_sold)
-        lot_out = LotOut(
-            id=lot.id,
-            name=lot.name,
-            brand=lot.brand,
-            total_units=lot.total_units,
-            total_cost=lot.total_cost,
-            unit_cost=lot.unit_cost,
-            notes=lot.notes,
-            created_at=lot.created_at,
-            units_sold=units_sold,
-            total_revenue=Decimal(str(total_revenue)),
-            profit=Decimal(str(profit)),
-            units_remaining=units_remaining,
-        )
-        result.append(lot_out)
-    return result
+    return [format_lot_with_stats(db, lot) for lot in lots]
+
+
+def format_lot_with_stats(db: Session, lot: Lot):
+    items = lot_repository.list_order_items_by_lot(db, lot.id)
+    units_sold = sum(i.quantity for i in items)
+    total_revenue = sum(i.subtotal for i in items)
+    profit = total_revenue - lot.total_cost
+    units_remaining = max(0, lot.total_units - units_sold)
+    return LotOut(
+        id=lot.id,
+        name=lot.name,
+        brand=lot.brand,
+        total_units=lot.total_units,
+        total_cost=lot.total_cost,
+        unit_cost=lot.unit_cost,
+        notes=lot.notes,
+        created_at=lot.created_at,
+        units_sold=units_sold,
+        total_revenue=Decimal(str(total_revenue)),
+        profit=Decimal(str(profit)),
+        units_remaining=units_remaining,
+    )

@@ -19,3 +19,7 @@ def update_order_status(db: Session, order_id: int, status: OrderStatus):
         db.commit()
         db.refresh(order)
     return order
+
+
+def build_order_status_update_response(order) -> dict:
+    return {"message": "Estado actualizado", "status": order.status}

@@ -2,8 +2,14 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from app.database.session import get_db
 from app.auth.dependencies import get_current_user
-from app.schemas.order import OrderCreate, OrderOut, OrderStatusUpdate
-from app.services.order_service import create_order, get_orders, get_order, update_order_status
+from app.schemas.order import OrderCreate, OrderOut, OrderStatusUpdate, OrderStatusUpdateOut
+from app.services.order_service import (
+    build_order_status_update_response,
+    create_order,
+    get_order,
+    get_orders,
+    update_order_status,
+)
 from app.routers.utils import require_found
 
 router = APIRouter()
@@ -25,8 +31,8 @@ def detail_order(order_id: int, db: Session = Depends(get_db), _=Depends(get_cur
     return require_found(o, "Pedido no encontrado")
 
 
-@router.patch("/{order_id}/status")
+@router.patch("/{order_id}/status", response_model=OrderStatusUpdateOut)
 def change_order_status(order_id: int, data: OrderStatusUpdate, db: Session = Depends(get_db), _=Depends(get_current_user)):
     o = update_order_status(db, order_id, data.status)
-    require_found(o, "Pedido no encontrado")
-    return {"message": "Estado actualizado", "status": o.status}
+    o = require_found(o, "Pedido no encontrado")
+    return build_order_status_update_response(o)

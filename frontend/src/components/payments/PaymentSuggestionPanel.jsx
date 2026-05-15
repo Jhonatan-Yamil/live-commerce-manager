@@ -16,6 +16,7 @@ import { useState } from "react";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import { APP_PALETTE } from "../../theme/palette";
 import ConfirmDialog from "../common/ConfirmDialog";
+import { formatCurrencyBs } from "../../utils/formatters";
 
 const OPEN_ORDER_STATUSES = new Set(["pending_payment", "payment_in_review", "payment_rejected"]);
 
@@ -59,7 +60,7 @@ export default function PaymentSuggestionPanel({
               return (o.client?.full_name || "").toLowerCase().includes(s.matched_client_name.toLowerCase());
             });
             const amountLabel = s.extracted_amount != null
-              ? `Monto: Bs. ${Number(s.extracted_amount).toFixed(2)}`
+              ? `Monto: ${formatCurrencyBs(s.extracted_amount)}`
               : "Monto: no detectado";
 
             return (
@@ -138,7 +139,7 @@ export default function PaymentSuggestionPanel({
                   <Box sx={{ mt: 1, display: "flex", gap: 1, flexWrap: "wrap", alignItems: "center" }}>
                     <Autocomplete
                       options={reassignCandidates}
-                      getOptionLabel={(o) => `${o.client?.full_name || "Cliente"} • Pedido #${o.id} • Bs. ${Number(o.total || 0).toFixed(2)}`}
+                      getOptionLabel={(o) => `${o.client?.full_name || "Cliente"} • Pedido #${o.id} • ${formatCurrencyBs(o.total)}`}
                       value={reassignOrder[s.id] || null}
                       onChange={(_, value) => setReassignOrder((prev) => ({ ...prev, [s.id]: value }))}
                       renderInput={(params) => (
@@ -220,7 +221,7 @@ export default function PaymentSuggestionPanel({
           <Box sx={{ mt: 1 }}>
             <Typography variant="body2" fontWeight={700}>Pedido #{confirmPayload.order.id}</Typography>
             <Typography variant="caption">Cliente: {confirmPayload.order.client?.full_name || "-"}</Typography>
-            <Typography variant="caption" display="block">Total: Bs. {Number(confirmPayload.order.total || 0).toFixed(2)}</Typography>
+            <Typography variant="caption" display="block">Total: {formatCurrencyBs(confirmPayload.order.total)}</Typography>
           </Box>
         )}
       </ConfirmDialog>

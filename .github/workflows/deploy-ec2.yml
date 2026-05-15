@@ -19,7 +19,6 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     environment: production
-# try
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -92,21 +91,18 @@ jobs:
             sudo yum check-update || true
           fi
           
-          # Install Docker if missing
           if ! command -v docker &> /dev/null; then
             echo "Installing Docker..."
             curl -fsSL https://get.docker.com | sudo bash
             sudo usermod -aG docker "$USER" || true
           fi
           
-          # Install Docker Compose if missing
           if ! command -v docker compose &> /dev/null && ! command -v docker-compose &> /dev/null; then
             echo "Installing Docker Compose..."
             sudo curl -L "https://github.com/docker/compose/releases/download/v2.20.2/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
             sudo chmod +x /usr/local/bin/docker-compose
           fi
           
-          # Ensure docker daemon is running
           sudo systemctl enable docker || true
           sudo systemctl start docker || true
           
@@ -197,7 +193,6 @@ jobs:
           ssh -o ServerAliveInterval=60 -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'set -euo pipefail
           cd "${{ env.APP_DIR }}"
           
-          # Extract Telegram config from .env.prod
           TOKEN=$(grep -E "^TELEGRAM_BOT_TOKEN=" .env.prod | cut -d'"'"'='"'"' -f2- || echo "")
           SECRET=$(grep -E "^TELEGRAM_WEBHOOK_SECRET=" .env.prod | cut -d'"'"'='"'"' -f2- || echo "")
           BASE_URL="https://${{ env.DOMAIN }}"
@@ -235,14 +230,12 @@ jobs:
             fi
           }
           
-          # Check Nginx
           if curl -k -s https://127.0.0.1 >/dev/null 2>&1; then
             echo "✅ Nginx is responding"
           else
             echo "⚠️ Nginx health check failed"
           fi
           
-          # Check Docker services
           cd "${{ env.APP_DIR }}"
           compose_cmd -f docker-compose.prod.yml ps
           '

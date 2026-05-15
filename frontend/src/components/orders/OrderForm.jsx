@@ -230,7 +230,7 @@ export default function OrderForm({
 			>
 				<Typography>
 						<span style={{ color: APP_PALETTE.text.muted, fontSize: 13 }}>{form.items.length} item(s) - </span>
-						<span style={{ fontWeight: 700, fontSize: 16, color: APP_PALETTE.text.primary }}>Total: Bs. {total.toFixed(2)}</span>
+						<span style={{ fontWeight: 700, fontSize: 16, color: APP_PALETTE.text.primary }}>Total: {formatCurrencyBs(total)}</span>
 				</Typography>
 
 				<Button

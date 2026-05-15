@@ -39,20 +39,17 @@ def upgrade() -> None:
     for table in Base.metadata.sorted_tables:
         table.create(bind=bind, checkfirst=True)
 
-    # Campos adicionales de clients
     bind.execute(sa.text("""
         ALTER TABLE clients
             ADD COLUMN IF NOT EXISTS delivery_city VARCHAR,
             ADD COLUMN IF NOT EXISTS delivery_department VARCHAR;
     """))
 
-    # Campos adicionales de users
     bind.execute(sa.text("""
         ALTER TABLE users
             ADD COLUMN IF NOT EXISTS logo_path VARCHAR;
     """))
 
-    # Campos adicionales de delivery_schedules (para separar same_city vs other_city)
     bind.execute(sa.text("""
         ALTER TABLE delivery_schedules
             ADD COLUMN IF NOT EXISTS location TEXT,

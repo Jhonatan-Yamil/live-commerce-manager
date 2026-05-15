@@ -289,7 +289,6 @@ def seed_database(engine):
         orders = []
         items_count = 0
         
-        # ORDEN 1: Tienda Los Andes - PAGADA, SIN LOGÍSTICA (caso para crear desde logística)
         order1 = Order(
             client_id=1,
             status=OrderStatus.payment_confirmed,
@@ -306,7 +305,6 @@ def seed_database(engine):
         session.add_all(items1)
         items_count += len(items1)
         
-        # ORDEN 2: Boutique Elegancia - PAGADA, LOGÍSTICA ENTREGADA (historial)
         order2 = Order(
             client_id=2,
             status=OrderStatus.payment_confirmed,
@@ -323,7 +321,6 @@ def seed_database(engine):
         session.add_all(items2)
         items_count += len(items2)
         
-        # ORDEN 3: Centro Comercial - SIN PAGAR (no debe aparecer en logística)
         order3 = Order(
             client_id=3,
             status=OrderStatus.pending_payment,
@@ -340,7 +337,6 @@ def seed_database(engine):
         session.add_all(items3)
         items_count += len(items3)
         
-        # ORDEN 4: Joyería Boliviana - PAGADA, SIN LOGÍSTICA
         order4 = Order(
             client_id=4,
             status=OrderStatus.payment_confirmed,
@@ -357,7 +353,6 @@ def seed_database(engine):
         session.add_all(items4)
         items_count += len(items4)
         
-        # ORDEN 5: Supermercado Mi Bolivia - PAGADA, SIN LOGÍSTICA
         order5 = Order(
             client_id=5,
             status=OrderStatus.payment_confirmed,
@@ -374,7 +369,6 @@ def seed_database(engine):
         session.add_all(items5)
         items_count += len(items5)
         
-        # ORDEN 6: Tienda Los Andes (segunda) - PAGADA, LOGÍSTICA EN PREPARACIÓN
         order6 = Order(
             client_id=1,
             status=OrderStatus.payment_confirmed,
@@ -391,7 +385,6 @@ def seed_database(engine):
         session.add_all(items6)
         items_count += len(items6)
         
-        # ORDEN 7: Boutique Elegancia (segunda) - PAGADA, LOGÍSTICA EN RUTA
         order7 = Order(
             client_id=2,
             status=OrderStatus.payment_confirmed,
@@ -408,7 +401,6 @@ def seed_database(engine):
         session.add_all(items7)
         items_count += len(items7)
         
-        # ORDEN 8: Ropería El Paso - PAGADA, SIN LOGÍSTICA
         order8 = Order(
             client_id=6,
             status=OrderStatus.payment_confirmed,
@@ -425,7 +417,6 @@ def seed_database(engine):
         session.add_all(items8)
         items_count += len(items8)
         
-        # ORDEN 9: Accesorios YB - PAGADA, SIN LOGÍSTICA
         order9 = Order(
             client_id=7,
             status=OrderStatus.payment_confirmed,
@@ -442,7 +433,6 @@ def seed_database(engine):
         session.add_all(items9)
         items_count += len(items9)
         
-        # ORDEN 10: Farmacia San Miguel - PAGADA, SIN LOGÍSTICA
         order10 = Order(
             client_id=8,
             status=OrderStatus.payment_confirmed,
@@ -459,7 +449,6 @@ def seed_database(engine):
         session.add_all(items10)
         items_count += len(items10)
         
-        # ORDEN 11: Tienda Los Andes (tercera) - PAGADA, LOGÍSTICA ENTREGADA
         order11 = Order(
             client_id=1,
             status=OrderStatus.payment_confirmed,
@@ -476,7 +465,6 @@ def seed_database(engine):
         session.add_all(items11)
         items_count += len(items11)
         
-        # ORDEN 12: Boutique Elegancia (tercera) - PAGADA, SIN LOGÍSTICA
         order12 = Order(
             client_id=2,
             status=OrderStatus.payment_confirmed,
@@ -493,7 +481,6 @@ def seed_database(engine):
         session.add_all(items12)
         items_count += len(items12)
         
-        # ORDEN 13: Centro Comercial (segunda) - PAGADA, LOGÍSTICA EN PREPARACIÓN
         order13 = Order(
             client_id=3,
             status=OrderStatus.payment_confirmed,
@@ -535,7 +522,6 @@ def seed_database(engine):
         
         print("🚚 Insertando logística...")
         logistics = [
-            # Orden 2: Entregada (historial)
             Logistics(
                 order_id=2,
                 delivery_type=DeliveryType.shipping,
@@ -545,7 +531,6 @@ def seed_database(engine):
                 scheduled_at=datetime.now() - timedelta(days=4),
                 delivered_at=datetime.now() - timedelta(days=3)
             ),
-            # Orden 6: En preparación
             Logistics(
                 order_id=6,
                 delivery_type=DeliveryType.shipping,
@@ -555,7 +540,6 @@ def seed_database(engine):
                 scheduled_at=datetime.now() + timedelta(days=1),
                 delivered_at=None
             ),
-            # Orden 7: En ruta
             Logistics(
                 order_id=7,
                 delivery_type=DeliveryType.shipping,
@@ -565,7 +549,6 @@ def seed_database(engine):
                 scheduled_at=datetime.now(),
                 delivered_at=None
             ),
-            # Orden 11: Entregada (historial)
             Logistics(
                 order_id=11,
                 delivery_type=DeliveryType.shipping,
@@ -582,7 +565,6 @@ def seed_database(engine):
         
         print("📅 Insertando delivery schedules...")
         delivery_schedules = [
-            # Para HOY - Tienda Los Andes (orden 1) - MISMO CIUDAD (La Paz)
             DeliverySchedule(
                 order_id=1,
                 scheduled_date=datetime.now().date(),
@@ -592,7 +574,6 @@ def seed_database(engine):
                 status=DeliveryScheduleStatus.scheduled,
                 notes="Para hoy - Cliente VIP - Same City"
             ),
-            # Para HOY - Centro Comercial (orden 13) - OTRA CIUDAD (Santa Cruz)
             DeliverySchedule(
                 order_id=13,
                 scheduled_date=datetime.now().date(),
@@ -602,7 +583,6 @@ def seed_database(engine):
                 status=DeliveryScheduleStatus.scheduled,
                 notes="Para hoy - Mayorista - Other City"
             ),
-            # Mañana - Joyería Boliviana (orden 4) - OTRA CIUDAD (Sucre)
             DeliverySchedule(
                 order_id=4,
                 scheduled_date=(datetime.now() + timedelta(days=1)).date(),
@@ -612,7 +592,6 @@ def seed_database(engine):
                 status=DeliveryScheduleStatus.scheduled,
                 notes="Mañana - Sucre - Other City"
             ),
-            # Pasado mañana - Supermercado (orden 5) - OTRA CIUDAD (Tarija)
             DeliverySchedule(
                 order_id=5,
                 scheduled_date=(datetime.now() + timedelta(days=2)).date(),
@@ -622,7 +601,6 @@ def seed_database(engine):
                 status=DeliveryScheduleStatus.scheduled,
                 notes="En 2 días - Tarija - Other City"
             ),
-            # Ejemplo entregado - orden 11 - MISMO CIUDAD (La Paz)
             DeliverySchedule(
                 order_id=11,
                 scheduled_date=(datetime.now() - timedelta(days=2)).date(),
@@ -633,7 +611,6 @@ def seed_database(engine):
                 notes="Entregado hace 2 días - Same City",
                 rescheduled_date=None
             ),
-            # Ejemplo no entregado - orden 2 - MISMO CIUDAD (Cochabamba)
             DeliverySchedule(
                 order_id=2,
                 scheduled_date=(datetime.now() - timedelta(days=3)).date(),

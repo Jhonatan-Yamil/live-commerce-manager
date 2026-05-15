@@ -6,6 +6,7 @@ import SearchBar from "../components/common/SearchBar";
 import { lotsApi } from "../services/api";
 import useCrudForm from "../hooks/useCrudForm";
 import { APP_PALETTE } from "../theme/palette";
+import { formatCurrencyBs } from "../utils/formatters";
 
 export default function LotsPage() {
   const [lots, setLots] = useState([]);
@@ -57,7 +58,7 @@ export default function LotsPage() {
   ).sort((a, b) => b.id - a.id);
 
   const unitCostPreview = form.total_units && form.total_cost
-    ? `Bs. ${(parseFloat(form.total_cost) / parseInt(form.total_units)).toFixed(2)} por unidad`
+    ? `${formatCurrencyBs(parseFloat(form.total_cost) / parseInt(form.total_units))} por unidad`
     : "—";
 
   const handleSubmit = () => {
@@ -152,9 +153,9 @@ export default function LotsPage() {
                   { label: "Unidades totales", value: `${l.total_units} uds` },
                   { label: "Unidades vendidas", value: `${l.units_sold} uds`, color: APP_PALETTE.brand.primary },
                   { label: "Unidades restantes", value: `${l.units_remaining} uds`, color: l.units_remaining === 0 ? APP_PALETTE.status.error : APP_PALETTE.status.warning },
-                  { label: "Costo unitario", value: `Bs. ${Number(l.unit_cost).toFixed(2)}`, color: APP_PALETTE.text.muted },
-                  { label: "Ingresos", value: `Bs. ${Number(l.total_revenue).toFixed(2)}`, color: APP_PALETTE.status.success },
-                  { label: "Ganancia estimada", value: `Bs. ${Number(l.profit).toFixed(2)}`, color: profitColor },
+                  { label: "Costo unitario", value: formatCurrencyBs(l.unit_cost), color: APP_PALETTE.text.muted },
+                  { label: "Ingresos", value: formatCurrencyBs(l.total_revenue), color: APP_PALETTE.status.success },
+                  { label: "Ganancia estimada", value: formatCurrencyBs(l.profit), color: profitColor },
                 ].map((stat) => (
                   <Grid item xs={6} sm={4} md={2} key={stat.label}>
                     <Box sx={{ background: APP_PALETTE.surfaces.subtle, borderRadius: 2, p: 1.5 }}>

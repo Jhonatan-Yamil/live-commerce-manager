@@ -173,14 +173,14 @@ export default function OrderCompletionDialog({ open, suggestion, onClose, onCom
               Intake #{suggestion.id} - Cliente: {suggestion.matched_client_name || "No identificado"}
             </Typography>
             <Typography variant="body2" color="text.secondary">
-              Monto comprobante: Bs. {suggestion.extracted_amount ?? "-"} - Referencia: {suggestion.extracted_reference || "-"}
+              Monto comprobante: {formatCurrencyBs(suggestion.extracted_amount)} - Referencia: {suggestion.extracted_reference || "-"}
             </Typography>
           </Box>
         )}
 
         {mismatch && (
           <Alert severity="warning" sx={{ mb: 2 }}>
-            El total de productos (Bs. {total.toFixed(2)}) no coincide con el comprobante (Bs. {Number(expectedAmount).toFixed(2)}).
+            El total de productos ({formatCurrencyBs(total)}) no coincide con el comprobante ({formatCurrencyBs(expectedAmount)}).
           </Alert>
         )}
 

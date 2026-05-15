@@ -23,6 +23,8 @@ import { toDateIso, summarizeItems, sumItems, normalizeLocationLabel } from "../
 import DeliverySlip from "./DeliverySlip";
 import PrintIcon from "@mui/icons-material/Print";
 import TablePager from "../common/TablePager";
+import { emitDeliverySchedulesUpdated, useDeliverySchedulesUpdates } from "../../hooks/useDeliverySchedulesUpdates";
+import { formatCurrencyBs } from "../../utils/formatters";
 
 const STATUS_LABELS = {
   scheduled: "Agendado",
@@ -51,10 +53,9 @@ export default function ScheduledDeliveriesPanel({ orders = [], onUpdate, brandL
 
   useEffect(() => {
     loadSchedules();
-    const handler = () => loadSchedules();
-    window.addEventListener("deliverySchedulesUpdated", handler);
-    return () => window.removeEventListener("deliverySchedulesUpdated", handler);
   }, []);
+
+  useDeliverySchedulesUpdates(loadSchedules);
 
   useEffect(() => {
     setPage(0);
@@ -133,11 +134,7 @@ export default function ScheduledDeliveriesPanel({ orders = [], onUpdate, brandL
   const refresh = async () => {
     await loadSchedules();
     if (onUpdate) onUpdate();
-    try {
-      window.dispatchEvent(new CustomEvent("deliverySchedulesUpdated"));
-    } catch (e) {
-      // ignore
-    }
+    emitDeliverySchedulesUpdated();
   };
 
   const markDelivered = async () => {
@@ -187,7 +184,7 @@ export default function ScheduledDeliveriesPanel({ orders = [], onUpdate, brandL
   return (
     <Paper sx={{ p: 3, mb: 3, borderRadius: 3, boxShadow: "0 1px 8px rgba(0,0,0,0.04)" }}>
       <Typography variant="h6" fontWeight={700} color={APP_PALETTE.text.primary} mb={0.5}>
-        Agendados Global 
+        Agendados Global
       </Typography>
       <Typography variant="caption" color="text.secondary" display="block" mb={2}>
         Vista compacta en tabla para editar agendados futuros o pendientes sin ocupar demasiado espacio.
@@ -241,7 +238,7 @@ export default function ScheduledDeliveriesPanel({ orders = [], onUpdate, brandL
                 <TableCell>#{schedule.order_id}</TableCell>
                 <TableCell>{toDateIso(schedule.scheduled_date)}</TableCell>
                 <TableCell>{itemCount}</TableCell>
-                <TableCell>Bs. {Number(order?.total || 0).toFixed(2)}</TableCell>
+                <TableCell>{formatCurrencyBs(order?.total)}</TableCell>
                 <TableCell>{getScheduleDestination(schedule)}</TableCell>
                 <TableCell>{STATUS_LABELS[schedule.status] || schedule.status}</TableCell>
                 <TableCell align="right">
@@ -304,7 +301,7 @@ export default function ScheduledDeliveriesPanel({ orders = [], onUpdate, brandL
                       order.items.map((it) => (
                         <Box key={`${it.product_id}-${it.id || Math.random()}`} sx={{ display: "flex", justifyContent: "space-between", py: 0.5 }}>
                           <Typography>{it.product?.name || `Producto #${it.product_id}`}</Typography>
-                          <Typography variant="caption" color="text.secondary">x{it.quantity} · Bs. {Number(it.unit_price || 0).toFixed(2)}</Typography>
+                          <Typography variant="caption" color="text.secondary">x{it.quantity} · {formatCurrencyBs(it.unit_price)}</Typography>
                         </Box>
                       ))
                     ) : (

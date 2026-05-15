@@ -34,6 +34,11 @@ class OrderStatusUpdate(BaseModel):
     status: OrderStatus
 
 
+class OrderStatusUpdateOut(BaseModel):
+    message: str
+    status: OrderStatus
+
+
 class OrderOut(BaseModel):
     id: int
     client_id: int
