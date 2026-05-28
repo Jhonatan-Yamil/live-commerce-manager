@@ -2,17 +2,11 @@ from __future__ import annotations
 
 import os
 from datetime import datetime, timezone
-
+from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from app.database.session import SessionLocal
 from app.repositories import voucher_intake_repository
 from app.services.ocr_service import extract_voucher_fields
 from app.services.voucher_intake_service import UPLOAD_DIR, attempt_match_intake
-
-
-import signal
-
-def _timeout_handler(signum, frame):
-    raise TimeoutError("OCR timeout")
 
 def process_intake_job(intake_id: int) -> None:
     db = SessionLocal()
@@ -36,12 +30,11 @@ def process_intake_job(intake_id: int) -> None:
             voucher_intake_repository.save(db, intake)
             return
 
-        # Timeout de 30 segundos para el OCR
-        signal.signal(signal.SIGALRM, _timeout_handler)
-        signal.alarm(30)
         try:
-            ocr_fields = extract_voucher_fields(filepath)
-        except TimeoutError:
+            with ThreadPoolExecutor(max_workers=1) as executor:
+                future = executor.submit(extract_voucher_fields, filepath)
+                ocr_fields = future.result(timeout=30)
+        except FuturesTimeoutError:
             ocr_fields = {
                 "ocr_raw_text": "[ERROR] OCR timeout",
                 "ocr_confidence": 0.0,
@@ -50,8 +43,6 @@ def process_intake_job(intake_id: int) -> None:
                 "extracted_reference": None,
                 "extracted_sender_name": None,
             }
-        finally:
-            signal.alarm(0)
 
         intake.extracted_amount = ocr_fields.get("extracted_amount")
         intake.extracted_date = ocr_fields.get("extracted_date")
