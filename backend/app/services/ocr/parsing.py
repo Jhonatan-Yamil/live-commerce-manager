@@ -106,6 +106,24 @@ def collect_labeled_amount_candidates(raw_text: str) -> list[tuple[float, float]
         amount = to_amount(bs_inline.group(1))
         if amount is not None:
             candidates.append((amount, 0.95))
+    
+    qr_pattern = re.search(
+        r"(?:qr\s+exitoso|pago\s+qr|transferencia\s+exitosa)[^\n]*\n+([0-9]+(?:[\.,][0-9]{1,2})?)\s*\n",
+        raw_text,
+        flags=re.IGNORECASE,
+    )
+    if qr_pattern:
+        amount = to_amount(qr_pattern.group(1))
+        if amount is not None:
+            candidates.append((amount, 0.97))
+
+    lines_top = normalized_lines(raw_text)[:8]
+    for top_line in lines_top:
+        top_match = re.fullmatch(r"([0-9]+(?:[\.,][0-9]{1,2})?)", top_line)
+        if top_match:
+            amount = to_amount(top_match.group(1))
+            if amount is not None and amount >= 10:
+                candidates.append((amount, 0.88))
 
     for line in lines:
         if not line_has_label(line, AMOUNT_LABEL_PATTERNS):
@@ -363,6 +381,10 @@ def parse_sender_name(raw_text: str) -> str | None:
 
     def _collect_multiline_name(start_idx: int, max_lines: int = 3) -> str | None:
         name_parts = []
+        if start_idx > 0:
+            prev_line = lines[start_idx - 1].strip()
+            if prev_line and re.fullmatch(r"[A-Za-zÁÉÍÓÚÑáéíóúñ\s]+", prev_line) and len(prev_line.split()) <= 2:
+                name_parts.append(prev_line)
         for line in lines[start_idx:start_idx + max_lines]:
             line = line.strip()
             if not line:
