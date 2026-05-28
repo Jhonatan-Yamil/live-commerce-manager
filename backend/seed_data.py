@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
+from datetime import timezone
 
 import app.models
 from app.models.base import Base
@@ -502,19 +503,19 @@ def seed_database(engine):
         
         print("💳 Insertando pagos...")
         payments = [
-            Payment(order_id=1, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_001.jpg", notes="Orden 1 confirmada"),
-            Payment(order_id=2, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_002.jpg", notes="Orden 2 confirmada"),
+            Payment(order_id=1, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_001.jpg", notes="Orden 1 confirmada", reviewed_at=datetime.now(timezone.utc)),
+            Payment(order_id=2, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_002.jpg", notes="Orden 2 confirmada", reviewed_at=datetime.now(timezone.utc)),
             Payment(order_id=3, status=PaymentStatus.rejected, voucher_path="/uploads/voucher_003_rechazo.jpg", notes="RECHAZADA - Cliente debe enviar comprobante válido"),
-            Payment(order_id=4, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_004.jpg", notes="Orden 4 confirmada"),
-            Payment(order_id=5, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_005.jpg", notes="Orden 5 confirmada"),
-            Payment(order_id=6, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_006.jpg", notes="Orden 6 confirmada - sin logística"),
-            Payment(order_id=7, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_007.jpg", notes="Orden 7 confirmada - en ruta"),
-            Payment(order_id=8, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_008.jpg", notes="Orden 8 confirmada - sin logística"),
-            Payment(order_id=9, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_009.jpg", notes="Orden 9 confirmada - sin logística"),
-            Payment(order_id=10, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_010.jpg", notes="Orden 10 confirmada - sin logística"),
-            Payment(order_id=11, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_011.jpg", notes="Orden 11 confirmada - entregada"),
-            Payment(order_id=12, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_012.jpg", notes="Orden 12 confirmada - sin logística"),
-            Payment(order_id=13, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_013.jpg", notes="Orden 13 confirmada - sin logística"),
+            Payment(order_id=4, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_004.jpg", notes="Orden 4 confirmada", reviewed_at=datetime.now(timezone.utc)),
+            Payment(order_id=5, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_005.jpg", notes="Orden 5 confirmada", reviewed_at=datetime.now(timezone.utc)),
+            Payment(order_id=6, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_006.jpg", notes="Orden 6 confirmada - sin logística", reviewed_at=datetime.now(timezone.utc)),
+            Payment(order_id=7, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_007.jpg", notes="Orden 7 confirmada - en ruta", reviewed_at=datetime.now(timezone.utc)),
+            Payment(order_id=8, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_008.jpg", notes="Orden 8 confirmada - sin logística", reviewed_at=datetime.now(timezone.utc)),
+            Payment(order_id=9, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_009.jpg", notes="Orden 9 confirmada - sin logística", reviewed_at=datetime.now(timezone.utc)),
+            Payment(order_id=10, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_010.jpg", notes="Orden 10 confirmada - sin logística", reviewed_at=datetime.now(timezone.utc)),
+            Payment(order_id=11, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_011.jpg", notes="Orden 11 confirmada - entregada", reviewed_at=datetime.now(timezone.utc)),
+            Payment(order_id=12, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_012.jpg", notes="Orden 12 confirmada - sin logística", reviewed_at=datetime.now(timezone.utc)),
+            Payment(order_id=13, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_013.jpg", notes="Orden 13 confirmada - sin logística", reviewed_at=datetime.now(timezone.utc)),
         ]
         session.add_all(payments)
         session.commit()

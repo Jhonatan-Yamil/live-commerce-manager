@@ -2,6 +2,7 @@ from datetime import datetime, timezone, timedelta
 
 from sqlalchemy.orm import Session, joinedload
 
+from app.models.order import Order
 from app.models.lot import Lot
 from app.models.payment import Payment
 
@@ -19,7 +20,7 @@ def calculate_cash_flow(db: Session, date_from: str, date_to: str) -> dict:
 
     confirmed_payments = (
         db.query(Payment)
-        .options(joinedload(Payment.order))
+        .options(joinedload(Payment.order).joinedload(Order.client))
         .filter(
             Payment.status == "confirmed",
             Payment.reviewed_at.isnot(None),
@@ -44,10 +45,11 @@ def calculate_cash_flow(db: Session, date_from: str, date_to: str) -> dict:
         )
         if amount > 0:
             reviewed_local = payment.reviewed_at.astimezone(BOL_TZ)
+            client_name = payment.order.client.full_name if payment.order and payment.order.client else "Sin cliente"
             transactions.append(
                 {
                     "date": reviewed_local.strftime("%Y-%m-%d"),
-                    "description": f"Ingreso — Pago Pedido #{payment.order_id}",
+                    "description": f"Pedido #{payment.order_id} - {client_name}",
                     "type": "income",
                     "amount": amount,
                     "balance": 0,
@@ -61,7 +63,7 @@ def calculate_cash_flow(db: Session, date_from: str, date_to: str) -> dict:
             transactions.append(
                 {
                     "date": created_local.strftime("%Y-%m-%d"),
-                    "description": f"Egreso — Lote #{lot.id} ({lot.name or 'Sin nombre'})",
+                    "description": f"Lote #{lot.id} ({lot.name or 'Sin nombre'})",
                     "type": "expense",
                     "amount": amount,
                     "balance": 0,
