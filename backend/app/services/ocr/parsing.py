@@ -87,6 +87,26 @@ def collect_labeled_amount_candidates(raw_text: str) -> list[tuple[float, float]
     lines = normalized_lines(raw_text)
     candidates: list[tuple[float, float]] = []
 
+    suma_pattern = re.search(
+        r"la\s+suma\s+de\s+bs\.?:?\s*([0-9]+(?:[\.,][0-9]{1,2})?)",
+        raw_text,
+        flags=re.IGNORECASE,
+    )
+    if suma_pattern:
+        amount = to_amount(suma_pattern.group(1))
+        if amount is not None:
+            candidates.append((amount, 0.99))
+
+    bs_inline = re.search(
+        r"\bbs\.?\s+([0-9]+(?:[\.,][0-9]{1,2})?)\b",
+        raw_text,
+        flags=re.IGNORECASE,
+    )
+    if bs_inline:
+        amount = to_amount(bs_inline.group(1))
+        if amount is not None:
+            candidates.append((amount, 0.95))
+
     for line in lines:
         if not line_has_label(line, AMOUNT_LABEL_PATTERNS):
             continue
@@ -275,7 +295,6 @@ def parse_reference(raw_text: str) -> str | None:
             return token
     return None
 
-
 def parse_sender_name(raw_text: str) -> str | None:
     lines = normalized_lines(raw_text)
 
@@ -292,7 +311,7 @@ def parse_sender_name(raw_text: str) -> str | None:
 
     business_noise_words = {
         "se", "su", "caja", "ahorro", "corriente", "cuenta", "banco", "destino", "origen",
-        "acredito", "acredito", "debito", "debito", "suma", "referencia", "transaccion",
+        "acredito", "debito", "suma", "referencia", "transaccion",
         "fecha", "hora", "bancarizacion", "nombre", "destinatario", "originante",
         "transferencia", "interbancaria", "comprobante", "electronico", "operacion",
     }
@@ -310,43 +329,55 @@ def parse_sender_name(raw_text: str) -> str | None:
             return False
         upper_value = value.upper()
         blocked_tokens = [
-            "BANCO",
-            "CUENTA",
-            "DESTINO",
-            "ORIGEN",
-            "COMPROBANTE",
-            "TRANSACCION",
-            "REFERENCIA",
-            "MOTIVO",
-            "PAGO",
+            "BANCO", "CUENTA", "DESTINO", "ORIGEN", "COMPROBANTE",
+            "TRANSACCION", "REFERENCIA", "MOTIVO", "PAGO",
         ]
         if any(token in upper_value for token in blocked_tokens):
             return False
-
         words = [w for w in re.split(r"\s+", value) if w]
         if len(words) < 2:
             return False
-
         cleaned_words = [re.sub(r"[^A-Za-zÁÉÍÓÚÑáéíóúñ]", "", w).lower() for w in words]
         cleaned_words = [w for w in cleaned_words if w]
         if not cleaned_words:
             return False
-
         if any(w in business_noise_words for w in cleaned_words):
             return False
-
         content_words = [w for w in cleaned_words if w not in person_connectors]
         if len(content_words) < 2:
             return False
-
         valid_word = r"[A-Za-zÁÉÍÓÚÑáéíóúñ][A-Za-zÁÉÍÓÚÑáéíóúñ'\.-]*"
         return bool(re.fullmatch(rf"{valid_word}(?:\s+{valid_word}){{1,6}}", value))
+
+    def _extract_name_after_pipe(line: str) -> str | None:
+        if "|" not in line:
+            return None
+        parts = line.split("|", 1)
+        candidate = parts[1].strip()
+        candidate = re.sub(r"^[\d\s]+", "", candidate).strip()
+        if len(candidate) > 3 and re.search(r"[A-Za-zÁÉÍÓÚÑáéíóúñ]", candidate):
+            words = candidate.split()
+            if len(words) >= 2:
+                return candidate
+        return None
+
+    def _collect_multiline_name(start_idx: int, max_lines: int = 3) -> str | None:
+        name_parts = []
+        for line in lines[start_idx:start_idx + max_lines]:
+            line = line.strip()
+            if not line:
+                break
+            if re.fullmatch(r"[A-Za-zÁÉÍÓÚÑáéíóúñ\s]+", line):
+                name_parts.append(line)
+            else:
+                break
+        result = " ".join(name_parts).strip()
+        return result if len(result.split()) >= 2 else None
 
     def _name_quality_bonus(value: str) -> float:
         words = [w for w in re.split(r"\s+", value.strip()) if w]
         if not words:
             return 0.0
-
         capitalized_like = 0
         for word in words:
             plain = re.sub(r"[^A-Za-zÁÉÍÓÚÑáéíóúñ]", "", word)
@@ -354,7 +385,6 @@ def parse_sender_name(raw_text: str) -> str | None:
                 continue
             if plain.isupper() or (plain[0].isupper() and plain[1:].islower()):
                 capitalized_like += 1
-
         ratio = capitalized_like / max(1, len(words))
         base = 0.08 if ratio >= 0.75 else 0.0
         if len(words) >= 3:
@@ -376,27 +406,64 @@ def parse_sender_name(raw_text: str) -> str | None:
     scored_candidates: list[tuple[str, float]] = []
 
     for idx, line in enumerate(lines):
-        if line_has_label(line, SENDER_LABEL_PATTERNS):
-            same_line_name = _extract_name_from_same_line(line)
-            if same_line_name:
-                score = 1.0 - _context_penalty(idx) + _name_quality_bonus(same_line_name)
-                scored_candidates.append((same_line_name, score))
+        if re.search(r"cuenta\s+(?:de\s+)?origen", line, flags=re.IGNORECASE):
+            name = _extract_name_after_pipe(line)
+            if name:
+                scored_candidates.append((name, 1.5))
+                continue
+            for next_line in lines[idx + 1:idx + 5]:
+                name = _extract_name_after_pipe(next_line)
+                if name:
+                    scored_candidates.append((name, 1.5))
+                    break
 
-            for step, candidate in enumerate(lines[idx + 1:idx + 25], start=1):
-                if _is_name_candidate(candidate):
-                    score = 0.98 - (step * 0.03) - _context_penalty(idx) + _name_quality_bonus(candidate)
-                    scored_candidates.append((candidate, score))
+    if scored_candidates:
+        best_name, _ = max(scored_candidates, key=lambda item: item[1])
+        return best_name
 
-        elif line_has_label(line, SENDER_SECONDARY_LABEL_PATTERNS):
-            same_line_name = _extract_name_from_same_line(line)
-            if same_line_name:
-                score = 0.65 - _context_penalty(idx) + _name_quality_bonus(same_line_name)
-                scored_candidates.append((same_line_name, score))
+    for idx, line in enumerate(lines):
+        if not line_has_label(line, SENDER_LABEL_PATTERNS):
+            continue
 
-            for step, candidate in enumerate(lines[idx + 1:idx + 3], start=1):
-                if _is_name_candidate(candidate):
-                    score = 0.62 - (step * 0.04) - _context_penalty(idx) + _name_quality_bonus(candidate)
-                    scored_candidates.append((candidate, score))
+        name = _extract_name_after_pipe(line)
+        if name:
+            score = 1.2 - _context_penalty(idx) + _name_quality_bonus(name)
+            scored_candidates.append((name, score))
+            continue
+
+        same_line_name = _extract_name_from_same_line(line)
+        if same_line_name:
+            score = 1.0 - _context_penalty(idx) + _name_quality_bonus(same_line_name)
+            scored_candidates.append((same_line_name, score))
+
+        for step, candidate in enumerate(lines[idx + 1:idx + 25], start=1):
+            name = _extract_name_after_pipe(candidate)
+            if name:
+                score = 1.1 - (step * 0.02) - _context_penalty(idx) + _name_quality_bonus(name)
+                scored_candidates.append((name, score))
+                break
+
+            multiline = _collect_multiline_name(idx + step)
+            if multiline and _is_name_candidate(multiline):
+                score = 0.98 - (step * 0.03) - _context_penalty(idx) + _name_quality_bonus(multiline)
+                scored_candidates.append((multiline, score))
+                break
+
+            if _is_name_candidate(candidate):
+                score = 0.95 - (step * 0.03) - _context_penalty(idx) + _name_quality_bonus(candidate)
+                scored_candidates.append((candidate, score))
+
+    for idx, line in enumerate(lines):
+        if not line_has_label(line, SENDER_SECONDARY_LABEL_PATTERNS):
+            continue
+        same_line_name = _extract_name_from_same_line(line)
+        if same_line_name:
+            score = 0.65 - _context_penalty(idx) + _name_quality_bonus(same_line_name)
+            scored_candidates.append((same_line_name, score))
+        for step, candidate in enumerate(lines[idx + 1:idx + 3], start=1):
+            if _is_name_candidate(candidate):
+                score = 0.62 - (step * 0.04) - _context_penalty(idx) + _name_quality_bonus(candidate)
+                scored_candidates.append((candidate, score))
 
     if scored_candidates:
         best_name, _ = max(scored_candidates, key=lambda item: item[1])
@@ -412,7 +479,6 @@ def parse_sender_name(raw_text: str) -> str | None:
         return line
 
     return None
-
 
 def estimate_confidence(raw_text: str) -> float:
     text_len = len(raw_text.strip())

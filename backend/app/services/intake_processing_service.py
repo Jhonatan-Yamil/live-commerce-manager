@@ -9,6 +9,11 @@ from app.services.ocr_service import extract_voucher_fields
 from app.services.voucher_intake_service import UPLOAD_DIR, attempt_match_intake
 
 
+import signal
+
+def _timeout_handler(signum, frame):
+    raise TimeoutError("OCR timeout")
+
 def process_intake_job(intake_id: int) -> None:
     db = SessionLocal()
     try:
@@ -23,15 +28,31 @@ def process_intake_job(intake_id: int) -> None:
 
         filepath = os.path.join(UPLOAD_DIR, intake.file_path)
         if not os.path.exists(filepath):
-            intake.ocr_raw_text = "[ERROR] Archivo de comprobante no encontrado"
+            intake.ocr_raw_text = "[ERROR] Archivo no encontrado"
             intake.ocr_confidence = 0
             intake.processing_status = "failed"
-            intake.processing_error = "Archivo de comprobante no encontrado"
+            intake.processing_error = "Archivo no encontrado"
             intake.processing_finished_at = datetime.now(timezone.utc)
             voucher_intake_repository.save(db, intake)
             return
 
-        ocr_fields = extract_voucher_fields(filepath)
+        # Timeout de 30 segundos para el OCR
+        signal.signal(signal.SIGALRM, _timeout_handler)
+        signal.alarm(30)
+        try:
+            ocr_fields = extract_voucher_fields(filepath)
+        except TimeoutError:
+            ocr_fields = {
+                "ocr_raw_text": "[ERROR] OCR timeout",
+                "ocr_confidence": 0.0,
+                "extracted_amount": None,
+                "extracted_date": None,
+                "extracted_reference": None,
+                "extracted_sender_name": None,
+            }
+        finally:
+            signal.alarm(0)
+
         intake.extracted_amount = ocr_fields.get("extracted_amount")
         intake.extracted_date = ocr_fields.get("extracted_date")
         intake.extracted_reference = ocr_fields.get("extracted_reference")
