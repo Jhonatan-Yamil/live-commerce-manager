@@ -19,18 +19,18 @@ def create_product(db: Session, name: str, price):
     return product
 
 
-def list_orders(db: Session, skip: int = 0, limit: int = 100):
-    return (
+def list_orders(db: Session, skip: int = 0, limit: int = 100, user_id: int | None = None):
+    q = (
         db.query(Order)
         .options(joinedload(Order.client), joinedload(Order.items).joinedload(OrderItem.product))
-        .offset(skip)
-        .limit(limit)
-        .all()
     )
+    if user_id is not None:
+        q = q.filter(Order.user_id == user_id)
+    return q.offset(skip).limit(limit).all()
 
 
-def get_order_by_id(db: Session, order_id: int):
-    return (
+def get_order_by_id(db: Session, order_id: int, user_id: int | None = None):
+    q = (
         db.query(Order)
         .options(
             joinedload(Order.client),
@@ -39,9 +39,14 @@ def get_order_by_id(db: Session, order_id: int):
             joinedload(Order.logistics),
         )
         .filter(Order.id == order_id)
-        .first()
     )
+    if user_id is not None:
+        q = q.filter(Order.user_id == user_id)
+    return q.first()
 
 
-def get_order_for_update(db: Session, order_id: int):
-    return db.query(Order).filter(Order.id == order_id).first()
+def get_order_for_update(db: Session, order_id: int, user_id: int | None = None):
+    q = db.query(Order).filter(Order.id == order_id)
+    if user_id is not None:
+        q = q.filter(Order.user_id == user_id)
+    return q.first()

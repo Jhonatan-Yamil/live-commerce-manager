@@ -20,6 +20,10 @@ def create_token_for_user(user: User) -> dict:
         "role": user.role,
         "full_name": user.full_name,
         "logo_path": user.logo_path,
+        "whatsapp_instance_name": user.whatsapp_instance_name,
+        "whatsapp_instance_status": user.whatsapp_instance_status,
+        "whatsapp_connected_at": user.whatsapp_connected_at,
+        "whatsapp_intake_enabled": user.whatsapp_intake_enabled,
     }
 
 

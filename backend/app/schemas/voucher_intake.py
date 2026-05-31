@@ -13,6 +13,8 @@ class VoucherIntakeOut(BaseModel):
     external_chat_id: str | None
     external_message_id: str | None
     sender_phone: str | None
+    source_instance_name: str | None
+    source_caption: str | None
     file_path: str
     mime_type: str | None
     file_sha256: str | None

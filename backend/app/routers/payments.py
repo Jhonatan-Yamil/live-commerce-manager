@@ -20,19 +20,19 @@ UPLOAD_DIR = "uploads"
 
 
 @router.get("/", response_model=list[PaymentOut])
-def list_payments(db: Session = Depends(get_db), _=Depends(get_current_user)):
-    return list_payments_service(db)
+def list_payments(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    return list_payments_service(db, user_id=current_user.id)
 
 
 @router.get("/{payment_id}", response_model=PaymentOut)
-def get_payment(payment_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
-    p = get_payment_service(db, payment_id)
+def get_payment(payment_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    p = get_payment_service(db, payment_id, user_id=current_user.id)
     return require_found(p, "Pago no encontrado")
 
 
 @router.patch("/{payment_id}/status", response_model=PaymentOut)
-def change_payment_status(payment_id: int, data: PaymentStatusUpdate, db: Session = Depends(get_db), _=Depends(get_current_user)):
-    p = update_payment_status(db, payment_id, data.status, data.notes)
+def change_payment_status(payment_id: int, data: PaymentStatusUpdate, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    p = update_payment_status(db, payment_id, data.status, data.notes, user_id=current_user.id)
     return require_found(p, "Pago no encontrado")
 
 
@@ -41,9 +41,9 @@ def upload_voucher(
     order_id: int,
     file: UploadFile = File(...),
     db: Session = Depends(get_db),
-    _=Depends(get_current_user),
+    current_user=Depends(get_current_user),
 ):
-    payment = get_payment_by_order_service(db, order_id)
+    payment = get_payment_by_order_service(db, order_id, user_id=current_user.id)
     require_found(payment, "Pago no encontrado para este pedido")
 
     filename = save_uploaded_file(
@@ -54,4 +54,4 @@ def upload_voucher(
         error_message="Solo se permiten imágenes JPG, PNG o PDF",
     )
 
-    return register_voucher_service(db, order_id, filename)
+    return register_voucher_service(db, order_id, filename, user_id=current_user.id)

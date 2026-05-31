@@ -12,6 +12,10 @@ def get_active_by_email(db: Session, email: str):
     return db.query(User).filter(User.email == email, User.is_active == True).first()
 
 
+def get_by_whatsapp_instance_name(db: Session, instance_name: str):
+    return db.query(User).filter(User.whatsapp_instance_name == instance_name).first()
+
+
 def create_user(db: Session, payload: dict):
     return create_entity(db, User, payload)
 

@@ -13,6 +13,7 @@ class PaymentStatus(str, enum.Enum):
 class Payment(Base):
     __tablename__ = "payments"
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     order_id = Column(Integer, ForeignKey("orders.id"), nullable=False, unique=True)
     status = Column(SAEnum(PaymentStatus), default=PaymentStatus.pending)
     voucher_path = Column(String, nullable=True)
@@ -21,3 +22,4 @@ class Payment(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     order = relationship("Order", back_populates="payment")
+    user = relationship("User", foreign_keys=[user_id])

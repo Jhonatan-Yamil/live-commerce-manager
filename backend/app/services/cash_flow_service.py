@@ -10,7 +10,7 @@ from app.models.payment import Payment
 BOL_TZ = timezone(timedelta(hours=-4))
 
 
-def calculate_cash_flow(db: Session, date_from: str, date_to: str) -> dict:
+def calculate_cash_flow(db: Session, date_from: str, date_to: str, user_id: int | None = None) -> dict:
     from_date = datetime.strptime(date_from, "%Y-%m-%d").replace(
         hour=0, minute=0, second=0, tzinfo=BOL_TZ
     )
@@ -18,7 +18,7 @@ def calculate_cash_flow(db: Session, date_from: str, date_to: str) -> dict:
         hour=23, minute=59, second=59, tzinfo=BOL_TZ
     )
 
-    confirmed_payments = (
+    q_payments = (
         db.query(Payment)
         .options(joinedload(Payment.order).joinedload(Order.client))
         .filter(
@@ -27,13 +27,18 @@ def calculate_cash_flow(db: Session, date_from: str, date_to: str) -> dict:
             Payment.reviewed_at >= from_date,
             Payment.reviewed_at <= to_date,
         )
-        .all()
     )
+    if user_id is not None:
+        q_payments = q_payments.join(Order, Payment.order_id == Order.id).filter(Order.user_id == user_id)
+    confirmed_payments = q_payments.all()
 
-    purchased_lots = db.query(Lot).filter(
+    q_lots = db.query(Lot).filter(
         Lot.created_at >= from_date,
         Lot.created_at <= to_date,
-    ).all()
+    )
+    if user_id is not None:
+        q_lots = q_lots.filter(Lot.user_id == user_id)
+    purchased_lots = q_lots.all()
 
     transactions = []
 

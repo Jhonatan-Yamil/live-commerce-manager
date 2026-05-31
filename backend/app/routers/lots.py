@@ -16,24 +16,25 @@ router = APIRouter()
 
 
 @router.post("/", response_model=LotOut)
-def new_lot(data: LotCreate, db: Session = Depends(get_db), _=Depends(get_current_user)):
-    lot = create_lot(db, data)
-    return format_lot_with_stats(db, lot)
+def new_lot(data: LotCreate, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    lot = create_lot(db, data, user_id=current_user.id)
+    # assign owner for returned representation
+    return format_lot_with_stats(db, lot, user_id=current_user.id)
 
 @router.get("/", response_model=list[LotOut])
-def list_lots(db: Session = Depends(get_db), _=Depends(get_current_user)):
-    return get_lots_with_stats(db)
+def list_lots(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    return get_lots_with_stats(db, user_id=current_user.id)
 
 
 @router.get("/{lot_id}", response_model=LotOut)
-def get_lot(lot_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
-    lot = get_lot_service(db, lot_id)
+def get_lot(lot_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    lot = get_lot_service(db, lot_id, user_id=current_user.id)
     lot = require_found(lot, "Lote no encontrado")
-    return format_lot_with_stats(db, lot)
+    return format_lot_with_stats(db, lot, user_id=current_user.id)
 
 
 @router.put("/{lot_id}", response_model=LotOut)
-def edit_lot(lot_id: int, data: LotUpdate, db: Session = Depends(get_db), _=Depends(get_current_user)):
-    lot = update_lot(db, lot_id, data)
+def edit_lot(lot_id: int, data: LotUpdate, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    lot = update_lot(db, lot_id, data, user_id=current_user.id)
     lot = require_found(lot, "Lote no encontrado")
-    return format_lot_with_stats(db, lot)
+    return format_lot_with_stats(db, lot, user_id=current_user.id)

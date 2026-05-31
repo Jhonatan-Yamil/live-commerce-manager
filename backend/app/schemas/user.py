@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from pydantic import BaseModel, EmailStr
 from app.models.user import UserRole
 
@@ -16,6 +18,10 @@ class UserOut(BaseModel):
     role: UserRole
     is_active: bool
     logo_path: str | None = None
+    whatsapp_instance_name: str | None = None
+    whatsapp_instance_status: str | None = None
+    whatsapp_connected_at: datetime | None = None
+    whatsapp_intake_enabled: bool = True
     model_config = {"from_attributes": True}
 
 
@@ -23,3 +29,7 @@ class UserUpdate(BaseModel):
     full_name: str | None = None
     is_active: bool | None = None
     logo_path: str | None = None
+    whatsapp_instance_name: str | None = None
+    whatsapp_instance_status: str | None = None
+    whatsapp_connected_at: datetime | None = None
+    whatsapp_intake_enabled: bool | None = None

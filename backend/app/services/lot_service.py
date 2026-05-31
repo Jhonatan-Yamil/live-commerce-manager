@@ -11,23 +11,23 @@ def calculate_unit_cost(total_cost: Decimal, total_units: int) -> Decimal:
     return Decimal("0")
 
 
-def create_lot(db: Session, data: LotCreate) -> Lot:
+def create_lot(db: Session, data: LotCreate, user_id: int | None = None) -> Lot:
     unit_cost = calculate_unit_cost(data.total_cost, data.total_units)
-    return lot_repository.create_lot(
-        db,
-        {
-            "name": data.name,
-            "brand": data.brand,
-            "total_units": data.total_units,
-            "total_cost": data.total_cost,
-            "unit_cost": unit_cost,
-            "notes": data.notes,
-        },
-    )
+    payload = {
+        "name": data.name,
+        "brand": data.brand,
+        "total_units": data.total_units,
+        "total_cost": data.total_cost,
+        "unit_cost": unit_cost,
+        "notes": data.notes,
+    }
+    if user_id is not None:
+        payload["user_id"] = user_id
+    return lot_repository.create_lot(db, payload)
 
 
-def update_lot(db: Session, lot_id: int, data: LotUpdate) -> Lot:
-    lot = lot_repository.get_lot_by_id(db, lot_id)
+def update_lot(db: Session, lot_id: int, data: LotUpdate, user_id: int | None = None) -> Lot:
+    lot = lot_repository.get_lot_by_id(db, lot_id, user_id=user_id)
     if not lot:
         return None
 
@@ -38,17 +38,17 @@ def update_lot(db: Session, lot_id: int, data: LotUpdate) -> Lot:
     return lot_repository.update_lot(db, lot_id, payload)
 
 
-def get_lot(db: Session, lot_id: int):
-    return lot_repository.get_lot_by_id(db, lot_id)
+def get_lot(db: Session, lot_id: int, user_id: int | None = None):
+    return lot_repository.get_lot_by_id(db, lot_id, user_id=user_id)
 
 
-def get_lots_with_stats(db: Session):
-    lots = lot_repository.list_lots(db)
-    return [format_lot_with_stats(db, lot) for lot in lots]
+def get_lots_with_stats(db: Session, user_id: int | None = None):
+    lots = lot_repository.list_lots(db, user_id=user_id)
+    return [format_lot_with_stats(db, lot, user_id=user_id) for lot in lots]
 
 
-def format_lot_with_stats(db: Session, lot: Lot):
-    items = lot_repository.list_order_items_by_lot(db, lot.id)
+def format_lot_with_stats(db: Session, lot: Lot, user_id: int | None = None):
+    items = lot_repository.list_order_items_by_lot(db, lot.id, user_id=user_id)
     units_sold = sum(i.quantity for i in items)
     total_revenue = sum(i.subtotal for i in items)
     profit = total_revenue - lot.total_cost

@@ -63,6 +63,13 @@ export const usersApi = {
   },
 };
 
+export const whatsappIntegrationApi = {
+  status: () => api.get("/integrations/whatsapp/status"),
+  connect: () => api.post("/integrations/whatsapp/connect"),
+  disconnect: () => api.post("/integrations/whatsapp/disconnect"),
+  setIntakeEnabled: (enabled) => api.patch("/integrations/whatsapp/intake-enabled", { enabled }),
+};
+
 export const clientsApi = createCrudApi("/clients", { includeGet: true });
 
 export const productsApi = {

@@ -5,24 +5,24 @@ def create_product(db, payload: dict):
     return product_repository.create_product(db, payload)
 
 
-def list_products(db):
-    return product_repository.list_active_products(db)
+def list_products(db, user_id: int | None = None):
+    return product_repository.list_active_products(db, user_id=user_id)
 
 
-def list_product_names(db):
-    return product_repository.list_product_names(db)
+def list_product_names(db, user_id: int | None = None):
+    return product_repository.list_product_names(db, user_id=user_id)
 
 
-def get_product(db, product_id: int):
-    return product_repository.get_product_by_id(db, product_id)
+def get_product(db, product_id: int, user_id: int | None = None):
+    return product_repository.get_product_by_id(db, product_id, user_id=user_id)
 
 
-def update_product(db, product_id: int, payload: dict):
-    return product_repository.update_product(db, product_id, payload)
+def update_product(db, product_id: int, payload: dict, user_id: int | None = None):
+    return product_repository.update_product(db, product_id, payload, user_id=user_id)
 
 
-def list_sold_products(db):
-    rows = product_repository.list_sales_rows(db)
+def list_sold_products(db, user_id: int | None = None):
+    rows = product_repository.list_sales_rows(db, user_id=user_id)
     product_map = {}
 
     for item, product, lot in rows:

@@ -16,7 +16,8 @@ class DeliveryScheduleRepository:
         delivery_location: str = None,
         location: str = None,
         destination_city: str = None,
-        notes: str = None
+        notes: str = None,
+        user_id: int | None = None,
     ) -> DeliverySchedule:
         """Crear una nueva programación de entrega"""
         schedule = DeliverySchedule(
@@ -26,38 +27,49 @@ class DeliveryScheduleRepository:
             location=location,
             destination_city=destination_city,
             status=DeliveryScheduleStatus.scheduled,
-            notes=notes
+            notes=notes,
+            user_id=user_id,
         )
         self.db.add(schedule)
         self.db.commit()
         self.db.refresh(schedule)
         return schedule
     
-    def get_by_id(self, schedule_id: int) -> DeliverySchedule:
+    def get_by_id(self, schedule_id: int, user_id: int | None = None) -> DeliverySchedule:
         """Obtener programación de entrega por ID"""
-        return self.db.query(DeliverySchedule).filter(DeliverySchedule.id == schedule_id).first()
+        q = self.db.query(DeliverySchedule).filter(DeliverySchedule.id == schedule_id)
+        if user_id is not None:
+            q = q.filter(getattr(DeliverySchedule, "user_id") == user_id)
+        return q.first()
 
-    def list_all(self) -> list[DeliverySchedule]:
+    def list_all(self, user_id: int | None = None) -> list[DeliverySchedule]:
         """Listar todas las programaciones de entrega"""
-        return self.db.query(DeliverySchedule).order_by(DeliverySchedule.created_at.desc()).all()
+        q = self.db.query(DeliverySchedule).order_by(DeliverySchedule.created_at.desc())
+        if user_id is not None:
+            q = q.filter(getattr(DeliverySchedule, "user_id") == user_id)
+        return q.all()
     
-    def get_by_order_id(self, order_id: int) -> list[DeliverySchedule]:
+    def get_by_order_id(self, order_id: int, user_id: int | None = None) -> list[DeliverySchedule]:
         """Obtener todas las programaciones de entrega para una orden"""
-        return self.db.query(DeliverySchedule).filter(DeliverySchedule.order_id == order_id).all()
+        q = self.db.query(DeliverySchedule).filter(DeliverySchedule.order_id == order_id)
+        if user_id is not None:
+            q = q.join(Order, DeliverySchedule.order_id == Order.id).filter(Order.user_id == user_id)
+        return q.all()
 
-    def get_by_client_id(self, client_id: int) -> list[DeliverySchedule]:
+    def get_by_client_id(self, client_id: int, user_id: int | None = None) -> list[DeliverySchedule]:
         """Obtener programaciones de entrega asociadas a un cliente"""
-        return (
+        q = (
             self.db.query(DeliverySchedule)
             .join(Order, DeliverySchedule.order_id == Order.id)
             .filter(Order.client_id == client_id)
-            .order_by(DeliverySchedule.created_at.desc())
-            .all()
         )
+        if user_id is not None:
+            q = q.filter(Order.user_id == user_id)
+        return q.order_by(DeliverySchedule.created_at.desc()).all()
     
-    def get_scheduled_for_date(self, delivery_date: date) -> list[DeliverySchedule]:
+    def get_scheduled_for_date(self, delivery_date: date, user_id: int | None = None) -> list[DeliverySchedule]:
         """Obtener todas las entregas programadas para una fecha específica"""
-        return self.db.query(DeliverySchedule).filter(
+        q = self.db.query(DeliverySchedule).filter(
             and_(
                 or_(
                     DeliverySchedule.scheduled_date == delivery_date,
@@ -68,20 +80,26 @@ class DeliveryScheduleRepository:
                     DeliveryScheduleStatus.rescheduled,
                 ])
             )
-        ).all()
+        )
+        if user_id is not None:
+            q = q.filter(getattr(DeliverySchedule, "user_id") == user_id)
+        return q.all()
     
-    def get_scheduled_for_date_with_order(self, delivery_date: date) -> list:
+    def get_scheduled_for_date_with_order(self, delivery_date: date, user_id: int | None = None) -> list:
         """Obtener entregas programadas para una fecha con información de la orden"""
-        return self.db.query(DeliverySchedule, Order).join(Order).filter(
+        q = self.db.query(DeliverySchedule, Order).join(Order).filter(
             and_(
                 DeliverySchedule.scheduled_date == delivery_date,
                 DeliverySchedule.status == DeliveryScheduleStatus.scheduled
             )
-        ).all()
+        )
+        if user_id is not None:
+            q = q.filter(Order.user_id == user_id)
+        return q.all()
     
-    def mark_as_delivered(self, schedule_id: int, notes: str = None) -> DeliverySchedule:
+    def mark_as_delivered(self, schedule_id: int, notes: str = None, user_id: int | None = None) -> DeliverySchedule:
         """Marcar una entrega como completada"""
-        schedule = self.get_by_id(schedule_id)
+        schedule = self.get_by_id(schedule_id, user_id=user_id)
         if schedule:
             schedule.status = DeliveryScheduleStatus.delivered
             if notes:
@@ -90,9 +108,9 @@ class DeliveryScheduleRepository:
             self.db.refresh(schedule)
         return schedule
     
-    def mark_as_not_delivered(self, schedule_id: int, notes: str = None) -> DeliverySchedule:
+    def mark_as_not_delivered(self, schedule_id: int, notes: str = None, user_id: int | None = None) -> DeliverySchedule:
         """Marcar una entrega como no completada"""
-        schedule = self.get_by_id(schedule_id)
+        schedule = self.get_by_id(schedule_id, user_id=user_id)
         if schedule:
             schedule.status = DeliveryScheduleStatus.not_delivered
             if notes:
@@ -101,9 +119,9 @@ class DeliveryScheduleRepository:
             self.db.refresh(schedule)
         return schedule
     
-    def reschedule(self, schedule_id: int, new_date: date, notes: str = None) -> DeliverySchedule:
+    def reschedule(self, schedule_id: int, new_date: date, notes: str = None, user_id: int | None = None) -> DeliverySchedule:
         """Reprogramar una entrega a otra fecha"""
-        schedule = self.get_by_id(schedule_id)
+        schedule = self.get_by_id(schedule_id, user_id=user_id)
         if schedule:
             schedule.status = DeliveryScheduleStatus.rescheduled
             schedule.rescheduled_date = new_date
@@ -114,18 +132,18 @@ class DeliveryScheduleRepository:
             self.db.refresh(schedule)
         return schedule
     
-    def update_delivery_location(self, schedule_id: int, new_location: str) -> DeliverySchedule:
+    def update_delivery_location(self, schedule_id: int, new_location: str, user_id: int | None = None) -> DeliverySchedule:
         """Actualizar la locación de entrega"""
-        schedule = self.get_by_id(schedule_id)
+        schedule = self.get_by_id(schedule_id, user_id=user_id)
         if schedule:
             schedule.delivery_location = new_location
             self.db.commit()
             self.db.refresh(schedule)
         return schedule
     
-    def delete(self, schedule_id: int) -> bool:
+    def delete(self, schedule_id: int, user_id: int | None = None) -> bool:
         """Eliminar una programación de entrega"""
-        schedule = self.get_by_id(schedule_id)
+        schedule = self.get_by_id(schedule_id, user_id=user_id)
         if schedule:
             self.db.delete(schedule)
             self.db.commit()

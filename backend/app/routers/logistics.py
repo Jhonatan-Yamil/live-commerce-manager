@@ -22,9 +22,9 @@ router = APIRouter()
 def create_logistics(
     data: LogisticsCreate,
     db: Session = Depends(get_db),
-    _=Depends(get_current_user)
+    current_user=Depends(get_current_user)
 ):
-    logistics = create_logistics_service(db, data.model_dump())
+    logistics = create_logistics_service(db, data.model_dump(), user_id=current_user.id)
     if not logistics:
         raise HTTPException(status_code=400, detail="Logística ya existe para este pedido")
     return logistics
@@ -33,18 +33,18 @@ def create_logistics(
 @router.get("/", response_model=list[LogisticsOut])
 def list_logistics(
     db: Session = Depends(get_db),
-    _=Depends(get_current_user)
+    current_user=Depends(get_current_user)
 ):
-    return list_logistics_service(db)
+    return list_logistics_service(db, user_id=current_user.id)
 
 
 @router.get("/{logistics_id}", response_model=LogisticsOut)
 def get_logistics(
     logistics_id: int,
     db: Session = Depends(get_db),
-    _=Depends(get_current_user)
+    current_user=Depends(get_current_user)
 ):
-    l = get_logistics_service(db, logistics_id)
+    l = get_logistics_service(db, logistics_id, user_id=current_user.id)
     return require_found(l, "No encontrado")
 
 
@@ -53,9 +53,9 @@ def update_logistics(
     logistics_id: int,
     data: LogisticsUpdate,
     db: Session = Depends(get_db),
-    _=Depends(get_current_user)
+    current_user=Depends(get_current_user)
 ):
-    l = update_logistics_service(db, logistics_id, data.model_dump(exclude_unset=True))
+    l = update_logistics_service(db, logistics_id, data.model_dump(exclude_unset=True), user_id=current_user.id)
     return require_found(l, "No encontrado")
 
 
@@ -65,10 +65,11 @@ def download_remito_pdf(
     orientation: str = "landscape",
     paper_size: str = "a4",
     db: Session = Depends(get_db),
-    _=Depends(get_current_user)
+    current_user=Depends(get_current_user)
 ):
     delivery_schedule = db.query(DeliverySchedule).filter(
-        DeliverySchedule.id == delivery_schedule_id
+        DeliverySchedule.id == delivery_schedule_id,
+        getattr(DeliverySchedule, "user_id") == current_user.id,
     ).first()
     if not delivery_schedule:
         raise HTTPException(status_code=404, detail="Entrega no encontrada")
@@ -77,7 +78,7 @@ def download_remito_pdf(
         joinedload(Order.client),
         joinedload(Order.items)
     ).filter(Order.id == delivery_schedule.order_id).first()
-    if not order:
+    if not order or getattr(order, "user_id", None) != current_user.id:
         raise HTTPException(status_code=404, detail="Pedido no encontrado")
 
     try:

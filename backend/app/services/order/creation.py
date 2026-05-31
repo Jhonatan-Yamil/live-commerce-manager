@@ -16,8 +16,8 @@ def get_or_create_product(db: Session, name: str, price: Decimal) -> Product:
     return product
 
 
-def create_order(db: Session, data: OrderCreate) -> Order:
-    order = Order(client_id=data.client_id, notes=data.notes)
+def create_order(db: Session, data: OrderCreate, current_user=None) -> Order:
+    order = Order(client_id=data.client_id, notes=data.notes, user_id=(current_user.id if current_user else None))
     db.add(order)
     db.flush()
 

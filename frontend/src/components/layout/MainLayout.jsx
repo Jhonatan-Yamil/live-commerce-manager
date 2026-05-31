@@ -155,6 +155,7 @@ export default function MainLayout() {
       >
         <Toolbar sx={{ minHeight: { xs: 64, md: 72 } }} />
         <Box
+          key={user?.id ?? "guest"}
           sx={{
             px: { xs: 2, sm: 3, md: 4 },
             py: { xs: 2, sm: 3 },

@@ -18,29 +18,31 @@ router = APIRouter()
 
 
 @router.post("/", response_model=ProductOut)
-def create_product(data: ProductCreate, db: Session = Depends(get_db), _=Depends(get_current_user)):
-    return create_product_service(db, data.model_dump())
+def create_product(data: ProductCreate, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    payload = data.model_dump()
+    payload["user_id"] = current_user.id
+    return create_product_service(db, payload)
 
 
 @router.get("/", response_model=list[ProductOut])
-def list_products(db: Session = Depends(get_db), _=Depends(get_current_user)):
-    return list_products_service(db)
+def list_products(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    return list_products_service(db, user_id=current_user.id)
 
 @router.get("/sold", response_model=list[dict])
-def get_sold_products(db: Session = Depends(get_db), _=Depends(get_current_user)):
-    return list_sold_products_service(db)
+def get_sold_products(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    return list_sold_products_service(db, user_id=current_user.id)
 
 @router.get("/names")
-def get_product_names(db: Session = Depends(get_db), _=Depends(get_current_user)):
-    return list_product_names_service(db)
+def get_product_names(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    return list_product_names_service(db, user_id=current_user.id)
 
 @router.get("/{product_id}", response_model=ProductOut)
-def get_product(product_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
-    p = get_product_service(db, product_id)
+def get_product(product_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    p = get_product_service(db, product_id, user_id=current_user.id)
     return require_found(p, "Producto no encontrado")
 
 
 @router.put("/{product_id}", response_model=ProductOut)
-def update_product(product_id: int, data: ProductUpdate, db: Session = Depends(get_db), _=Depends(get_current_user)):
-    p = update_product_service(db, product_id, data.model_dump(exclude_unset=True))
+def update_product(product_id: int, data: ProductUpdate, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    p = update_product_service(db, product_id, data.model_dump(exclude_unset=True), user_id=current_user.id)
     return require_found(p, "Producto no encontrado")

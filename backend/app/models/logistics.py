@@ -21,6 +21,7 @@ class DeliveryStatus(str, enum.Enum):
 class Logistics(Base):
     __tablename__ = "logistics"
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     order_id = Column(Integer, ForeignKey("orders.id"), nullable=False, unique=True)
     delivery_type = Column(SAEnum(DeliveryType), default=DeliveryType.pickup)
     delivery_status = Column(SAEnum(DeliveryStatus), default=DeliveryStatus.in_store)
@@ -31,3 +32,4 @@ class Logistics(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     order = relationship("Order", back_populates="logistics")
+    user = relationship("User", foreign_keys=[user_id])

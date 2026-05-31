@@ -15,22 +15,24 @@ router = APIRouter()
 
 
 @router.post("/", response_model=ClientOut)
-def create_client(data: ClientCreate, db: Session = Depends(get_db), _=Depends(get_current_user)):
-    return create_client_service(db, data.model_dump())
+def create_client(data: ClientCreate, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    payload = data.model_dump()
+    payload["user_id"] = current_user.id
+    return create_client_service(db, payload)
 
 
 @router.get("/", response_model=list[ClientOut])
-def list_clients(db: Session = Depends(get_db), _=Depends(get_current_user)):
-    return list_clients_service(db)
+def list_clients(db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    return list_clients_service(db, user_id=current_user.id)
 
 
 @router.get("/{client_id}", response_model=ClientOut)
-def get_client(client_id: int, db: Session = Depends(get_db), _=Depends(get_current_user)):
-    c = get_client_service(db, client_id)
+def get_client(client_id: int, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    c = get_client_service(db, client_id, user_id=current_user.id)
     return require_found(c, "Cliente no encontrado")
 
 
 @router.put("/{client_id}", response_model=ClientOut)
-def update_client(client_id: int, data: ClientUpdate, db: Session = Depends(get_db), _=Depends(get_current_user)):
-    c = update_client_service(db, client_id, data.model_dump(exclude_unset=True))
+def update_client(client_id: int, data: ClientUpdate, db: Session = Depends(get_db), current_user=Depends(get_current_user)):
+    c = update_client_service(db, client_id, data.model_dump(exclude_unset=True), user_id=current_user.id)
     return require_found(c, "Cliente no encontrado")

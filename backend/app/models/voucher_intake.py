@@ -25,6 +25,7 @@ class VoucherMatchStatus(str, enum.Enum):
     suggested = "suggested"
     confirmed = "confirmed"
     rejected = "rejected"
+    ignored = "ignored"
 
 
 class VoucherProcessingStatus(str, enum.Enum):
@@ -43,6 +44,8 @@ class VoucherIntake(Base):
     external_chat_id = Column(String, nullable=True)
     external_message_id = Column(String, nullable=True)
     sender_phone = Column(String, nullable=True)
+    source_instance_name = Column(String, nullable=True)
+    source_caption = Column(String, nullable=True)
 
     file_path = Column(String, nullable=False)
     mime_type = Column(String, nullable=True)
@@ -67,6 +70,7 @@ class VoucherIntake(Base):
     matched_client_id = Column(Integer, ForeignKey("clients.id"), nullable=True)
     matched_order_id = Column(Integer, ForeignKey("orders.id"), nullable=True)
     created_order_id = Column(Integer, ForeignKey("orders.id"), nullable=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
 
     reviewed_by_user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
     reviewed_at = Column(DateTime(timezone=True), nullable=True)
@@ -76,6 +80,7 @@ class VoucherIntake(Base):
     matched_order = relationship("Order", foreign_keys=[matched_order_id])
     created_order = relationship("Order", foreign_keys=[created_order_id])
     reviewed_by_user = relationship("User", foreign_keys=[reviewed_by_user_id])
+    user = relationship("User", foreign_keys=[user_id])
 
     @property
     def matched_client_is_provisional(self) -> bool:

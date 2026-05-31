@@ -16,6 +16,13 @@ def list_entities(db: Session, model, *filters):
     return query.all()
 
 
+def scoped_query(db: Session, model, user_id: int | None = None):
+    q = db.query(model)
+    if user_id is not None and hasattr(model, "user_id"):
+        q = q.filter(getattr(model, "user_id") == user_id)
+    return q
+
+
 def get_entity_by_id(db: Session, model, entity_id: int):
     return db.query(model).filter(model.id == entity_id).first()
 

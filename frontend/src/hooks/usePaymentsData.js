@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { intakeApi, ordersApi, paymentsApi } from "../services/api";
 import { useNotification } from "../context/NotificationContext";
+import { useAuth } from "../context/AuthContext";
 
 export default function usePaymentsData() {
+  const { user } = useAuth();
   const { notifyError, notifyWarning } = useNotification();
   const [payments, setPayments] = useState([]);
   const [suggestions, setSuggestions] = useState([]);
@@ -17,6 +19,22 @@ export default function usePaymentsData() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdatedAt, setLastUpdatedAt] = useState(null);
   const loadingRef = useRef(false);
+
+  useEffect(() => {
+    setPayments([]);
+    setSuggestions([]);
+    setOrders([]);
+    setNotes({});
+    setFiles({});
+    setUploading({});
+    setReassignOrder({});
+    setProcessingAction({});
+    setShowReassign({});
+    setCompletionSuggestion(null);
+    setIsRefreshing(false);
+    setLastUpdatedAt(null);
+    loadingRef.current = false;
+  }, [user?.id]);
 
   const load = useCallback(async (withIndicator = false) => {
     if (loadingRef.current) return;
@@ -42,7 +60,7 @@ export default function usePaymentsData() {
 
   useEffect(() => {
     load(true);
-  }, [load]);
+  }, [load, user?.id]);
 
   useEffect(() => {
     const refreshIfVisible = () => {

@@ -50,9 +50,9 @@ def list_voucher_intakes(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    _=Depends(get_current_user),
+    current_user=Depends(get_current_user),
 ):
-    return list_intakes_service(db, status=status, skip=skip, limit=limit)
+    return list_intakes_service(db, status=status, skip=skip, limit=limit, user_id=current_user.id)
 
 
 @router.get("/suggestions", response_model=list[VoucherIntakeOut])
@@ -61,25 +61,25 @@ def list_voucher_suggestions(
     skip: int = 0,
     limit: int = 100,
     db: Session = Depends(get_db),
-    _=Depends(get_current_user),
+    current_user=Depends(get_current_user),
 ):
     if status is None:
-        suggestions = list_intakes_service(db, status=VoucherMatchStatus.pending, skip=skip, limit=limit)
+        suggestions = list_intakes_service(db, status=VoucherMatchStatus.pending, skip=skip, limit=limit, user_id=current_user.id)
         if len(suggestions) < limit:
             remaining = limit - len(suggestions)
-            suggestions.extend(list_intakes_service(db, status=VoucherMatchStatus.suggested, skip=0, limit=remaining))
+            suggestions.extend(list_intakes_service(db, status=VoucherMatchStatus.suggested, skip=0, limit=remaining, user_id=current_user.id))
         return suggestions
 
-    return list_intakes_service(db, status=status, skip=skip, limit=limit)
+    return list_intakes_service(db, status=status, skip=skip, limit=limit, user_id=current_user.id)
 
 
 @router.post("/vouchers/{intake_id}/match", response_model=VoucherIntakeOut)
 def match_voucher_intake(
     intake_id: int,
     db: Session = Depends(get_db),
-    _=Depends(get_current_user),
+    current_user=Depends(get_current_user),
 ):
-    intake = attempt_match_intake(db, intake_id)
+    intake = attempt_match_intake(db, intake_id, user_id=current_user.id)
     return require_found(intake, "Comprobante intake no encontrado")
 
 
@@ -126,7 +126,7 @@ def reassign_voucher_intake(
 def reprocess_voucher_intake(
     intake_id: int,
     db: Session = Depends(get_db),
-    _=Depends(get_current_user),
+    current_user=Depends(get_current_user),
 ):
-    intake = reprocess_intake(db, intake_id)
+    intake = reprocess_intake(db, intake_id, user_id=current_user.id)
     return require_found(intake, "Comprobante intake no encontrado")

@@ -19,6 +19,7 @@ class OrderStatus(str, enum.Enum):
 class Order(Base):
     __tablename__ = "orders"
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     client_id = Column(Integer, ForeignKey("clients.id"), nullable=False)
     status = Column(SAEnum(OrderStatus), default=OrderStatus.pending_payment, nullable=False)
     total = Column(Numeric(10, 2), default=0)
@@ -31,6 +32,7 @@ class Order(Base):
     payment = relationship("Payment", back_populates="order", uselist=False)
     logistics = relationship("Logistics", back_populates="order", uselist=False)
     delivery_schedules = relationship(DeliverySchedule, back_populates="order", cascade="all, delete-orphan")
+    user = relationship("User", foreign_keys=[user_id])
 
 
 class OrderItem(Base):

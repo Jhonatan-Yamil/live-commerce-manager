@@ -20,8 +20,8 @@ def _apply_order_status(order: Order | None, payment_status: PaymentStatus) -> N
     order.status = mapping[payment_status]
 
 
-def update_payment_status(db: Session, payment_id: int, status: PaymentStatus, notes: str = None):
-    payment = payment_repository.get_by_id(db, payment_id)
+def update_payment_status(db: Session, payment_id: int, status: PaymentStatus, notes: str = None, user_id: int | None = None):
+    payment = payment_repository.get_by_id(db, payment_id, user_id=user_id)
     if not payment:
         return None
 
@@ -38,8 +38,14 @@ def update_payment_status(db: Session, payment_id: int, status: PaymentStatus, n
     return payment
 
 
-def register_voucher(db: Session, order_id: int, voucher_path: str):
-    payment = payment_repository.get_by_order_id(db, order_id)
+def register_voucher(db: Session, order_id: int, voucher_path: str, user_id: int | None = None):
+    # ensure order/payment ownership when user_id provided
+    if user_id is not None:
+        order = db.query(Order).filter(Order.id == order_id).first()
+        if not order or getattr(order, "user_id", None) != user_id:
+            return None
+
+    payment = payment_repository.get_by_order_id(db, order_id, user_id=user_id)
     if not payment:
         return None
 

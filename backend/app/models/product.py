@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Text, Numeric, Boolean
+from sqlalchemy import Column, Integer, String, Text, Numeric, Boolean, ForeignKey
+from sqlalchemy.orm import relationship
 from app.models.base import Base
 
 
@@ -10,3 +11,5 @@ class Product(Base):
     price = Column(Numeric(10, 2), nullable=False)
     stock = Column(Integer, default=0)
     is_active = Column(Boolean, default=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
+    user = relationship("User", foreign_keys=[user_id])

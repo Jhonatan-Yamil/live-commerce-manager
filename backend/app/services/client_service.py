@@ -21,18 +21,20 @@ def normalize_client_name(value: str | None) -> str | None:
 def create_client(db: Session, payload: dict):
     if "full_name" in payload:
         payload = {**payload, "full_name": normalize_client_name(payload.get("full_name"))}
+    if "user_id" not in payload:
+        payload = {**payload, "user_id": None}
     return client_repository.create_client(db, payload)
 
 
-def list_clients(db: Session):
-    return client_repository.list_clients(db)
+def list_clients(db: Session, user_id: int | None = None):
+    return client_repository.list_clients(db, user_id=user_id)
 
 
-def get_client(db: Session, client_id: int):
-    return client_repository.get_client_by_id(db, client_id)
+def get_client(db: Session, client_id: int, user_id: int | None = None):
+    return client_repository.get_client_by_id(db, client_id, user_id=user_id)
 
 
-def update_client(db: Session, client_id: int, payload: dict):
+def update_client(db: Session, client_id: int, payload: dict, user_id: int | None = None):
     if "full_name" in payload:
         payload = {**payload, "full_name": normalize_client_name(payload.get("full_name"))}
-    return client_repository.update_client(db, client_id, payload)
+    return client_repository.update_client(db, client_id, payload, user_id=user_id)

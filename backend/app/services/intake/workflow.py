@@ -24,6 +24,8 @@ def build_pending_intake_payload(
     external_chat_id: str | None,
     external_message_id: str | None,
     sender_phone: str | None,
+    source_instance_name: str | None,
+    source_caption: str | None,
     filename: str,
     mime_type: str | None,
     file_sha256: str,
@@ -34,6 +36,8 @@ def build_pending_intake_payload(
         "external_chat_id": external_chat_id,
         "external_message_id": external_message_id,
         "sender_phone": sender_phone,
+        "source_instance_name": source_instance_name,
+        "source_caption": source_caption,
         "file_path": filename,
         "mime_type": mime_type,
         "file_sha256": file_sha256,
@@ -71,7 +75,7 @@ def create_provisional_client(db: Session, intake) -> Client:
 
 def create_base_order(db: Session, client_id: int, intake) -> Order:
     since = datetime.now(timezone.utc) - timedelta(hours=24)
-    existing = (
+    q = (
         db.query(Order)
         .filter(
             Order.client_id == client_id,
@@ -80,8 +84,11 @@ def create_base_order(db: Session, client_id: int, intake) -> Order:
             Order.created_at >= since,
         )
         .order_by(Order.id.desc())
-        .first()
     )
+    intake_user_id = getattr(intake, "user_id", None)
+    if intake_user_id is not None:
+        q = q.filter(Order.user_id == intake_user_id)
+    existing = q.first()
     if existing:
         return existing
 
@@ -96,6 +103,7 @@ def create_base_order(db: Session, client_id: int, intake) -> Order:
         status=OrderStatus.pending_payment,
         total=total,
         notes=notes,
+        user_id=getattr(intake, "user_id", None),
     )
     db.add(order)
     db.flush()
@@ -142,13 +150,13 @@ def reset_intake_for_reprocess(intake) -> None:
 
 
 def register_and_confirm_payment(db: Session, order_id: int, intake, *, note: str) -> None:
-    payment = payment_repository.get_by_order_id(db, order_id)
+    payment = payment_repository.get_by_order_id(db, order_id, user_id=getattr(intake, "user_id", None))
     if not payment:
         raise ValueError("El pedido no tiene registro de pago")
 
     voucher_public_path = f"/uploads/intake/{intake.file_path}"
-    register_voucher(db, order_id, voucher_public_path)
-    update_payment_status(db, payment.id, PaymentStatus.confirmed, notes=note)
+    register_voucher(db, order_id, voucher_public_path, user_id=getattr(intake, "user_id", None))
+    update_payment_status(db, payment.id, PaymentStatus.confirmed, notes=note, user_id=getattr(intake, "user_id", None))
 
 
 def mark_reviewed(intake, *, status: VoucherMatchStatus, current_user: User) -> None:

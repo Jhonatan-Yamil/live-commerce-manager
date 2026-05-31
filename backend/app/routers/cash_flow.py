@@ -15,6 +15,6 @@ def get_cash_flow(
     current_user=Depends(get_current_user)
 ):
     try:
-        return calculate_cash_flow(db, date_from, date_to)
+        return calculate_cash_flow(db, date_from, date_to, user_id=current_user.id)
     except ValueError:
         return {"error": "Formato de fecha inválido. Usar YYYY-MM-DD"}

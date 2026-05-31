@@ -26,7 +26,7 @@ def list_delivery_schedules(
 ):
     """Listar todas las programaciones de entrega"""
     repo = DeliveryScheduleRepository(db)
-    return repo.list_all()
+    return repo.list_all(user_id=current_user.id)
 
 
 @router.post("/", response_model=DeliveryScheduleResponse, status_code=status.HTTP_201_CREATED)
@@ -37,7 +37,7 @@ def create_delivery_schedule(
 ):
     """Crear una nueva programación de entrega para una orden"""
     order = db.query(Order).filter(Order.id == payload.order_id).first()
-    if not order:
+    if not order or getattr(order, "user_id", None) != current_user.id:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Pedido no encontrado")
     if order.status != OrderStatus.payment_confirmed:
         raise HTTPException(
@@ -60,6 +60,7 @@ def create_delivery_schedule(
         location=payload.location,
         destination_city=payload.destination_city,
         notes=payload.notes,
+        user_id=current_user.id,
     )
     return schedule
 
@@ -72,7 +73,7 @@ def get_delivery_schedules_by_order(
 ):
     """Obtener todas las programaciones de entrega para una orden"""
     repo = DeliveryScheduleRepository(db)
-    schedules = repo.get_by_order_id(order_id)
+    schedules = repo.get_by_order_id(order_id, user_id=current_user.id)
     return schedules
 
 
@@ -84,7 +85,7 @@ def get_delivery_schedules_by_client(
 ):
     """Obtener todas las programaciones de entrega para un cliente"""
     repo = DeliveryScheduleRepository(db)
-    schedules = repo.get_by_client_id(client_id)
+    schedules = repo.get_by_client_id(client_id, user_id=current_user.id)
     return schedules
 
 
@@ -96,7 +97,7 @@ def get_delivery_schedules_today(
     """Obtener todas las entregas programadas para hoy"""
     repo = DeliveryScheduleRepository(db)
     today = date.today()
-    schedules = repo.get_scheduled_for_date(today)
+    schedules = repo.get_scheduled_for_date(today, user_id=current_user.id)
     return schedules
 
 
@@ -108,7 +109,7 @@ def get_delivery_schedules_by_date(
 ):
     """Obtener todas las entregas programadas para una fecha específica"""
     repo = DeliveryScheduleRepository(db)
-    schedules = repo.get_scheduled_for_date(delivery_date)
+    schedules = repo.get_scheduled_for_date(delivery_date, user_id=current_user.id)
     return schedules
 
 
@@ -121,7 +122,7 @@ def mark_delivery_as_delivered(
 ):
     """Marcar una entrega como completada"""
     repo = DeliveryScheduleRepository(db)
-    schedule = repo.mark_as_delivered(schedule_id, payload.notes)
+    schedule = repo.mark_as_delivered(schedule_id, payload.notes, user_id=current_user.id)
     if not schedule:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Programación de entrega no encontrada")
     return schedule
@@ -136,7 +137,7 @@ def mark_delivery_as_not_delivered(
 ):
     """Marcar una entrega como no completada"""
     repo = DeliveryScheduleRepository(db)
-    schedule = repo.mark_as_not_delivered(schedule_id, payload.notes)
+    schedule = repo.mark_as_not_delivered(schedule_id, payload.notes, user_id=current_user.id)
     if not schedule:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Programación de entrega no encontrada")
     return schedule
@@ -151,7 +152,7 @@ def reschedule_delivery(
 ):
     """Reprogramar una entrega a otra fecha"""
     repo = DeliveryScheduleRepository(db)
-    schedule = repo.reschedule(schedule_id, payload.new_date, payload.notes)
+    schedule = repo.reschedule(schedule_id, payload.new_date, payload.notes, user_id=current_user.id)
     if not schedule:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Programación de entrega no encontrada")
     return schedule
@@ -171,7 +172,7 @@ def update_delivery_location(
             detail="delivery_location es requerido"
         )
     repo = DeliveryScheduleRepository(db)
-    schedule = repo.update_delivery_location(schedule_id, payload.delivery_location)
+    schedule = repo.update_delivery_location(schedule_id, payload.delivery_location, user_id=current_user.id)
     if not schedule:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Programación de entrega no encontrada")
     return schedule
@@ -185,6 +186,6 @@ def delete_delivery_schedule(
 ):
     """Eliminar una programación de entrega"""
     repo = DeliveryScheduleRepository(db)
-    success = repo.delete(schedule_id)
+    success = repo.delete(schedule_id, user_id=current_user.id)
     if not success:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Programación de entrega no encontrada")

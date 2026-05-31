@@ -65,20 +65,26 @@ def name_similarity(a: str | None, b: str | None) -> float:
     return 0.0
 
 
-def find_client_by_phone(db: Session, sender_phone: str | None) -> Client | None:
+def find_client_by_phone(db: Session, sender_phone: str | None, user_id: int | None = None) -> Client | None:
     if not sender_phone:
         return None
-    clients = db.query(Client).all()
+    q = db.query(Client)
+    if user_id is not None:
+        q = q.filter(Client.user_id == user_id)
+    clients = q.all()
     for client in clients:
         if phones_match(sender_phone, client.phone):
             return client
     return None
 
 
-def find_client_by_name(db: Session, sender_name: str | None) -> Client | None:
+def find_client_by_name(db: Session, sender_name: str | None, user_id: int | None = None) -> Client | None:
     if not sender_name:
         return None
-    clients = db.query(Client).all()
+    q = db.query(Client)
+    if user_id is not None:
+        q = q.filter(Client.user_id == user_id)
+    clients = q.all()
     best_client = None
     best_score = 0.0
     for client in clients:
@@ -90,13 +96,15 @@ def find_client_by_name(db: Session, sender_name: str | None) -> Client | None:
     return best_client if best_score >= 0.45 else None
 
 
-def find_best_order_match(db: Session, client_id: int, extracted_amount) -> Order | None:
-    orders = (
+def find_best_order_match(db: Session, client_id: int, extracted_amount, user_id: int | None = None) -> Order | None:
+    q = (
         db.query(Order)
         .filter(Order.client_id == client_id, Order.status.in_(PENDING_ORDER_STATUSES))
         .order_by(Order.id.desc())
-        .all()
     )
+    if user_id is not None:
+        q = q.filter(Order.user_id == user_id)
+    orders = q.all()
     if not orders:
         return None
 
@@ -111,7 +119,7 @@ def find_best_order_match(db: Session, client_id: int, extracted_amount) -> Orde
     return None
 
 
-def find_existing_auto_base(db: Session, client_id: int, extracted_amount) -> Order | None:
+def find_existing_auto_base(db: Session, client_id: int, extracted_amount, user_id: int | None = None) -> Order | None:
     since = datetime.now(timezone.utc) - timedelta(hours=24)
     q = (
         db.query(Order)
@@ -123,6 +131,8 @@ def find_existing_auto_base(db: Session, client_id: int, extracted_amount) -> Or
         )
         .order_by(Order.id.desc())
     )
+    if user_id is not None:
+        q = q.filter(Order.user_id == user_id)
 
     if extracted_amount is not None:
         target = Decimal(str(extracted_amount))

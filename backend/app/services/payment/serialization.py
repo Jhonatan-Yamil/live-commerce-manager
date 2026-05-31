@@ -2,8 +2,8 @@ from app.schemas.payment import PaymentOut
 from app.repositories import payment_repository
 
 
-def list_payments(db):
-    rows = payment_repository.list_with_context(db)
+def list_payments(db, user_id: int | None = None):
+    rows = payment_repository.list_with_context(db, user_id=user_id)
     result = []
 
     for payment, order, client in rows:

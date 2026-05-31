@@ -10,6 +10,7 @@ class Lot(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, nullable=False)
     brand = Column(String, nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     total_units = Column(Integer, nullable=False, default=0)
     total_cost = Column(Numeric(10, 2), nullable=False, default=0)
     unit_cost = Column(Numeric(10, 2), nullable=True)
@@ -17,3 +18,4 @@ class Lot(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     items = relationship("OrderItem", back_populates="lot")
+    user = relationship("User", foreign_keys=[user_id])

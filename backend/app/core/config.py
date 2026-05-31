@@ -25,6 +25,12 @@ class Settings(BaseSettings):
     INTAKE_WORKER_EMBEDDED: bool = True
     INTAKE_MAX_FILE_SIZE_MB: int = 10
     INTAKE_HASH_DEDUP_WINDOW_HOURS: int = 24
+    WHATSAPP_WEBHOOK_SECRET: str = "change-this-whatsapp-secret"
+    WHATSAPP_EVOLUTION_BASE_URL: str | None = None
+    WHATSAPP_EVOLUTION_API_KEY: str | None = None
+    WHATSAPP_EVOLUTION_INSTANCE_NAME: str | None = None
+    WHATSAPP_EVOLUTION_INTEGRATION: str = "WHATSAPP_BAILEYS"
+    WHATSAPP_WEBHOOK_PUBLIC_URL: str | None = None
     CORS_ORIGINS: str = "http://localhost:3000,http://127.0.0.1:3000"
 
     class Config:

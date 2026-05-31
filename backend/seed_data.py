@@ -90,8 +90,14 @@ def seed_database(engine):
         session.add_all(users)
         session.commit()
         print(f"  ✓ {len(users)} usuarios creados\n")
+        # Capture created user ids for tenant assignment
+        admin_id = users[0].id
+        maria_id = users[1].id
+        juan_id = users[2].id
+        luis_id = users[3].id
         
         print("🏪 Insertando clientes...")
+        # Assign most clients to admin (user 1), keep last two for Maria (user 2)
         clients = [
             Client(
                 full_name="Tienda Los Andes",
@@ -99,7 +105,8 @@ def seed_database(engine):
                 address="Ceibo S/N, La Paz",
                 delivery_city="La Paz",
                 delivery_department="La Paz",
-                notes="Cliente VIP, múltiples pedidos frecuentes"
+                notes="Cliente VIP, múltiples pedidos frecuentes",
+                user_id=admin_id,
             ),
             Client(
                 full_name="Boutique Elegancia",
@@ -107,7 +114,8 @@ def seed_database(engine):
                 address="Avenida Ballivián 500, Cochabamba",
                 delivery_city="Cochabamba",
                 delivery_department="Cochabamba",
-                notes="Compras semanales, requiere entregas rápidas"
+                notes="Compras semanales, requiere entregas rápidas",
+                user_id=admin_id,
             ),
             Client(
                 full_name="Centro Comercial Santa Cruz",
@@ -115,7 +123,8 @@ def seed_database(engine):
                 address="Av. Cristo Redentor, Santa Cruz",
                 delivery_city="Santa Cruz",
                 delivery_department="Santa Cruz",
-                notes="Distribuidor mayorista, grandes volúmenes"
+                notes="Distribuidor mayorista, grandes volúmenes",
+                user_id=admin_id,
             ),
             Client(
                 full_name="Joyería Boliviana Premium",
@@ -123,7 +132,8 @@ def seed_database(engine):
                 address="Plaza Arce, Sucre",
                 delivery_city="Sucre",
                 delivery_department="Chuquisaca",
-                notes="Especialidad en accesorios, pago contado"
+                notes="Especialidad en accesorios, pago contado",
+                user_id=admin_id,
             ),
             Client(
                 full_name="Supermercado Mi Bolivia",
@@ -131,7 +141,8 @@ def seed_database(engine):
                 address="Av. Las Américas, Tarija",
                 delivery_city="Tarija",
                 delivery_department="Tarija",
-                notes="Venta retail, variedad de productos"
+                notes="Venta retail, variedad de productos",
+                user_id=admin_id,
             ),
             Client(
                 full_name="Ropería El Paso",
@@ -139,7 +150,8 @@ def seed_database(engine):
                 address="Av. Montes 1234, La Paz",
                 delivery_city="La Paz",
                 delivery_department="La Paz",
-                notes="Múltiples entregas por mes"
+                notes="Múltiples entregas por mes",
+                user_id=admin_id,
             ),
             Client(
                 full_name="Accesorios y Bisutería YB",
@@ -147,7 +159,8 @@ def seed_database(engine):
                 address="Calle Potosí 567, Oruro",
                 delivery_city="Oruro",
                 delivery_department="Oruro",
-                notes="Minorista, entregas semanales"
+                notes="Minorista, entregas semanales",
+                user_id=maria_id,
             ),
             Client(
                 full_name="Farmacia San Miguel",
@@ -155,7 +168,8 @@ def seed_database(engine):
                 address="Av. Pando 890, Cochabamba",
                 delivery_city="Cochabamba",
                 delivery_department="Cochabamba",
-                notes="Venta de cosméticos y productos de belleza"
+                notes="Venta de cosméticos y productos de belleza",
+                user_id=maria_id,
             ),
         ]
         session.add_all(clients)
@@ -163,76 +177,87 @@ def seed_database(engine):
         print(f"  ✓ {len(clients)} clientes creados\n")
         
         print("📦 Insertando productos...")
+        # Products: mostly admin, a couple for Maria
         products = [
             Product(
                 name="Polo Clásico 100% Algodón",
                 description="Polo clásico en varios colores, algodón puro, tallas S-XXXL",
                 price=Decimal("85.00"),
                 stock=1,
-                is_active=True
+                is_active=True,
+                user_id=admin_id,
             ),
             Product(
                 name="Jeans Premium Stretch",
                 description="Jeans de alta calidad con stretch, confortables",
                 price=Decimal("180.00"),
                 stock=1,
-                is_active=True
+                is_active=True,
+                user_id=admin_id,
             ),
             Product(
                 name="Crema Facial Nutritiva 50ml",
                 description="Crema hidratante profesional, regeneradora",
                 price=Decimal("120.00"),
                 stock=1,
-                is_active=True
+                is_active=True,
+                user_id=admin_id,
             ),
             Product(
                 name="Set de Joyas Doradas",
                 description="Collar, pulsera y aretes en acero dorado, joyería fina",
                 price=Decimal("250.00"),
                 stock=1,
-                is_active=True
+                is_active=True,
+                user_id=admin_id,
             ),
             Product(
                 name="Lápiz Labial Duradero 24h",
                 description="Labial tintón 24 horas, varios tonos, fórmula waterproof",
                 price=Decimal("75.00"),
                 stock=1,
-                is_active=True
+                is_active=True,
+                user_id=admin_id,
             ),
             Product(
                 name="Muñeca Juguete Educativo",
                 description="Muñeca con accesorios, atuendos intercambiables, educativa",
                 price=Decimal("95.00"),
                 stock=1,
-                is_active=True
+                is_active=True,
+                user_id=admin_id,
             ),
             Product(
                 name="Blusa Elegante Seda",
                 description="Blusa de seda natural, elegante para ocasiones especiales",
                 price=Decimal("165.00"),
                 stock=1,
-                is_active=True
+                is_active=True,
+                user_id=admin_id,
             ),
             Product(
                 name="Cinturón de Cuero Genuino",
                 description="Cinturón de cuero genuino, ajustable, múltiples colores",
                 price=Decimal("95.00"),
                 stock=1,
-                is_active=True
+                is_active=True,
+                user_id=admin_id,
             ),
             Product(
                 name="Bolsa de Mano Premium",
                 description="Bolsa elegante, material PU, compartimentos múltiples",
                 price=Decimal("220.00"),
                 stock=1,
-                is_active=True
+                is_active=True,
+                user_id=maria_id,
             ),
             Product(
                 name="Perfume Eau de Toilette 100ml",
                 description="Fragancia floral, larga duración, importado",
                 price=Decimal("180.00"),
                 stock=1,
-                is_active=True
+                is_active=True,
+                user_id=maria_id,
             ),
         ]
         session.add_all(products)
@@ -240,6 +265,7 @@ def seed_database(engine):
         print(f"  ✓ {len(products)} productos creados\n")
         
         print("📍 Insertando lotes...")
+        # Lots: majority for admin, last one for Maria
         lots = [
             Lot(
                 name="Lote A - Importación Ropa Casual LEFTIES",
@@ -247,7 +273,8 @@ def seed_database(engine):
                 total_units=500,
                 total_cost=Decimal("10000.00"),
                 unit_cost=Decimal("20.00"),
-                notes="Ropa importada de Chile, calidad premium"
+                notes="Ropa importada de Chile, calidad premium",
+                user_id=admin_id,
             ),
             Lot(
                 name="Lote B - Bisutería La Paz Premium",
@@ -255,7 +282,8 @@ def seed_database(engine):
                 total_units=300,
                 total_cost=Decimal("12000.00"),
                 unit_cost=Decimal("40.00"),
-                notes="Accesorios y bisutería de calidad, oro y plata"
+                notes="Accesorios y bisutería de calidad, oro y plata",
+                user_id=admin_id,
             ),
             Lot(
                 name="Lote C - Cosméticos y Belleza",
@@ -263,7 +291,8 @@ def seed_database(engine):
                 total_units=200,
                 total_cost=Decimal("6000.00"),
                 unit_cost=Decimal("30.00"),
-                notes="Cremas, maquillaje y productos de belleza naturales"
+                notes="Cremas, maquillaje y productos de belleza naturales",
+                user_id=admin_id,
             ),
             Lot(
                 name="Lote D - Bolsas y Accesorios",
@@ -271,7 +300,8 @@ def seed_database(engine):
                 total_units=150,
                 total_cost=Decimal("4500.00"),
                 unit_cost=Decimal("30.00"),
-                notes="Bolsas, cinturones, accesorios de moda"
+                notes="Bolsas, cinturones, accesorios de moda",
+                user_id=admin_id,
             ),
             Lot(
                 name="Lote E - Perfumes Importados",
@@ -279,7 +309,8 @@ def seed_database(engine):
                 total_units=100,
                 total_cost=Decimal("8000.00"),
                 unit_cost=Decimal("80.00"),
-                notes="Perfumes premium, fragancia de larga duración"
+                notes="Perfumes premium, fragancia de larga duración",
+                user_id=maria_id,
             ),
         ]
         session.add_all(lots)
@@ -290,11 +321,18 @@ def seed_database(engine):
         orders = []
         items_count = 0
         
+        # Orders: set user_id based on owning client (clients 1-6 -> admin, 7-8 -> maria)
+        def owner_for_client(client_id):
+            if client_id in {1,2,3,4,5,6}:
+                return admin_id
+            return maria_id
+
         order1 = Order(
             client_id=1,
             status=OrderStatus.payment_confirmed,
             total=Decimal("1100.00"),
-            notes="Cliente VIP - PAGADA, SIN LOGÍSTICA CREADA"
+            notes="Cliente VIP - PAGADA, SIN LOGÍSTICA CREADA",
+            user_id=owner_for_client(1),
         )
         orders.append(order1)
         session.add(order1)
@@ -310,7 +348,8 @@ def seed_database(engine):
             client_id=2,
             status=OrderStatus.payment_confirmed,
             total=Decimal("2250.00"),
-            notes="Entrega completada hace 3 días"
+            notes="Entrega completada hace 3 días",
+            user_id=owner_for_client(2),
         )
         orders.append(order2)
         session.add(order2)
@@ -326,7 +365,8 @@ def seed_database(engine):
             client_id=3,
             status=OrderStatus.pending_payment,
             total=Decimal("1725.00"),
-            notes="PAGO PENDIENTE - No debe aparecer en logística"
+            notes="PAGO PENDIENTE - No debe aparecer en logística",
+            user_id=owner_for_client(3),
         )
         orders.append(order3)
         session.add(order3)
@@ -341,8 +381,9 @@ def seed_database(engine):
         order4 = Order(
             client_id=4,
             status=OrderStatus.payment_confirmed,
-            total=Decimal("1575.00"),
-            notes="Destino: Sucre - PAGADA, SIN LOGÍSTICA"
+            total=Decimal("1375.00"),
+            notes="Destino: Sucre - PAGADA, SIN LOGÍSTICA",
+            user_id=owner_for_client(4),
         )
         orders.append(order4)
         session.add(order4)
@@ -358,7 +399,8 @@ def seed_database(engine):
             client_id=5,
             status=OrderStatus.payment_confirmed,
             total=Decimal("460.00"),
-            notes="Tarija - PAGADA, SIN LOGÍSTICA"
+            notes="Tarija - PAGADA, SIN LOGÍSTICA",
+            user_id=owner_for_client(5),
         )
         orders.append(order5)
         session.add(order5)
@@ -374,7 +416,8 @@ def seed_database(engine):
             client_id=1,
             status=OrderStatus.payment_confirmed,
             total=Decimal("420.00"),
-            notes="Segunda orden - PAGADA, LOGÍSTICA EN PREPARACIÓN"
+            notes="Segunda orden - PAGADA, LOGÍSTICA EN PREPARACIÓN",
+            user_id=owner_for_client(1),
         )
         orders.append(order6)
         session.add(order6)
@@ -390,7 +433,8 @@ def seed_database(engine):
             client_id=2,
             status=OrderStatus.payment_confirmed,
             total=Decimal("285.00"),
-            notes="Segunda orden - PAGADA, LOGÍSTICA EN RUTA"
+            notes="Segunda orden - PAGADA, LOGÍSTICA EN RUTA",
+            user_id=owner_for_client(2),
         )
         orders.append(order7)
         session.add(order7)
@@ -405,8 +449,9 @@ def seed_database(engine):
         order8 = Order(
             client_id=6,
             status=OrderStatus.payment_confirmed,
-            total=Decimal("1100.00"),
-            notes="La Paz - PAGADA, SIN LOGÍSTICA"
+            total=Decimal("1110.00"),
+            notes="La Paz - PAGADA, SIN LOGÍSTICA",
+            user_id=owner_for_client(6),
         )
         orders.append(order8)
         session.add(order8)
@@ -421,8 +466,9 @@ def seed_database(engine):
         order9 = Order(
             client_id=7,
             status=OrderStatus.payment_confirmed,
-            total=Decimal("950.00"),
-            notes="Oruro - PAGADA, SIN LOGÍSTICA"
+            total=Decimal("910.00"),
+            notes="Oruro - PAGADA, SIN LOGÍSTICA",
+            user_id=owner_for_client(7),
         )
         orders.append(order9)
         session.add(order9)
@@ -437,8 +483,9 @@ def seed_database(engine):
         order10 = Order(
             client_id=8,
             status=OrderStatus.payment_confirmed,
-            total=Decimal("1350.00"),
-            notes="Cochabamba - PAGADA, SIN LOGÍSTICA"
+            total=Decimal("1260.00"),
+            notes="Cochabamba - PAGADA, SIN LOGÍSTICA",
+            user_id=owner_for_client(8),
         )
         orders.append(order10)
         session.add(order10)
@@ -453,8 +500,9 @@ def seed_database(engine):
         order11 = Order(
             client_id=1,
             status=OrderStatus.payment_confirmed,
-            total=Decimal("635.00"),
-            notes="Tercera orden - Entregada hace 2 días (historial)"
+            total=Decimal("590.00"),
+            notes="Tercera orden - Entregada hace 2 días (historial)",
+            user_id=owner_for_client(1),
         )
         orders.append(order11)
         session.add(order11)
@@ -469,8 +517,9 @@ def seed_database(engine):
         order12 = Order(
             client_id=2,
             status=OrderStatus.payment_confirmed,
-            total=Decimal("1600.00"),
-            notes="Tercera orden - PAGADA, SIN LOGÍSTICA"
+            total=Decimal("1545.00"),
+            notes="Tercera orden - PAGADA, SIN LOGÍSTICA",
+            user_id=owner_for_client(2),
         )
         orders.append(order12)
         session.add(order12)
@@ -485,8 +534,9 @@ def seed_database(engine):
         order13 = Order(
             client_id=3,
             status=OrderStatus.payment_confirmed,
-            total=Decimal("2100.00"),
-            notes="Distribuidor mayorista - PAGADA, SIN LOGÍSTICA"
+            total=Decimal("2060.00"),
+            notes="Distribuidor mayorista - PAGADA, SIN LOGÍSTICA",
+            user_id=owner_for_client(3),
         )
         orders.append(order13)
         session.add(order13)
@@ -502,127 +552,84 @@ def seed_database(engine):
         print(f"  ✓ {len(orders)} órdenes y {items_count} items creados\n")
         
         print("💳 Insertando pagos...")
-        payments = [
-            Payment(order_id=1, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_001.jpg", notes="Orden 1 confirmada", reviewed_at=datetime.now(timezone.utc)),
-            Payment(order_id=2, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_002.jpg", notes="Orden 2 confirmada", reviewed_at=datetime.now(timezone.utc)),
-            Payment(order_id=3, status=PaymentStatus.rejected, voucher_path="/uploads/voucher_003_rechazo.jpg", notes="RECHAZADA - Cliente debe enviar comprobante válido"),
-            Payment(order_id=4, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_004.jpg", notes="Orden 4 confirmada", reviewed_at=datetime.now(timezone.utc)),
-            Payment(order_id=5, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_005.jpg", notes="Orden 5 confirmada", reviewed_at=datetime.now(timezone.utc)),
-            Payment(order_id=6, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_006.jpg", notes="Orden 6 confirmada - sin logística", reviewed_at=datetime.now(timezone.utc)),
-            Payment(order_id=7, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_007.jpg", notes="Orden 7 confirmada - en ruta", reviewed_at=datetime.now(timezone.utc)),
-            Payment(order_id=8, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_008.jpg", notes="Orden 8 confirmada - sin logística", reviewed_at=datetime.now(timezone.utc)),
-            Payment(order_id=9, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_009.jpg", notes="Orden 9 confirmada - sin logística", reviewed_at=datetime.now(timezone.utc)),
-            Payment(order_id=10, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_010.jpg", notes="Orden 10 confirmada - sin logística", reviewed_at=datetime.now(timezone.utc)),
-            Payment(order_id=11, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_011.jpg", notes="Orden 11 confirmada - entregada", reviewed_at=datetime.now(timezone.utc)),
-            Payment(order_id=12, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_012.jpg", notes="Orden 12 confirmada - sin logística", reviewed_at=datetime.now(timezone.utc)),
-            Payment(order_id=13, status=PaymentStatus.confirmed, voucher_path="/uploads/voucher_013.jpg", notes="Orden 13 confirmada - sin logística", reviewed_at=datetime.now(timezone.utc)),
-        ]
+        payments = []
+        for oid in range(1, 14):
+            o = next((x for x in orders if x.id == oid), None)
+            if not o:
+                continue
+            p = Payment(
+                order_id=oid,
+                status=PaymentStatus.confirmed,
+                voucher_path=f"/uploads/voucher_{oid:03d}.jpg",
+                notes=f"Orden {oid} confirmada",
+                reviewed_at=datetime.now(timezone.utc) if o.status == OrderStatus.payment_confirmed else None,
+                user_id=getattr(o, "user_id", None),
+            )
+            if oid == 3:
+                p.status = PaymentStatus.rejected
+                p.notes = "RECHAZADA - Cliente debe enviar comprobante válido"
+                p.reviewed_at = None
+            payments.append(p)
         session.add_all(payments)
         session.commit()
         print(f"  ✓ {len(payments)} pagos creados\n")
         
         print("🚚 Insertando logística...")
-        logistics = [
-            Logistics(
-                order_id=2,
-                delivery_type=DeliveryType.shipping,
-                delivery_status=DeliveryStatus.delivered,
-                address="Av. Ballivián 500, Cochabamba",
-                tracking_notes="Entregado correctamente hace 3 días",
-                scheduled_at=datetime.now() - timedelta(days=4),
-                delivered_at=datetime.now() - timedelta(days=3)
-            ),
-            Logistics(
-                order_id=6,
-                delivery_type=DeliveryType.shipping,
-                delivery_status=DeliveryStatus.in_store,
-                address="Av. Ballivián 500, Cochabamba",
-                tracking_notes="Orden lista en almacén, pendiente de envío",
-                scheduled_at=datetime.now() + timedelta(days=1),
-                delivered_at=None
-            ),
-            Logistics(
-                order_id=7,
-                delivery_type=DeliveryType.shipping,
-                delivery_status=DeliveryStatus.sent,
-                address="Calle Presidente Montes #456, Cochabamba",
-                tracking_notes="En ruta hacia el cliente",
-                scheduled_at=datetime.now(),
-                delivered_at=None
-            ),
-            Logistics(
-                order_id=11,
-                delivery_type=DeliveryType.shipping,
-                delivery_status=DeliveryStatus.delivered,
-                address="Ceibo S/N, La Paz",
-                tracking_notes="Entregado hace 2 días",
-                scheduled_at=datetime.now() - timedelta(days=3),
-                delivered_at=datetime.now() - timedelta(days=2)
-            ),
+        logistics_specs = [
+            (2, DeliveryType.shipping, DeliveryStatus.delivered, "Av. Ballivián 500, Cochabamba", "Entregado correctamente hace 3 días", datetime.now() - timedelta(days=4), datetime.now() - timedelta(days=3)),
+            (6, DeliveryType.shipping, DeliveryStatus.in_store, "Av. Ballivián 500, Cochabamba", "Orden lista en almacén, pendiente de envío", datetime.now() + timedelta(days=1), None),
+            (7, DeliveryType.shipping, DeliveryStatus.sent, "Calle Presidente Montes #456, Cochabamba", "En ruta hacia el cliente", datetime.now(), None),
+            (11, DeliveryType.shipping, DeliveryStatus.delivered, "Ceibo S/N, La Paz", "Entregado hace 2 días", datetime.now() - timedelta(days=3), datetime.now() - timedelta(days=2)),
         ]
+        logistics = []
+        for spec in logistics_specs:
+            oid = spec[0]
+            o = next((x for x in orders if x.id == oid), None)
+            if not o:
+                continue
+            lg = Logistics(
+                order_id=oid,
+                delivery_type=spec[1],
+                delivery_status=spec[2],
+                address=spec[3],
+                tracking_notes=spec[4],
+                scheduled_at=spec[5],
+                delivered_at=spec[6],
+                user_id=getattr(o, "user_id", None),
+            )
+            logistics.append(lg)
         session.add_all(logistics)
         session.commit()
         print(f"  ✓ {len(logistics)} registros de logística creados (muchas órdenes SIN logística para probar)\n")
         
         print("📅 Insertando delivery schedules...")
-        delivery_schedules = [
-            DeliverySchedule(
-                order_id=1,
-                scheduled_date=datetime.now().date(),
-                delivery_location="Ceibo S/N, La Paz",
-                location="Ceibo S/N",
-                destination_city=None,
-                status=DeliveryScheduleStatus.scheduled,
-                notes="Para hoy - Cliente VIP - Same City"
-            ),
-            DeliverySchedule(
-                order_id=13,
-                scheduled_date=datetime.now().date(),
-                delivery_location="Otra ciudad/departamento - Santa Cruz",
-                location=None,
-                destination_city="Santa Cruz",
-                status=DeliveryScheduleStatus.scheduled,
-                notes="Para hoy - Mayorista - Other City"
-            ),
-            DeliverySchedule(
-                order_id=4,
-                scheduled_date=(datetime.now() + timedelta(days=1)).date(),
-                delivery_location="Otra ciudad/departamento - Sucre",
-                location=None,
-                destination_city="Sucre",
-                status=DeliveryScheduleStatus.scheduled,
-                notes="Mañana - Sucre - Other City"
-            ),
-            DeliverySchedule(
-                order_id=5,
-                scheduled_date=(datetime.now() + timedelta(days=2)).date(),
-                delivery_location="Otra ciudad/departamento - Tarija",
-                location=None,
-                destination_city="Tarija",
-                status=DeliveryScheduleStatus.scheduled,
-                notes="En 2 días - Tarija - Other City"
-            ),
-            DeliverySchedule(
-                order_id=11,
-                scheduled_date=(datetime.now() - timedelta(days=2)).date(),
-                delivery_location="Ceibo S/N, La Paz",
-                location="Ceibo S/N",
-                destination_city=None,
-                status=DeliveryScheduleStatus.delivered,
-                notes="Entregado hace 2 días - Same City",
-                rescheduled_date=None
-            ),
-            DeliverySchedule(
-                order_id=2,
-                scheduled_date=(datetime.now() - timedelta(days=3)).date(),
-                delivery_location="Av. Ballivián 500, Cochabamba",
-                location="Av. Ballivián 500",
-                destination_city=None,
-                status=DeliveryScheduleStatus.not_delivered,
-                notes="No se encontró cliente, reprogramada - Same City",
-                rescheduled_date=(datetime.now() - timedelta(days=2)).date()
-            ),
+        # Delivery schedules: attach user_id from order owner
+        schedules_specs = [
+            (1, datetime.now().date(), "Ceibo S/N, La Paz", "Ceibo S/N", None, DeliveryScheduleStatus.scheduled, "Para hoy - Cliente VIP - Same City", None),
+            (13, datetime.now().date(), "Otra ciudad/departamento - Santa Cruz", None, "Santa Cruz", DeliveryScheduleStatus.scheduled, "Para hoy - Mayorista - Other City", None),
+            (4, (datetime.now() + timedelta(days=1)).date(), "Otra ciudad/departamento - Sucre", None, "Sucre", DeliveryScheduleStatus.scheduled, "Mañana - Sucre - Other City", None),
+            (5, (datetime.now() + timedelta(days=2)).date(), "Otra ciudad/departamento - Tarija", None, "Tarija", DeliveryScheduleStatus.scheduled, "En 2 días - Tarija - Other City", None),
+            (11, (datetime.now() - timedelta(days=2)).date(), "Ceibo S/N, La Paz", "Ceibo S/N", None, DeliveryScheduleStatus.delivered, "Entregado hace 2 días - Same City", None),
+            (2, (datetime.now() - timedelta(days=3)).date(), "Av. Ballivián 500, Cochabamba", "Av. Ballivián 500", None, DeliveryScheduleStatus.not_delivered, "No se encontró cliente, reprogramada - Same City", (datetime.now() - timedelta(days=2)).date()),
         ]
+        delivery_schedules = []
+        for spec in schedules_specs:
+            oid = spec[0]
+            o = next((x for x in orders if x.id == oid), None)
+            if not o:
+                continue
+            ds = DeliverySchedule(
+                order_id=oid,
+                scheduled_date=spec[1],
+                delivery_location=spec[2],
+                location=spec[3],
+                destination_city=spec[4],
+                status=spec[5],
+                notes=spec[6],
+                rescheduled_date=spec[7],
+                user_id=getattr(o, "user_id", None),
+            )
+            delivery_schedules.append(ds)
         session.add_all(delivery_schedules)
         session.commit()
         print(f"  ✓ {len(delivery_schedules)} delivery schedules creados\n")
@@ -635,8 +642,8 @@ def seed_database(engine):
         print("  • 8 clientes en diferentes ciudades/departamentos")
         print("  • 10 productos variados")
         print("  • 5 lotes de importación")
-        print("  • 13 órdenes: 10 PAGADAS, 1 sin pagar, 2 entregadas (historial)")
-        print("  • 13 pagos: 11 confirmados, 1 rechazado, 1 en revisión")
+        print("  • 13 órdenes: 12 PAGADAS, 1 sin pagar")
+        print("  • 13 pagos: 12 confirmados, 1 rechazado")
         print("  • 4 logísticas creadas (algunos en ruta, algunos entregados)")
         print("  • 9+ órdenes SIN logística para probar creación desde página")
         print("  • 6 delivery schedules: 2 para HOY, 3 próximos días, 1 entregado\n")

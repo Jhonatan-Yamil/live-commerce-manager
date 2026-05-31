@@ -4,9 +4,11 @@ import os
 from datetime import datetime, timezone
 from concurrent.futures import ThreadPoolExecutor, TimeoutError as FuturesTimeoutError
 from app.database.session import SessionLocal
+from app.models.voucher_intake import VoucherMatchStatus, VoucherSourceChannel
 from app.repositories import voucher_intake_repository
 from app.services.ocr_service import extract_voucher_fields
 from app.services.voucher_intake_service import UPLOAD_DIR, attempt_match_intake
+from app.services.whatsapp_intake_filter import should_ignore_whatsapp_intake
 
 def process_intake_job(intake_id: int) -> None:
     db = SessionLocal()
@@ -50,6 +52,17 @@ def process_intake_job(intake_id: int) -> None:
         intake.extracted_sender_name = ocr_fields.get("extracted_sender_name")
         intake.ocr_raw_text = ocr_fields.get("ocr_raw_text")
         intake.ocr_confidence = ocr_fields.get("ocr_confidence")
+
+        if intake.source_channel == VoucherSourceChannel.whatsapp:
+            should_ignore, ignore_reason = should_ignore_whatsapp_intake(intake, ocr_fields)
+            if should_ignore:
+                intake.processing_status = "ignored"
+                intake.processing_error = ignore_reason
+                intake.match_status = VoucherMatchStatus.ignored
+                intake.processing_finished_at = datetime.now(timezone.utc)
+                voucher_intake_repository.save(db, intake)
+                return
+
         intake.processing_status = "processed"
         intake.processing_finished_at = datetime.now(timezone.utc)
 

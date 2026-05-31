@@ -60,20 +60,20 @@ def _compute_sha256(content: bytes) -> str:
     return compute_sha256(content)
 
 
-def _find_client_by_phone(db: Session, sender_phone: str | None):
-    return find_client_by_phone(db, sender_phone)
+def _find_client_by_phone(db: Session, sender_phone: str | None, user_id: int | None = None):
+    return find_client_by_phone(db, sender_phone, user_id=user_id)
 
 
-def _find_client_by_name(db: Session, sender_name: str | None):
-    return find_client_by_name(db, sender_name)
+def _find_client_by_name(db: Session, sender_name: str | None, user_id: int | None = None):
+    return find_client_by_name(db, sender_name, user_id=user_id)
 
 
-def _find_best_order_match(db: Session, client_id: int, extracted_amount):
-    return find_best_order_match(db, client_id, extracted_amount)
+def _find_best_order_match(db: Session, client_id: int, extracted_amount, user_id: int | None = None):
+    return find_best_order_match(db, client_id, extracted_amount, user_id=user_id)
 
 
-def _find_existing_auto_base(db: Session, client_id: int, extracted_amount):
-    return find_existing_auto_base(db, client_id, extracted_amount)
+def _find_existing_auto_base(db: Session, client_id: int, extracted_amount, user_id: int | None = None):
+    return find_existing_auto_base(db, client_id, extracted_amount, user_id=user_id)
 
 
 def _create_provisional_client(db: Session, intake):
@@ -90,6 +90,8 @@ def _build_pending_intake_payload(
     external_chat_id: str | None,
     external_message_id: str | None,
     sender_phone: str | None,
+    source_instance_name: str | None,
+    source_caption: str | None,
     filename: str,
     mime_type: str | None,
     file_sha256: str,
@@ -100,6 +102,8 @@ def _build_pending_intake_payload(
         external_chat_id=external_chat_id,
         external_message_id=external_message_id,
         sender_phone=sender_phone,
+        source_instance_name=source_instance_name,
+        source_caption=source_caption,
         filename=filename,
         mime_type=mime_type,
         file_sha256=file_sha256,
@@ -132,6 +136,11 @@ def create_intake_from_upload(
     external_chat_id: str | None = None,
     external_message_id: str | None = None,
     sender_phone: str | None = None,
+    source_instance_name: str | None = None,
+    source_caption: str | None = None,
+    processing_status: str = "queued",
+    processing_error: str | None = None,
+    enqueue_processing: bool = True,
 ):
     _validate_mime_type(file.content_type)
     ext = _validate_extension(file.filename)
@@ -146,12 +155,13 @@ def create_intake_from_upload(
             source_channel=source_channel,
             external_chat_id=external_chat_id,
             external_message_id=external_message_id,
+            user_id=(current_user.id if current_user else None),
         )
         if existing_by_external:
             return existing_by_external
 
     dedup_since = datetime.now(timezone.utc) - timedelta(hours=settings.INTAKE_HASH_DEDUP_WINDOW_HOURS)
-    existing_by_hash = voucher_intake_repository.get_recent_by_hash(db, file_sha256=file_sha256, since=dedup_since)
+    existing_by_hash = voucher_intake_repository.get_recent_by_hash(db, file_sha256=file_sha256, since=dedup_since, user_id=(current_user.id if current_user else None))
     if existing_by_hash:
         return existing_by_hash
 
@@ -163,25 +173,35 @@ def create_intake_from_upload(
         external_chat_id=external_chat_id,
         external_message_id=external_message_id,
         sender_phone=sender_phone,
+        source_instance_name=source_instance_name,
+        source_caption=source_caption,
         filename=filename,
         mime_type=file.content_type,
         file_sha256=file_sha256,
         file_size_bytes=file_size_bytes,
     )
+    payload["processing_status"] = processing_status
+    payload["processing_error"] = processing_error
+    # Associate intake with the authenticated user (or None when created by webhook and not resolved)
+    payload["user_id"] = current_user.id if current_user else None
     intake = voucher_intake_repository.create_intake(db, payload)
-    return _dispatch_intake_processing(db, intake)
+
+    if enqueue_processing and processing_status == "queued":
+        return _dispatch_intake_processing(db, intake)
+
+    return intake
 
 
-def list_intakes(db: Session, status: VoucherMatchStatus | None = None, skip: int = 0, limit: int = 100):
-    return voucher_intake_repository.list_intakes(db, status=status, skip=skip, limit=limit)
+def list_intakes(db: Session, status: VoucherMatchStatus | None = None, skip: int = 0, limit: int = 100, user_id: int | None = None):
+    return voucher_intake_repository.list_intakes(db, status=status, skip=skip, limit=limit, user_id=user_id)
 
 
-def get_intake(db: Session, intake_id: int):
-    return voucher_intake_repository.get_by_id(db, intake_id)
+def get_intake(db: Session, intake_id: int, user_id: int | None = None):
+    return voucher_intake_repository.get_by_id(db, intake_id, user_id=user_id)
 
 
-def reprocess_intake(db: Session, intake_id: int):
-    intake = voucher_intake_repository.get_by_id(db, intake_id)
+def reprocess_intake(db: Session, intake_id: int, user_id: int | None = None):
+    intake = voucher_intake_repository.get_by_id(db, intake_id, user_id=user_id)
     if not intake:
         return None
 
@@ -190,18 +210,18 @@ def reprocess_intake(db: Session, intake_id: int):
     return _dispatch_intake_processing(db, intake)
 
 
-def attempt_match_intake(db: Session, intake_id: int):
-    intake = voucher_intake_repository.get_by_id(db, intake_id)
+def attempt_match_intake(db: Session, intake_id: int, user_id: int | None = None):
+    intake = voucher_intake_repository.get_by_id(db, intake_id, user_id=user_id)
     if not intake:
         return None
 
-    matched_client = _find_client_by_phone(db, intake.sender_phone)
+    matched_client = _find_client_by_phone(db, intake.sender_phone, user_id=intake.user_id)
     if not matched_client:
-        matched_client = _find_client_by_name(db, intake.extracted_sender_name)
+        matched_client = _find_client_by_name(db, intake.extracted_sender_name, user_id=intake.user_id)
     intake.matched_client_id = matched_client.id if matched_client else None
 
     if matched_client:
-        matched_order = _find_best_order_match(db, matched_client.id, intake.extracted_amount)
+        matched_order = _find_best_order_match(db, matched_client.id, intake.extracted_amount, user_id=intake.user_id)
         if matched_order:
             intake.matched_order_id = matched_order.id
             intake.created_order_id = None
@@ -222,7 +242,7 @@ def attempt_match_intake(db: Session, intake_id: int):
 
 
 def confirm_intake_match(db: Session, intake_id: int, current_user: User):
-    intake = voucher_intake_repository.get_by_id(db, intake_id)
+    intake = voucher_intake_repository.get_by_id(db, intake_id, user_id=current_user.id)
     if not intake:
         return None
     if not intake.matched_order_id:
@@ -240,7 +260,7 @@ def confirm_intake_match(db: Session, intake_id: int, current_user: User):
 
 
 def reject_intake_match(db: Session, intake_id: int, current_user: User):
-    intake = voucher_intake_repository.get_by_id(db, intake_id)
+    intake = voucher_intake_repository.get_by_id(db, intake_id, user_id=current_user.id)
     if not intake:
         return None
     _mark_reviewed(intake, status=VoucherMatchStatus.rejected, current_user=current_user)
@@ -248,12 +268,12 @@ def reject_intake_match(db: Session, intake_id: int, current_user: User):
 
 
 def reassign_intake_match(db: Session, intake_id: int, order_id: int, current_user: User):
-    intake = voucher_intake_repository.get_by_id(db, intake_id)
+    intake = voucher_intake_repository.get_by_id(db, intake_id, user_id=current_user.id)
     if not intake:
         return None
 
     order = db.query(Order).filter(Order.id == order_id).first()
-    if not order:
+    if not order or getattr(order, "user_id", None) != current_user.id:
         raise ValueError("Pedido no encontrado")
 
     intake.matched_order_id = order.id

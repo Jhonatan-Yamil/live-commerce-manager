@@ -16,6 +16,7 @@ class DeliverySchedule(Base):
     __tablename__ = "delivery_schedules"
     
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     order_id = Column(Integer, ForeignKey("orders.id"), nullable=False)
     scheduled_date = Column(Date, nullable=False)  # Fecha programada para entregar
     delivery_location = Column(Text, nullable=True)  # Ciudad, almacén, dirección específica (legacy)
@@ -28,3 +29,4 @@ class DeliverySchedule(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     
     order = relationship("Order", back_populates="delivery_schedules")
+    user = relationship("User", foreign_keys=[user_id])
