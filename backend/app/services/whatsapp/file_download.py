@@ -18,6 +18,22 @@ class InboundMediaFile:
         self.file.seek(0)
 
 
+def _infer_content_type(filename: str, mime_type: str | None) -> str | None:
+    normalized = (mime_type or "").strip().lower()
+    if normalized in {"image/jpeg", "image/jpg", "image/png", "application/pdf"}:
+        return "image/jpeg" if normalized == "image/jpg" else normalized
+
+    lower_filename = filename.lower()
+    if lower_filename.endswith(".pdf"):
+        return "application/pdf"
+    if lower_filename.endswith(".png"):
+        return "image/png"
+    if lower_filename.endswith((".jpg", ".jpeg", ".webp")):
+        return "image/jpeg"
+
+    return normalized or None
+
+
 def _strip_data_url_prefix(base64_value: str) -> str:
     if "," in base64_value and base64_value.lower().startswith("data:"):
         return base64_value.split(",", 1)[1]
@@ -67,6 +83,7 @@ def build_upload_from_whatsapp_message(message_payload: dict[str, Any], info: di
 
     content = _decode_base64_content(base64_value)
     filename = _ensure_allowed_extension(filename, mime_type)
+    mime_type = _infer_content_type(filename, mime_type)
 
     return InboundMediaFile(
         filename=filename,

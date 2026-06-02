@@ -7,6 +7,8 @@ class ClientCreate(BaseModel):
     address: str | None = None
     delivery_city: str | None = None
     delivery_department: str | None = None
+    delivery_mode: str | None = None
+    delivery_transport_companies: list[str] | None = None
     notes: str | None = None
 
     @field_validator("full_name", "phone")
@@ -24,6 +26,8 @@ class ClientUpdate(BaseModel):
     address: str | None = None
     delivery_city: str | None = None
     delivery_department: str | None = None
+    delivery_mode: str | None = None
+    delivery_transport_companies: list[str] | None = None
     notes: str | None = None
 
     @field_validator("full_name", "phone", mode="before")
@@ -41,5 +45,7 @@ class ClientOut(BaseModel):
     address: str | None
     delivery_city: str | None
     delivery_department: str | None
+    delivery_mode: str | None
+    delivery_transport_companies: list[str] | None
     notes: str | None
     model_config = {"from_attributes": True}

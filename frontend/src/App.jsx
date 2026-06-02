@@ -11,7 +11,6 @@ import ClientsPage from "./pages/ClientsPage";
 import ProductsPage from "./pages/ProductsPage";
 import LotsPage from "./pages/LotsPage";
 import CashFlowPage from "./pages/CashFlowPage";
-import WhatsAppSettingsPage from "./pages/WhatsAppSettingsPage";
 import { NotificationProvider } from "./context/NotificationContext";
 import { appTheme } from "./theme/appTheme";
 
@@ -33,7 +32,6 @@ export default function App() {
                 <Route path="/productos" element={<ProductsPage />} />
                 <Route path="/lotes" element={<LotsPage />} />
                 <Route path="/caja" element={<CashFlowPage />} />
-                <Route path="/whatsapp" element={<WhatsAppSettingsPage />} />
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

@@ -187,31 +187,51 @@ def set_user_whatsapp_intake_enabled(db: Session, user: User, enabled: bool) -> 
     }
 
 
-def resolve_webhook_user(db: Session, payload: dict) -> User | None:
-    instance_name = None
-    root_instance = payload.get("instance")
-    if isinstance(root_instance, str) and root_instance.strip():
-        instance_name = root_instance.strip()
-    elif isinstance(root_instance, dict):
-        instance_name = (
-            root_instance.get("instanceName")
-            or root_instance.get("instance_name")
-            or root_instance.get("name")
-        )
-    if not instance_name:
+def _extract_instance_candidates(payload: dict, fallback_instance_name: str | None = None) -> list[str]:
+    candidates: list[str] = []
+
+    def push(value: str | None):
+        if not isinstance(value, str):
+            return
+        normalized = value.strip()
+        if normalized and normalized not in candidates:
+            candidates.append(normalized)
+
+    if isinstance(payload, dict):
+        root_instance = payload.get("instance")
+        if isinstance(root_instance, str):
+            push(root_instance)
+        elif isinstance(root_instance, dict):
+            push(root_instance.get("instanceName"))
+            push(root_instance.get("instance_name"))
+            push(root_instance.get("name"))
+
+        push(payload.get("instanceName"))
+        push(payload.get("instance_name"))
+
         data = payload.get("data") or {}
         if isinstance(data, dict):
-            for key in ("instanceName", "instance_name", "instance"):
-                value = data.get(key)
-                if isinstance(value, str) and value.strip():
-                    instance_name = value.strip()
-                    break
+            push(data.get("instanceName"))
+            push(data.get("instance_name"))
+            value = data.get("instance")
+            if isinstance(value, str):
+                push(value)
+            elif isinstance(value, dict):
+                push(value.get("instanceName"))
+                push(value.get("instance_name"))
+                push(value.get("name"))
 
-    if not instance_name:
-        return None
+    push(fallback_instance_name)
+    return candidates
 
-    user = get_by_whatsapp_instance_name(db, instance_name)
-    return user
+
+def resolve_webhook_user(db: Session, payload: dict, fallback_instance_name: str | None = None) -> User | None:
+    candidates = _extract_instance_candidates(payload, fallback_instance_name)
+    for instance_name in candidates:
+        user = get_by_whatsapp_instance_name(db, instance_name)
+        if user:
+            return user
+    return None
 
 def build_whatsapp_incoming_intake(db: Session, user: User, info: dict):
     from app.models.voucher_intake import VoucherSourceChannel
@@ -219,11 +239,30 @@ def build_whatsapp_incoming_intake(db: Session, user: User, info: dict):
     from app.services.voucher_intake_service import create_intake_from_upload
     from app.services.whatsapp.file_download import build_upload_from_whatsapp_message
 
-    upload = build_upload_from_whatsapp_message(info["message_payload"], info)
-    validate_mime_type(upload.content_type)
+    print(f"=== build_whatsapp_incoming_intake START: user={user.id}, instance={user.whatsapp_instance_name}")
+    download_info = dict(info)
+    download_info["instance_name"] = user.whatsapp_instance_name or info.get("instance_name")
+    print(f"=== download_info instance: {download_info['instance_name']}")
+
+    try:
+        upload = build_upload_from_whatsapp_message(info["message_payload"], download_info)
+        print(f"=== upload OK: content_type={upload.content_type if upload else None}")
+        validate_mime_type(upload.content_type)
+        print(f"=== mime OK")
+    except Exception as exc:
+        print(f"=== ERROR build_upload user={user.id}: {type(exc).__name__}: {exc}")
+        return None
+
+    print(f"=== from_me: {info.get('from_me')}")
+    if info.get("from_me"):
+        print(f"=== ignorando mensaje propio")
+        return None
+
+    print(f"=== intake_enabled: {user.whatsapp_intake_enabled}")
+    print(f"=== llamando create_intake_from_upload...")
 
     if not user.whatsapp_intake_enabled:
-        return create_intake_from_upload(
+        result=create_intake_from_upload(
             db,
             user,
             file=upload,
@@ -238,7 +277,7 @@ def build_whatsapp_incoming_intake(db: Session, user: User, info: dict):
             enqueue_processing=False,
         )
 
-    return create_intake_from_upload(
+    result = create_intake_from_upload(
         db,
         user,
         file=upload,
@@ -249,3 +288,5 @@ def build_whatsapp_incoming_intake(db: Session, user: User, info: dict):
         source_instance_name=info.get("instance_name") or user.whatsapp_instance_name,
         source_caption=info.get("caption"),
     )
+    print(f"=== intake creado: {result}, id={result.id if result else None}")
+    return result

@@ -42,7 +42,9 @@ def upgrade() -> None:
     bind.execute(sa.text("""
         ALTER TABLE clients
             ADD COLUMN IF NOT EXISTS delivery_city VARCHAR,
-            ADD COLUMN IF NOT EXISTS delivery_department VARCHAR;
+            ADD COLUMN IF NOT EXISTS delivery_department VARCHAR,
+            ADD COLUMN IF NOT EXISTS delivery_mode VARCHAR,
+            ADD COLUMN IF NOT EXISTS delivery_transport_companies JSONB;
     """))
 
     bind.execute(sa.text("""
@@ -72,7 +74,9 @@ def upgrade() -> None:
     bind.execute(sa.text("""
         ALTER TABLE delivery_schedules
             ADD COLUMN IF NOT EXISTS location TEXT,
-            ADD COLUMN IF NOT EXISTS destination_city TEXT;
+            ADD COLUMN IF NOT EXISTS destination_city TEXT,
+            ADD COLUMN IF NOT EXISTS delivery_mode VARCHAR,
+            ADD COLUMN IF NOT EXISTS transport_companies JSONB;
     """))
 
     # Add tenant scoping columns (nullable) and indexes/constraints

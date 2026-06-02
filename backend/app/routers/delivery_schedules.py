@@ -12,6 +12,7 @@ from app.schemas.delivery_schedule import (
     DeliveryScheduleResponse,
 )
 from app.auth.dependencies import get_current_user
+from app.models.client import Client
 from app.models.user import User
 from app.models.order import Order, OrderStatus
 from app.models.logistics import Logistics, DeliveryStatus
@@ -59,6 +60,8 @@ def create_delivery_schedule(
         delivery_location=payload.delivery_location,
         location=payload.location,
         destination_city=payload.destination_city,
+        delivery_mode=payload.delivery_mode,
+        transport_companies=payload.transport_companies,
         notes=payload.notes,
         user_id=current_user.id,
     )
@@ -122,9 +125,44 @@ def mark_delivery_as_delivered(
 ):
     """Marcar una entrega como completada"""
     repo = DeliveryScheduleRepository(db)
-    schedule = repo.mark_as_delivered(schedule_id, payload.notes, user_id=current_user.id)
+    clean_notes = payload.notes.strip() if payload.notes else None
+
+    schedule = repo.mark_as_delivered(
+        schedule_id,
+        clean_notes,
+        user_id=current_user.id
+    )
     if not schedule:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Programación de entrega no encontrada")
+    order = (
+        db.query(Order)
+        .filter(Order.id == schedule.order_id)
+        .first()
+    )
+
+    if order and order.client:
+        client = order.client
+
+        client.delivery_mode = schedule.delivery_mode
+
+        if schedule.delivery_mode == "same_city":
+
+            client.delivery_transport_companies = []
+
+        elif schedule.delivery_mode == "other_city":
+
+            if schedule.destination_city:
+                client.delivery_city = schedule.destination_city
+
+            client.delivery_transport_companies = (
+                schedule.transport_companies or []
+            )
+
+        if payload.notes is not None:
+            client.notes = payload.notes
+
+        db.commit()
+        db.refresh(client)
     return schedule
 
 
@@ -166,13 +204,14 @@ def update_delivery_location(
     current_user: User = Depends(get_current_user),
 ):
     """Actualizar la locación de entrega"""
-    if not payload.delivery_location:
+    update_payload = payload.model_dump(exclude_unset=True)
+    if not update_payload:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="delivery_location es requerido"
+            detail="Se requiere al menos un campo para actualizar"
         )
     repo = DeliveryScheduleRepository(db)
-    schedule = repo.update_delivery_location(schedule_id, payload.delivery_location, user_id=current_user.id)
+    schedule = repo.update_delivery_details(schedule_id, update_payload, user_id=current_user.id)
     if not schedule:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Programación de entrega no encontrada")
     return schedule

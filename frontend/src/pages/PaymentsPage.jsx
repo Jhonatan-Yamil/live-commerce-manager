@@ -73,7 +73,10 @@ export default function PaymentsPage() {
     <Box>
       <Box sx={{ mb: 3, display: "flex", justifyContent: "space-between", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
         <Box>
-          <Typography variant="h5" fontWeight={700} color={APP_PALETTE.text.primary}>Gestión de Pagos</Typography>
+          <Typography variant="h5" fontWeight={700} color={APP_PALETTE.text.primary}>Comprobantes y pagos</Typography>
+          <Typography variant="body2" color="text.secondary" mt={0.5}>
+            Revisa los comprobantes que llegaron, confirma los pagos y corrige el pedido si hace falta.
+          </Typography>
           {lastUpdatedAt && (
             <Typography variant="caption" color="text.secondary">
               Actualizado: {lastUpdatedAt.toLocaleTimeString("es-BO")}
@@ -86,7 +89,7 @@ export default function PaymentsPage() {
           disabled={isRefreshing}
           onClick={() => load(true)}
         >
-          {isRefreshing ? "Actualizando..." : "Actualizar ahora"}
+          {isRefreshing ? "Actualizando..." : "Refrescar lista"}
         </Button>
       </Box>
 

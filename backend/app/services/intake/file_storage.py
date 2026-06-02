@@ -13,6 +13,21 @@ ALLOWED_MIME_TYPES = {
 }
 
 
+def _normalize_mime_type(mime_type: str | None) -> str | None:
+    if not mime_type:
+        return None
+    normalized = mime_type.strip().lower()
+    if ";" in normalized:
+        normalized = normalized.split(";", 1)[0].strip()
+    if normalized == "application/x-pdf":
+        return "application/pdf"
+    if normalized == "image/pjpeg":
+        return "image/jpeg"
+    if normalized == "image/jpg":
+        return "image/jpeg"
+    return normalized
+
+
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
@@ -24,9 +39,10 @@ def validate_extension(filename: str) -> str:
 
 
 def validate_mime_type(mime_type: str | None) -> None:
-    if not mime_type:
+    normalized = _normalize_mime_type(mime_type)
+    if not normalized:
         return
-    if mime_type.lower() not in ALLOWED_MIME_TYPES:
+    if normalized not in ALLOWED_MIME_TYPES:
         raise ValueError("Tipo de archivo no permitido")
 
 

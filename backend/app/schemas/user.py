@@ -33,3 +33,12 @@ class UserUpdate(BaseModel):
     whatsapp_instance_status: str | None = None
     whatsapp_connected_at: datetime | None = None
     whatsapp_intake_enabled: bool | None = None
+
+
+class UserProfileUpdateIn(BaseModel):
+    full_name: str
+
+
+class UserPasswordUpdateIn(BaseModel):
+    current_password: str
+    new_password: str

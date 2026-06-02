@@ -34,6 +34,8 @@ export default function PaymentSuggestionPanel({
   const [advancedMenu, setAdvancedMenu] = useState({ anchorEl: null, suggestionId: null });
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [confirmPayload, setConfirmPayload] = useState(null);
+  const [rejectConfirmOpen, setRejectConfirmOpen] = useState(false);
+  const [rejectPayload, setRejectPayload] = useState(null);
 
   const openAdvancedMenu = (event, suggestionId) => {
     setAdvancedMenu({ anchorEl: event.currentTarget, suggestionId });
@@ -47,10 +49,10 @@ export default function PaymentSuggestionPanel({
     <>
       <Paper sx={{ p: 2.5, mb: 2.5, borderRadius: 3, boxShadow: "0 1px 8px rgba(0,0,0,0.08)" }}>
       <Typography variant="h6" fontWeight={700} color={APP_PALETTE.text.primary} mb={1.5}>
-        Pagos por revisar
+        Comprobantes por revisar
       </Typography>
       {suggestions.length === 0 ? (
-        <Typography variant="body2" color="text.secondary">No hay sugerencias pendientes por revisar</Typography>
+        <Typography variant="body2" color="text.secondary">No hay comprobantes pendientes</Typography>
       ) : (
         <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
           {suggestions.slice(0, 8).map((s) => {
@@ -100,7 +102,7 @@ export default function PaymentSuggestionPanel({
 
                 {s.processing_status === "failed" && (
                   <Typography variant="caption" color="error" display="block" sx={{ mb: 1 }}>
-                    No se pudo leer este comprobante completamente. Puedes intentar nuevamente desde opciones.
+                    No pudimos leer este comprobante por completo. Puedes intentar de nuevo desde el menú.
                   </Typography>
                 )}
 
@@ -123,14 +125,23 @@ export default function PaymentSuggestionPanel({
                         },
                       }}
                     >
-                      Aceptar y completar
+                      Confirmar y completar
                     </Button>
                   ) : (
                     <Button size="small" variant="contained" color="success" disabled={processingAction[s.id]} onClick={() => onSuggestionAction(s.id, "confirm")}>
-                      Aceptar pago
+                      Confirmar pago
                     </Button>
                   )}
-                  <Button size="small" variant="contained" color="error" disabled={processingAction[s.id]} onClick={() => onSuggestionAction(s.id, "reject")}>
+                  <Button
+                    size="small"
+                    variant="contained"
+                    color="error"
+                    disabled={processingAction[s.id]}
+                    onClick={() => {
+                      setRejectPayload(s.id);
+                      setRejectConfirmOpen(true);
+                    }}
+                  >
                     Rechazar
                   </Button>
                 </Box>
@@ -143,7 +154,7 @@ export default function PaymentSuggestionPanel({
                       value={reassignOrder[s.id] || null}
                       onChange={(_, value) => setReassignOrder((prev) => ({ ...prev, [s.id]: value }))}
                       renderInput={(params) => (
-                        <TextField {...params} size="small" placeholder="Selecciona el pedido correcto" />
+                        <TextField {...params} size="small" placeholder="Elige el pedido correcto" />
                       )}
                       sx={{ width: 360 }}
                     />
@@ -158,7 +169,7 @@ export default function PaymentSuggestionPanel({
                         setConfirmOpen(true);
                       }}
                     >
-                      Guardar pedido correcto
+                      Guardar cambio
                     </Button>
                   </Box>
                 )}
@@ -177,7 +188,7 @@ export default function PaymentSuggestionPanel({
                     }}
                     disabled={processingAction[s.id]}
                   >
-                    Volver a analizar comprobante
+                    Revisar de nuevo
                   </MenuItem>
                   <MenuItem
                     onClick={() => {
@@ -185,10 +196,10 @@ export default function PaymentSuggestionPanel({
                       setShowReassign((prev) => ({ ...prev, [s.id]: !prev[s.id] }));
                     }}
                   >
-                    {showReassign[s.id] ? "Ocultar cambio de pedido" : "Cambiar pedido sugerido"}
+                    {showReassign[s.id] ? "Ocultar cambio" : "Cambiar pedido"}
                   </MenuItem>
                   <Divider />
-                  <MenuItem disabled>Opciones avanzadas</MenuItem>
+                  <MenuItem disabled>Más opciones</MenuItem>
                 </Menu>
               </Paper>
             );
@@ -199,9 +210,9 @@ export default function PaymentSuggestionPanel({
 
       <ConfirmDialog
         open={confirmOpen}
-        title="Confirmar reasignación"
-        description="¿Confirmas asignar este comprobante al pedido seleccionado?"
-        confirmText="Confirmar"
+        title="Confirmar cambio"
+        description="¿Quieres guardar este comprobante en el pedido que elegiste?"
+        confirmText="Sí, guardar"
         cancelText="Cancelar"
         onCancel={() => {
           setConfirmOpen(false);
@@ -225,6 +236,26 @@ export default function PaymentSuggestionPanel({
           </Box>
         )}
       </ConfirmDialog>
+
+      <ConfirmDialog
+        open={rejectConfirmOpen}
+        title="Rechazar"
+        description="¿Seguro que quieres rechazar este comprobante? Esta acción ayudará a sacarlo de la lista de revisión."
+        confirmText="Sí, rechazar"
+        confirmColor="error"
+        cancelText="Cancelar"
+        onCancel={() => {
+          setRejectConfirmOpen(false);
+          setRejectPayload(null);
+        }}
+        onConfirm={async () => {
+          const intakeId = rejectPayload;
+          setRejectConfirmOpen(false);
+          setRejectPayload(null);
+          if (!intakeId) return;
+          await onSuggestionAction(intakeId, "reject");
+        }}
+      />
     </>
   );
 }

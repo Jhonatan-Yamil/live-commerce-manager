@@ -7,6 +7,7 @@ import {
   DialogContent,
   DialogContentText,
   DialogTitle,
+  Divider,
   MenuItem,
   Paper,
   Table,
@@ -19,7 +20,7 @@ import {
 } from "@mui/material";
 import { APP_PALETTE } from "../../theme/palette";
 import { deliverySchedulesApi } from "../../services/api";
-import { toDateIso, summarizeItems, sumItems, normalizeLocationLabel } from "../../utils/logistics";
+import { toDateIso, summarizeItems, sumItems, normalizeLocationLabel, normalizeTransportCompanies } from "../../utils/logistics";
 import DeliverySlip from "./DeliverySlip";
 import PrintIcon from "@mui/icons-material/Print";
 import TablePager from "../common/TablePager";
@@ -28,7 +29,6 @@ import { formatCurrencyBs } from "../../utils/formatters";
 
 const STATUS_LABELS = {
   scheduled: "Agendado",
-  rescheduled: "Reprogramado",
   not_delivered: "No entregado",
   delivered: "Entregado",
 };
@@ -42,9 +42,6 @@ export default function ScheduledDeliveriesPanel({ orders = [], onUpdate, brandL
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [detailDialog, setDetailDialog] = useState({ open: false, schedule: null });
   const [slipDialog, setSlipDialog] = useState({ open: false, schedule: null });
-  const [note, setNote] = useState("");
-  const [rescheduleDate, setRescheduleDate] = useState("");
-  const [location, setLocation] = useState("");
 
   const loadSchedules = async () => {
     const res = await deliverySchedulesApi.list();
@@ -92,32 +89,28 @@ export default function ScheduledDeliveriesPanel({ orders = [], onUpdate, brandL
     return canonical || normalizeLocationLabel(schedule.delivery_location);
   };
 
-  const isYesterdayNotDelivered = (schedule) => {
+  const isPendingProblem = (schedule) => {
     try {
       if (!schedule || !schedule.scheduled_date) return false;
       if (schedule.status === "delivered") return false;
+      if (schedule.status === "not_delivered") return true; 
       const rawDate = String(schedule.scheduled_date).slice(0, 10);
-      const parts = rawDate.split("-").map((part) => Number(part));
-      if (parts.length !== 3 || parts.some((part) => Number.isNaN(part))) return false;
+      const parts = rawDate.split("-").map(Number);
+      if (parts.length !== 3 || parts.some(isNaN)) return false;
       const scheduled = new Date(parts[0], parts[1] - 1, parts[2]);
-      const today = new Date();
-      const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      return scheduled.getTime() < startOfToday.getTime();
-    } catch (e) {
-      return false;
-    }
+      const startOfToday = new Date();
+      startOfToday.setHours(0, 0, 0, 0);
+      return scheduled.getTime() < startOfToday.getTime(); 
+    } catch { return false; }
   };
 
   const openDetail = (schedule) => {
     setDetailDialog({ open: true, schedule });
-    setNote(schedule.notes || "");
-    setRescheduleDate("");
-    setLocation(schedule.delivery_location || "");
     (async () => {
       try {
         const res = await deliverySchedulesApi.getByOrder(schedule.order_id);
         setScheduleHistory(res.data || []);
-      } catch (e) {
+      } catch {
         setScheduleHistory([]);
       }
     })();
@@ -162,8 +155,16 @@ export default function ScheduledDeliveriesPanel({ orders = [], onUpdate, brandL
     if (!detailDialog.schedule) return;
     const original = String(detailDialog.schedule.delivery_location || "").trim();
     const next = String(location || "").trim();
-    if (next && next !== original) {
-      await deliverySchedulesApi.updateLocation(detailDialog.schedule.id, { delivery_location: next });
+    const nextTransportCompanies = normalizeTransportCompanies(transportCompanies);
+    const payload = {
+      delivery_mode: nextTransportCompanies.length > 0 ? "other_city" : "same_city",
+      transport_companies: nextTransportCompanies,
+    };
+
+    if (next && next !== original) payload.delivery_location = next;
+    if (payload.delivery_location || payload.transport_companies.length > 0 || note !== (detailDialog.schedule.notes || "")) {
+      payload.notes = note || undefined;
+      await deliverySchedulesApi.updateLocation(detailDialog.schedule.id, payload);
     }
 
     if (rescheduleDate) {
@@ -175,8 +176,12 @@ export default function ScheduledDeliveriesPanel({ orders = [], onUpdate, brandL
   };
 
   const handleUpdateLocation = async () => {
-    if (!detailDialog.schedule || !location.trim()) return;
-    await deliverySchedulesApi.updateLocation(detailDialog.schedule.id, { delivery_location: location.trim() });
+    if (!detailDialog.schedule) return;
+    await deliverySchedulesApi.updateLocation(detailDialog.schedule.id, {
+      delivery_location: location.trim(),
+      delivery_mode: normalizeTransportCompanies(transportCompanies).length > 0 ? "other_city" : "same_city",
+      transport_companies: normalizeTransportCompanies(transportCompanies),
+    });
     closeDetail();
     await refresh();
   };
@@ -201,7 +206,6 @@ export default function ScheduledDeliveriesPanel({ orders = [], onUpdate, brandL
         <TextField select size="small" label="Estado" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}>
           <MenuItem value="all">Todos</MenuItem>
           <MenuItem value="scheduled">Agendado</MenuItem>
-          <MenuItem value="rescheduled">Reprogramado</MenuItem>
           <MenuItem value="not_delivered">No entregado</MenuItem>
           <MenuItem value="delivered">Entregado</MenuItem>
         </TextField>
@@ -226,7 +230,7 @@ export default function ScheduledDeliveriesPanel({ orders = [], onUpdate, brandL
             const client = order?.client;
             const itemCount = sumItems(order);
 
-            const highlight = isYesterdayNotDelivered(schedule);
+            const highlight = isPendingProblem(schedule);
 
             return (
               <TableRow
@@ -281,112 +285,143 @@ export default function ScheduledDeliveriesPanel({ orders = [], onUpdate, brandL
         </Box>
       )}
 
-      <Dialog open={detailDialog.open} onClose={closeDetail} fullWidth maxWidth="md">
+      <Dialog open={detailDialog.open} onClose={closeDetail} fullWidth maxWidth="sm">
         {detailDialog.schedule && (() => {
           const order = orderById.get(detailDialog.schedule.order_id);
-          const canEdit = detailDialog.schedule.status !== "delivered";
+          const schedule = detailDialog.schedule;
+          const isOtherCity = schedule.delivery_mode === "other_city" ||
+            (schedule.delivery_location || "").toLowerCase().startsWith("otra ciudad");
+          const displayLocation = isOtherCity
+            ? (schedule.destination_city || "")
+            : (schedule.location || schedule.delivery_location || "");
+          const displayTransport = normalizeTransportCompanies(schedule.transport_companies);
+
           return (
             <>
-              <DialogTitle>
-                {order?.client?.full_name || "Pedido"} - Pedido #{detailDialog.schedule.order_id}
+              <DialogTitle sx={{ pb: 1 }}>
+                <Typography fontWeight={600} fontSize={16}>
+                  {order?.client?.full_name || "Pedido"} — Pedido #{schedule.order_id}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  Programado para {toDateIso(schedule.scheduled_date)} · {STATUS_LABELS[schedule.status] || schedule.status}
+                </Typography>
               </DialogTitle>
-              <DialogContent>
-                <DialogContentText>
-                  {summarizeItems(order)}
-                </DialogContentText>
-                <Box sx={{ mt: 2, display: "grid", gap: 2 }}>
-                  <Box>
-                    <Typography fontWeight={700} mb={0.5}>Productos</Typography>
-                    {order?.items && order.items.length > 0 ? (
-                      order.items.map((it) => (
-                        <Box key={`${it.product_id}-${it.id || Math.random()}`} sx={{ display: "flex", justifyContent: "space-between", py: 0.5 }}>
-                          <Typography>{it.product?.name || `Producto #${it.product_id}`}</Typography>
-                          <Typography variant="caption" color="text.secondary">x{it.quantity} · {formatCurrencyBs(it.unit_price)}</Typography>
-                        </Box>
-                      ))
-                    ) : (
-                      <Typography variant="caption" color="text.secondary">Sin productos</Typography>
-                    )}
-                  </Box>
 
-                  <Box>
-                    <Typography fontWeight={700} mb={0.5}>Cliente</Typography>
-                    <Typography>{order?.client?.full_name || "Sin cliente"}</Typography>
-                    <Typography variant="caption" color="text.secondary">Tel: {order?.client?.phone || "-"}</Typography>
-                    <Typography variant="caption" color="text.secondary">Ciudad/Depto: {order?.client?.delivery_city || "-"} / {order?.client?.delivery_department || "-"}</Typography>
-                    <Typography variant="caption" color="text.secondary">Dirección: {order?.client?.address || "-"}</Typography>
-                  </Box>
+              <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 1 }}>
 
-                  <Box>
-                    <Typography fontWeight={700} mb={0.5}>Estado de logística</Typography>
-                    {order?.logistics && order.logistics.length > 0 ? (
-                      order.logistics.map((l) => (
-                        <Typography key={l.id} variant="caption" display="block">{l.status} — {toDateIso(l.created_at)}</Typography>
-                      ))
-                    ) : (
-                      <Typography variant="caption" color="text.secondary">Sin registros de logística</Typography>
-                    )}
-                  </Box>
-
-                  <Box>
-                    <Typography fontWeight={700} mb={0.5}>Historial de reprogramaciones</Typography>
-                    {scheduleHistory && scheduleHistory.length > 0 ? (
-                      scheduleHistory.map((s) => (
-                        <Box key={`hist-${s.id}`} sx={{ display: "flex", justifyContent: "space-between", py: 0.5 }}>
-                          <Typography variant="caption">{toDateIso(s.scheduled_date)} — {s.status}</Typography>
-                          <Typography variant="caption" color="text.secondary">{s.notes || "-"}</Typography>
-                        </Box>
-                      ))
-                    ) : (
-                      <Typography variant="caption" color="text.secondary">Sin historial</Typography>
-                    )}
-                  </Box>
-
-                  <Box sx={{ display: "grid", gap: 1.5 }}>
-                    <TextField
-                      size="small"
-                      label="Ubicación"
-                      value={location}
-                      onChange={(e) => setLocation(e.target.value)}
-                      disabled={!canEdit}
-                    />
-                    <TextField
-                      size="small"
-                      label="Notas"
-                      value={note}
-                      onChange={(e) => setNote(e.target.value)}
-                      multiline
-                      minRows={2}
-                      disabled={!canEdit}
-                    />
-                    <TextField
-                      size="small"
-                      type="date"
-                      label="Reprogramar para"
-                      value={rescheduleDate}
-                      onChange={(e) => setRescheduleDate(e.target.value)}
-                      InputLabelProps={{ shrink: true }}
-                      disabled={!canEdit}
-                    />
-                    {!canEdit && (
-                      <Typography variant="caption" color="text.secondary">
-                        Esta entrega ya fue marcada como entregada. Solo se permite edición en entregas no entregadas.
+                <Box>
+                  <Typography fontSize={11} fontWeight={600} color="text.secondary"
+                    sx={{ textTransform: "uppercase", letterSpacing: "0.05em", mb: 1 }}>
+                    Destino de entrega
+                  </Typography>
+                  <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.5 }}>
+                    <Box>
+                      <Typography fontSize={12} color="text.secondary" mb={0.25}>Tipo</Typography>
+                      <Typography fontSize={14} fontWeight={500}>
+                        {isOtherCity ? "Envío a otra ciudad" : "Entrega local"}
                       </Typography>
+                    </Box>
+                    <Box>
+                      <Typography fontSize={12} color="text.secondary" mb={0.25}>
+                        {isOtherCity ? "Ciudad / Departamento" : "Dirección"}
+                      </Typography>
+                      <Typography fontSize={14} fontWeight={500}>
+                        {displayLocation || "—"}
+                      </Typography>
+                    </Box>
+                    {isOtherCity && displayTransport.length > 0 && (
+                      <Box sx={{ gridColumn: "1 / -1" }}>
+                        <Typography fontSize={12} color="text.secondary" mb={0.25}>Empresas de transporte</Typography>
+                        <Typography fontSize={14}>{displayTransport.join(", ")}</Typography>
+                      </Box>
+                    )}
+                    {schedule.notes && (
+                      <Box sx={{ gridColumn: "1 / -1" }}>
+                        <Typography fontSize={12} color="text.secondary" mb={0.25}>Notas</Typography>
+                        <Typography fontSize={14}>{schedule.notes}</Typography>
+                      </Box>
                     )}
                   </Box>
                 </Box>
+
+                <Divider />
+
+                <Box>
+                  <Typography fontSize={11} fontWeight={600} color="text.secondary"
+                    sx={{ textTransform: "uppercase", letterSpacing: "0.05em", mb: 1 }}>
+                    Cliente
+                  </Typography>
+                  <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 1.5 }}>
+                    <Box>
+                      <Typography fontSize={12} color="text.secondary" mb={0.25}>Nombre</Typography>
+                      <Typography fontSize={14}>{order?.client?.full_name || "—"}</Typography>
+                    </Box>
+                    <Box>
+                      <Typography fontSize={12} color="text.secondary" mb={0.25}>Teléfono</Typography>
+                      <Typography fontSize={14}>{order?.client?.phone || "—"}</Typography>
+                    </Box>
+                  </Box>
+                </Box>
+
+                <Divider />
+
+                <Box>
+                  <Typography fontSize={11} fontWeight={600} color="text.secondary"
+                    sx={{ textTransform: "uppercase", letterSpacing: "0.05em", mb: 1 }}>
+                    Productos · {sumItems(order)} prenda{sumItems(order) !== 1 ? "s" : ""}
+                  </Typography>
+                  <Box sx={{ border: "0.5px solid", borderColor: "divider", borderRadius: 1.5, overflow: "hidden" }}>
+                    {order?.items?.length > 0 ? order.items.map((it, idx) => (
+                      <Box key={it.id || it.product_id} sx={{
+                        display: "flex", justifyContent: "space-between", alignItems: "center",
+                        px: 1.5, py: 1,
+                        borderTop: idx > 0 ? "0.5px solid" : "none",
+                        borderColor: "divider",
+                      }}>
+                        <Typography fontSize={13}>{it.product?.name || `Producto #${it.product_id}`}</Typography>
+                        <Typography fontSize={13} color="text.secondary">
+                          x{it.quantity} · {formatCurrencyBs(it.unit_price)}
+                        </Typography>
+                      </Box>
+                    )) : (
+                      <Box sx={{ px: 1.5, py: 1 }}>
+                        <Typography fontSize={13} color="text.secondary">Sin productos</Typography>
+                      </Box>
+                    )}
+                  </Box>
+                </Box>
+
+                {scheduleHistory.length > 1 && (
+                  <>
+                    <Divider />
+                    <Box>
+                      <Typography fontSize={11} fontWeight={600} color="text.secondary"
+                        sx={{ textTransform: "uppercase", letterSpacing: "0.05em", mb: 1 }}>
+                        Historial
+                      </Typography>
+                      <Box sx={{ border: "0.5px solid", borderColor: "divider", borderRadius: 1.5, overflow: "hidden" }}>
+                        {scheduleHistory.map((s, idx) => (
+                          <Box key={s.id} sx={{
+                            display: "flex", justifyContent: "space-between", alignItems: "center",
+                            px: 1.5, py: 1,
+                            borderTop: idx > 0 ? "0.5px solid" : "none",
+                            borderColor: "divider",
+                          }}>
+                            <Typography fontSize={13}>{toDateIso(s.scheduled_date)}</Typography>
+                            <Typography fontSize={13} color="text.secondary">
+                              {STATUS_LABELS[s.status] || s.status}{s.notes ? ` — ${s.notes}` : ""}
+                            </Typography>
+                          </Box>
+                        ))}
+                      </Box>
+                    </Box>
+                  </>
+                )}
+
               </DialogContent>
-              <DialogActions>
+
+              <DialogActions sx={{ px: 3, pb: 2 }}>
                 <Button onClick={closeDetail}>Cerrar</Button>
-                <Button color="error" onClick={markNotDelivered} disabled={!canEdit}>
-                  No entregado
-                </Button>
-                <Button variant="outlined" onClick={saveChanges} disabled={!canEdit || (!location.trim() && !rescheduleDate)}>
-                  Guardar cambios
-                </Button>
-                <Button variant="contained" color="primary" onClick={markDelivered} disabled={!canEdit}>
-                  Entregado
-                </Button>
               </DialogActions>
             </>
           );

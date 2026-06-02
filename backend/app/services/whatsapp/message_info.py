@@ -124,6 +124,7 @@ def extract_message_file_info(update: Any) -> dict[str, Any] | None:
         "media_url": media_url,
         "chat_id": message_payload.get("key", {}).get("remoteJid"),
         "message_id": message_payload.get("key", {}).get("id"),
+        "from_me": bool(message_payload.get("key", {}).get("fromMe")),
         "sender_phone": _resolve_sender_phone(message_payload),
         "caption": media_blob.get("caption"),
     }

@@ -74,6 +74,16 @@ export default function ClientsPage() {
     (c.phone || "").includes(search)
   ).sort((a, b) => b.id - a.id);
 
+  const getClientAddress = (c) => {
+    const addr = c.address || "";
+    if (addr.toLowerCase().startsWith("otra ciudad/departamento")) {
+      const parts = addr.split(" - ").map(p => p.trim());
+      const city = parts.find((p, i) => i > 0 && !p.toLowerCase().startsWith("transporte:"));
+      return city || c.delivery_city || "—";
+    }
+    return addr || c.delivery_city || "—";
+  };
+
   const handleSubmit = () => {
     setSubmitAttempted(true);
     submitForm();
@@ -134,83 +144,199 @@ export default function ClientsPage() {
         resultCount={filtered.length}
       />
 
-      <TableContainer component={Paper} sx={{ borderRadius: 3, boxShadow: "0 1px 8px rgba(0,0,0,0.08)" }}>
-        <Table>
-          <TableHead>
-            <TableRow sx={{ background: APP_PALETTE.surfaces.subtle }}>
-              {["Nombre", "Teléfono", "Dirección", "Ciudad", "Departamento", "Notas", "Pedidos", "Acciones"].map((h) => (
-                <TableCell key={h} sx={{ fontWeight: 700, color: APP_PALETTE.text.muted, fontSize: 13 }}>{h}</TableCell>
-              ))}
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((c) => {
-              const clientOrders = getClientOrders(c.id);
-              const isExpanded = expanded[c.id];
-              return (
-                <Fragment key={c.id}>
-                  <TableRow key={c.id} hover>
-                    <TableCell sx={{ fontWeight: 600 }}>{c.full_name}</TableCell>
-                    <TableCell sx={{ color: APP_PALETTE.text.secondary }}>{c.phone || "—"}</TableCell>
-                    <TableCell sx={{ color: APP_PALETTE.text.secondary }}>{c.address || "—"}</TableCell>
-                    <TableCell sx={{ color: APP_PALETTE.text.secondary }}>{c.delivery_city || "—"}</TableCell>
-                    <TableCell sx={{ color: APP_PALETTE.text.secondary }}>{c.delivery_department || "—"}</TableCell>
-                    <TableCell sx={{ color: APP_PALETTE.text.muted, fontSize: 13 }}>{c.notes || "—"}</TableCell>
-                    <TableCell>
-                      {clientOrders.length > 0 ? (
-                        <Button size="small" variant="outlined"
-                          onClick={() => setExpanded({ ...expanded, [c.id]: !isExpanded })}
-                          sx={{ color: APP_PALETTE.brand.primary, borderColor: APP_PALETTE.brand.primary, borderRadius: 2, fontSize: 12 }}>
-                          {isExpanded ? "▲ Ocultar" : `▼ ${clientOrders.length} pedido(s)`}
-                        </Button>
-                      ) : (
-                        <Typography variant="caption" color="text.secondary">Sin pedidos</Typography>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Button size="small" variant="outlined" onClick={() => openEdit(c)}
-                        sx={{ color: APP_PALETTE.brand.primary, borderColor: APP_PALETTE.surfaces.brandBorderSoft, background: APP_PALETTE.brand.soft, borderRadius: 2, fontSize: 13 }}>
-                        Editar
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                  {isExpanded && clientOrders.map((o) => {
-                    const s = ORDER_STATUS_LABELS[o.status] || { label: o.status, color: APP_PALETTE.text.muted };
-                    return (
-                      <TableRow key={`order-${o.id}`} sx={{ background: APP_PALETTE.surfaces.subtle }}>
-                        <TableCell sx={{ pl: 4, color: APP_PALETTE.text.secondary, fontSize: 13 }}>└ Pedido #{o.id}</TableCell>
-                        <TableCell sx={{ color: APP_PALETTE.text.muted, fontSize: 12 }}>
-                          {formatDateEsBo(o.created_at, { day: "numeric", month: "short", year: "numeric" })}
-                        </TableCell>
-                        <TableCell sx={{ fontWeight: 600, color: APP_PALETTE.brand.primary, fontSize: 13 }}>{formatCurrencyBs(o.total)}</TableCell>
-                        <TableCell colSpan={4}><StatusBadge label={s.label} color={s.color} /></TableCell>
-                        <TableCell />
-                      </TableRow>
-                    );
-                  })}
-                </Fragment>
-              );
-            })}
-            {filtered.length === 0 && (
-              <TableRow>
-                <TableCell colSpan={6} align="center" sx={{ py: 4, color: APP_PALETTE.text.muted }}>
-                  {search ? "No se encontraron clientes" : "No hay clientes registrados"}
-                </TableCell>
+      <Box sx={{ display: { xs: "none", md: "block" } }}>
+        <TableContainer component={Paper} sx={{ borderRadius: 3, boxShadow: "0 1px 8px rgba(0,0,0,0.08)" }}>
+          <Table>
+            <TableHead>
+              <TableRow sx={{ background: APP_PALETTE.surfaces.subtle }}>
+                {["Nombre", "Teléfono", "Dirección", "Tipo de entrega", "Transportes", "Notas", "Pedidos", "Acciones"].map((h) => (
+                  <TableCell key={h} sx={{ fontWeight: 700, color: APP_PALETTE.text.muted, fontSize: 13 }}>{h}</TableCell>
+                ))}
               </TableRow>
-            )}
-          </TableBody>
-        </Table>
+            </TableHead>
+            <TableBody>
+              {filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((c) => {
+                const clientOrders = getClientOrders(c.id);
+                const isExpanded = expanded[c.id];
+                return (
+                  <Fragment key={c.id}>
+                    <TableRow hover>
+                      <TableCell sx={{ fontWeight: 600 }}>{c.full_name}</TableCell>
+                      <TableCell sx={{ color: APP_PALETTE.text.secondary }}>{c.phone || "—"}</TableCell>
+                      <TableCell sx={{ color: APP_PALETTE.text.secondary }}>{getClientAddress(c)}</TableCell>
+                      <TableCell>
+                        {c.delivery_mode === "other_city" ? (
+                          <Typography variant="caption" sx={{ background: "#fff3e0", color: "#e65100", borderRadius: 1, px: 1, py: 0.25, fontWeight: 600, fontSize: 12 }}>
+                            📦 Envío — {c.delivery_city || "otra ciudad"}
+                          </Typography>
+                        ) : c.delivery_mode === "same_city" ? (
+                          <Typography variant="caption" sx={{ background: "#e8f5e9", color: "#2e7d32", borderRadius: 1, px: 1, py: 0.25, fontWeight: 600, fontSize: 12 }}>
+                            🏪 Local — {c.delivery_city || "misma ciudad"}
+                          </Typography>
+                        ) : (
+                          <Typography variant="caption" sx={{ color: APP_PALETTE.text.muted }}>— sin definir</Typography>
+                        )}
+                      </TableCell>
+                      <TableCell sx={{ color: APP_PALETTE.text.secondary }}>
+                        {(c.delivery_transport_companies || []).length > 0
+                          ? c.delivery_transport_companies.join(", ")
+                          : "—"}
+                      </TableCell>
+                      <TableCell sx={{ color: APP_PALETTE.text.muted, fontSize: 13 }}>{c.notes || "—"}</TableCell>
+                      <TableCell>
+                        {clientOrders.length > 0 ? (
+                          <Button size="small" variant="outlined"
+                            onClick={() => setExpanded({ ...expanded, [c.id]: !isExpanded })}
+                            sx={{ color: APP_PALETTE.brand.primary, borderColor: APP_PALETTE.brand.primary, borderRadius: 2, fontSize: 12 }}>
+                            {isExpanded ? "▲ Ocultar" : `▼ ${clientOrders.length} pedido(s)`}
+                          </Button>
+                        ) : (
+                          <Typography variant="caption" color="text.secondary">Sin pedidos</Typography>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Button size="small" variant="outlined" onClick={() => openEdit(c)}
+                          sx={{ color: APP_PALETTE.brand.primary, borderColor: APP_PALETTE.surfaces.brandBorderSoft, background: APP_PALETTE.brand.soft, borderRadius: 2, fontSize: 13 }}>
+                          Editar
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                    {isExpanded && clientOrders.map((o) => {
+                      const s = ORDER_STATUS_LABELS[o.status] || { label: o.status, color: APP_PALETTE.text.muted };
+                      return (
+                        <TableRow key={`order-${o.id}`} sx={{ background: APP_PALETTE.surfaces.subtle }}>
+                          <TableCell sx={{ pl: 4, color: APP_PALETTE.text.secondary, fontSize: 13 }}>└ Pedido #{o.id}</TableCell>
+                          <TableCell sx={{ color: APP_PALETTE.text.muted, fontSize: 12 }}>
+                            {formatDateEsBo(o.created_at, { day: "numeric", month: "short", year: "numeric" })}
+                          </TableCell>
+                          <TableCell sx={{ fontWeight: 600, color: APP_PALETTE.brand.primary, fontSize: 13 }}>{formatCurrencyBs(o.total)}</TableCell>
+                          <TableCell colSpan={4}><StatusBadge label={s.label} color={s.color} /></TableCell>
+                          <TableCell />
+                        </TableRow>
+                      );
+                    })}
+                  </Fragment>
+                );
+              })}
+              {filtered.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={8} align="center" sx={{ py: 4, color: APP_PALETTE.text.muted }}>
+                    {search ? "No se encontraron clientes" : "No hay clientes registrados"}
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
+          <TablePager
+            count={filtered.length}
+            page={page}
+            rowsPerPage={rowsPerPage}
+            onPageChange={setPage}
+            onRowsPerPageChange={(value) => { setRowsPerPage(value); setPage(0); }}
+          />
+        </TableContainer>
+      </Box>
+
+      {/* Vista móvil: cards */}
+      <Box sx={{ display: { xs: "flex", md: "none" }, flexDirection: "column", gap: 1.5 }}>
+        {filtered.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage).map((c) => {
+          const clientOrders = getClientOrders(c.id);
+          const isExpanded = expanded[c.id];
+          return (
+            <Paper key={c.id} sx={{ p: 2, borderRadius: 3, boxShadow: "0 1px 6px rgba(0,0,0,0.07)" }}>
+              <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", mb: 1 }}>
+                <Box>
+                  <Typography fontWeight={700} fontSize={15}>{c.full_name}</Typography>
+                  <Typography variant="caption" color="text.secondary">{c.phone || "Sin teléfono"}</Typography>
+                </Box>
+                <Button size="small" variant="outlined" onClick={() => openEdit(c)}
+                  sx={{ color: APP_PALETTE.brand.primary, borderColor: APP_PALETTE.surfaces.brandBorderSoft, background: APP_PALETTE.brand.soft, borderRadius: 2, fontSize: 12 }}>
+                  Editar
+                </Button>
+              </Box>
+
+              <Box sx={{ display: "flex", flexDirection: "column", gap: 0.5 }}>
+                <Typography variant="caption" color="text.secondary">
+                  📍 {getClientAddress(c) || "Sin dirección"}
+                </Typography>
+
+                <Box>
+                  {c.delivery_mode === "other_city" ? (
+                    <Typography variant="caption" sx={{ background: "#fff3e0", color: "#e65100", borderRadius: 1, px: 1, py: 0.25, fontWeight: 600, fontSize: 12 }}>
+                      📦 Envío — {c.delivery_city || "otra ciudad"}
+                    </Typography>
+                  ) : c.delivery_mode === "same_city" ? (
+                    <Typography variant="caption" sx={{ background: "#e8f5e9", color: "#2e7d32", borderRadius: 1, px: 1, py: 0.25, fontWeight: 600, fontSize: 12 }}>
+                      🏪 Local — {c.delivery_city || "misma ciudad"}
+                    </Typography>
+                  ) : (
+                    <Typography variant="caption" color="text.secondary">Sin modo de entrega</Typography>
+                  )}
+                </Box>
+
+                {(c.delivery_transport_companies || []).length > 0 && (
+                  <Typography variant="caption" color="text.secondary">
+                    🚚 {c.delivery_transport_companies.join(", ")}
+                  </Typography>
+                )}
+
+                {c.notes && (
+                  <Typography variant="caption" color="text.secondary">
+                    📝 {c.notes}
+                  </Typography>
+                )}
+              </Box>
+
+              {clientOrders.length > 0 && (
+                <Box sx={{ mt: 1.5 }}>
+                  <Button size="small" variant="outlined" fullWidth
+                    onClick={() => setExpanded({ ...expanded, [c.id]: !isExpanded })}
+                    sx={{ color: APP_PALETTE.brand.primary, borderColor: APP_PALETTE.brand.primary, borderRadius: 2, fontSize: 12 }}>
+                    {isExpanded ? "▲ Ocultar pedidos" : `▼ Ver ${clientOrders.length} pedido(s)`}
+                  </Button>
+                  {isExpanded && (
+                    <Box sx={{ mt: 1, display: "flex", flexDirection: "column", gap: 0.75 }}>
+                      {clientOrders.map((o) => {
+                        const s = ORDER_STATUS_LABELS[o.status] || { label: o.status, color: APP_PALETTE.text.muted };
+                        return (
+                          <Box key={o.id} sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", p: 1, borderRadius: 2, background: APP_PALETTE.surfaces.subtle }}>
+                            <Box>
+                              <Typography variant="caption" fontWeight={600}>Pedido #{o.id}</Typography>
+                              <Typography variant="caption" color="text.secondary" display="block">
+                                {formatDateEsBo(o.created_at, { day: "numeric", month: "short", year: "numeric" })}
+                              </Typography>
+                            </Box>
+                            <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
+                              <Typography variant="caption" fontWeight={600} color={APP_PALETTE.brand.primary}>
+                                {formatCurrencyBs(o.total)}
+                              </Typography>
+                              <StatusBadge label={s.label} color={s.color} />
+                            </Box>
+                          </Box>
+                        );
+                      })}
+                    </Box>
+                  )}
+                </Box>
+              )}
+            </Paper>
+          );
+        })}
+
+        {filtered.length === 0 && (
+          <Typography variant="caption" color="text.secondary" sx={{ py: 3, textAlign: "center", display: "block" }}>
+            {search ? "No se encontraron clientes" : "No hay clientes registrados"}
+          </Typography>
+        )}
+
         <TablePager
           count={filtered.length}
           page={page}
           rowsPerPage={rowsPerPage}
           onPageChange={setPage}
-          onRowsPerPageChange={(value) => {
-            setRowsPerPage(value);
-            setPage(0);
-          }}
+          onRowsPerPageChange={(value) => { setRowsPerPage(value); setPage(0); }}
         />
-      </TableContainer>
+      </Box>
     </Box>
   );
 }

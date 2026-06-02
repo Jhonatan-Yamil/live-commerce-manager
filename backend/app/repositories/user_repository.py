@@ -1,3 +1,4 @@
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models.user import User
@@ -13,7 +14,15 @@ def get_active_by_email(db: Session, email: str):
 
 
 def get_by_whatsapp_instance_name(db: Session, instance_name: str):
-    return db.query(User).filter(User.whatsapp_instance_name == instance_name).first()
+    normalized = (instance_name or "").strip().lower()
+    if not normalized:
+        return None
+    return (
+        db.query(User)
+        .filter(User.whatsapp_instance_name.isnot(None))
+        .filter(func.lower(User.whatsapp_instance_name) == normalized)
+        .first()
+    )
 
 
 def create_user(db: Session, payload: dict):

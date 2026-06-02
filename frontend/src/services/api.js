@@ -54,6 +54,8 @@ export const authApi = {
 };
 
 export const usersApi = {
+  updateProfile: (data) => api.patch("/users/me/profile", data),
+  updatePassword: (data) => api.patch("/users/me/password", data),
   uploadLogo: (file) => {
     const formData = new FormData();
     formData.append("file", file);

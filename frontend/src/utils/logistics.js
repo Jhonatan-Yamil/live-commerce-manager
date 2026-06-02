@@ -32,6 +32,25 @@ export const normalizeLocationLabel = (value) => {
   return allEqual ? parts[0] : raw;
 };
 
+export const normalizeTransportCompanies = (value) => {
+  if (!value) return [];
+  const list = Array.isArray(value)
+    ? value
+    : String(value)
+        .split(",")
+        .map((part) => part.trim());
+  return [...new Set(list.map((item) => String(item || "").trim()).filter(Boolean))];
+};
+
+export const buildOtherCityLabel = (destinationCity, transportCompanies = []) => {
+  const city = String(destinationCity || "").trim();
+  const carriers = normalizeTransportCompanies(transportCompanies);
+  const parts = ["Otra ciudad/departamento"];
+  if (city) parts.push(city);
+  if (carriers.length > 0) parts.push(`Transporte: ${carriers.join(", ")}`);
+  return parts.join(" - ");
+};
+
 export const extractPrintableCity = (delivery) => {
   const rawLocation = String(delivery?.location || delivery?.destination_city || delivery?.delivery_location || "").trim();
   if (!rawLocation) return "Sin destino";

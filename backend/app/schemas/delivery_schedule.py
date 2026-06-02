@@ -9,6 +9,8 @@ class DeliveryScheduleCreate(BaseModel):
     delivery_location: Optional[str] = Field(None, description="Locación de entrega (ciudad, almacén, dirección)")
     location: Optional[str] = Field(None, description="Ubicación para entregas en la misma ciudad")
     destination_city: Optional[str] = Field(None, description="Ciudad destino para entregas en otra ciudad")
+    delivery_mode: Optional[str] = Field(None, description="Modo de entrega: same_city u other_city")
+    transport_companies: Optional[list[str]] = Field(None, description="Empresas de transporte para otras ciudades")
     notes: Optional[str] = Field(None, description="Notas sobre la entrega")
 
 
@@ -16,6 +18,8 @@ class DeliveryScheduleUpdate(BaseModel):
     delivery_location: Optional[str] = Field(None, description="Nueva locación de entrega")
     location: Optional[str] = Field(None, description="Ubicación para entregas en la misma ciudad")
     destination_city: Optional[str] = Field(None, description="Ciudad destino para entregas en otra ciudad")
+    delivery_mode: Optional[str] = Field(None, description="Modo de entrega: same_city u other_city")
+    transport_companies: Optional[list[str]] = Field(None, description="Empresas de transporte para otras ciudades")
     notes: Optional[str] = Field(None, description="Notas actualizadas")
 
 
@@ -39,6 +43,8 @@ class DeliveryScheduleResponse(BaseModel):
     delivery_location: Optional[str]
     location: Optional[str]
     destination_city: Optional[str]
+    delivery_mode: Optional[str]
+    transport_companies: Optional[list[str]]
     status: str
     rescheduled_date: Optional[date]
     notes: Optional[str]
@@ -56,6 +62,8 @@ class DeliveryScheduleWithOrderResponse(BaseModel):
     delivery_location: Optional[str]
     location: Optional[str]
     destination_city: Optional[str]
+    delivery_mode: Optional[str]
+    transport_companies: Optional[list[str]]
     status: str
     rescheduled_date: Optional[date]
     notes: Optional[str]

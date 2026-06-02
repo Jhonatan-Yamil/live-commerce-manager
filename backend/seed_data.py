@@ -105,6 +105,8 @@ def seed_database(engine):
                 address="Ceibo S/N, La Paz",
                 delivery_city="La Paz",
                 delivery_department="La Paz",
+                delivery_mode="same_city",
+                delivery_transport_companies=[],
                 notes="Cliente VIP, múltiples pedidos frecuentes",
                 user_id=admin_id,
             ),
@@ -132,6 +134,8 @@ def seed_database(engine):
                 address="Plaza Arce, Sucre",
                 delivery_city="Sucre",
                 delivery_department="Chuquisaca",
+                delivery_mode="other_city",
+                delivery_transport_companies=["Trans Copacabana", "Flota Bolivar"],
                 notes="Especialidad en accesorios, pago contado",
                 user_id=admin_id,
             ),
@@ -159,6 +163,8 @@ def seed_database(engine):
                 address="Calle Potosí 567, Oruro",
                 delivery_city="Oruro",
                 delivery_department="Oruro",
+                delivery_mode="same_city",
+                delivery_transport_companies=[],
                 notes="Minorista, entregas semanales",
                 user_id=maria_id,
             ),
@@ -605,13 +611,12 @@ def seed_database(engine):
         print("📅 Insertando delivery schedules...")
         # Delivery schedules: attach user_id from order owner
         schedules_specs = [
-            (1, datetime.now().date(), "Ceibo S/N, La Paz", "Ceibo S/N", None, DeliveryScheduleStatus.scheduled, "Para hoy - Cliente VIP - Same City", None),
-            (13, datetime.now().date(), "Otra ciudad/departamento - Santa Cruz", None, "Santa Cruz", DeliveryScheduleStatus.scheduled, "Para hoy - Mayorista - Other City", None),
-            (4, (datetime.now() + timedelta(days=1)).date(), "Otra ciudad/departamento - Sucre", None, "Sucre", DeliveryScheduleStatus.scheduled, "Mañana - Sucre - Other City", None),
-            (5, (datetime.now() + timedelta(days=2)).date(), "Otra ciudad/departamento - Tarija", None, "Tarija", DeliveryScheduleStatus.scheduled, "En 2 días - Tarija - Other City", None),
-            (11, (datetime.now() - timedelta(days=2)).date(), "Ceibo S/N, La Paz", "Ceibo S/N", None, DeliveryScheduleStatus.delivered, "Entregado hace 2 días - Same City", None),
-            (2, (datetime.now() - timedelta(days=3)).date(), "Av. Ballivián 500, Cochabamba", "Av. Ballivián 500", None, DeliveryScheduleStatus.not_delivered, "No se encontró cliente, reprogramada - Same City", (datetime.now() - timedelta(days=2)).date()),
-        ]
+            (1, datetime.now().date(), "Ceibo S/N, La Paz", "Ceibo S/N", None, DeliveryScheduleStatus.scheduled, "Para hoy - Cliente VIP - Same City", None, "same_city", []),
+            (13, datetime.now().date(), "Otra ciudad/departamento - Santa Cruz - Transporte: Trans Copacabana, Flota Occidental", None, "Santa Cruz", DeliveryScheduleStatus.scheduled, "Para hoy - Mayorista - Other City", None, "other_city", ["Trans Copacabana", "Flota Occidental"]),
+            (4, (datetime.now() + timedelta(days=1)).date(), "Otra ciudad/departamento - Sucre - Transporte: Flota Bolivar", None, "Sucre", DeliveryScheduleStatus.scheduled, "Mañana - Sucre - Other City", None, "other_city", ["Flota Bolivar"]),
+            (5, (datetime.now() + timedelta(days=2)).date(), "Otra ciudad/departamento - Tarija - Transporte: Trans Sur", None, "Tarija", DeliveryScheduleStatus.scheduled, "En 2 días - Tarija - Other City", None, "other_city", ["Trans Sur"]),
+            (11, (datetime.now() - timedelta(days=2)).date(), "Ceibo S/N, La Paz", "Ceibo S/N", None, DeliveryScheduleStatus.delivered, "Entregado hace 2 días - Same City", None, "same_city", []),
+            (2, (datetime.now() - timedelta(days=3)).date(), "Av. Ballivián 500, Cochabamba", "Av. Ballivián 500", None, DeliveryScheduleStatus.not_delivered, "No se encontró cliente en la dirección", None, "same_city", []),]
         delivery_schedules = []
         for spec in schedules_specs:
             oid = spec[0]
@@ -627,6 +632,8 @@ def seed_database(engine):
                 status=spec[5],
                 notes=spec[6],
                 rescheduled_date=spec[7],
+                delivery_mode=spec[8],
+                transport_companies=spec[9],
                 user_id=getattr(o, "user_id", None),
             )
             delivery_schedules.append(ds)
@@ -646,12 +653,13 @@ def seed_database(engine):
         print("  • 13 pagos: 12 confirmados, 1 rechazado")
         print("  • 4 logísticas creadas (algunos en ruta, algunos entregados)")
         print("  • 9+ órdenes SIN logística para probar creación desde página")
-        print("  • 6 delivery schedules: 2 para HOY, 3 próximos días, 1 entregado\n")
+        print("  • 6 delivery schedules: 2 para HOY, 3 próximos días, 1 entregado, 1 no entregado\n")
         print("📝 CASOS DE PRUEBA LISTOS:")
         print("  ✓ Crear logística desde cero (múltiples órdenes pagadas sin logística)")
         print("  ✓ Asignar destino (misma ciudad vs otra ciudad)")
         print("  ✓ Ver entregas de hoy (2 órdenes programadas para hoy)")
         print("  ✓ Marcar entregado/no entregado")
+        print("  ✓ Orden con entrega fallida vuelve a Modo preparación con chip indicador")
         print("  ✓ Ver historial de entregas completadas")
         print("  ✓ Múltiples órdenes del mismo cliente")
         print("  ✓ Diferentes ciudades/departamentos\n")

@@ -16,7 +16,7 @@ import { deliverySchedulesApi } from "../../services/api";
 import { summarizeItems, sumItems, toDateIso } from "../../utils/logistics";
 import DeliverySlip from "./DeliverySlip";
 import PrintIcon from "@mui/icons-material/Print";
-import { normalizeLocationLabel } from "../../utils/logistics";
+import { normalizeLocationLabel, normalizeTransportCompanies } from "../../utils/logistics";
 import { emitDeliverySchedulesUpdated, useDeliverySchedulesUpdates } from "../../hooks/useDeliverySchedulesUpdates";
 import { formatCurrencyBs } from "../../utils/formatters";
 
@@ -27,6 +27,7 @@ export default function DeliveriesTodayPanel({ orders = [], onUpdate, brandLogoU
   const [note, setNote] = useState("");
   const [rescheduleDate, setRescheduleDate] = useState("");
   const [location, setLocation] = useState("");
+  const [transportCompanies, setTransportCompanies] = useState("");
 
   const loadToday = async () => {
     const res = await deliverySchedulesApi.listToday();
@@ -44,10 +45,15 @@ export default function DeliveriesTodayPanel({ orders = [], onUpdate, brandLogoU
   }, [orders]);
 
   const openManage = (schedule) => {
-    setManageDialog({ open: true, schedule });
-    setNote(schedule.notes || "");
-    setRescheduleDate("");
-    setLocation(schedule.delivery_location || "");
+      setManageDialog({ open: true, schedule });
+      setNote(schedule.notes || "");
+      setRescheduleDate("");
+      if (schedule.delivery_mode === "other_city") {
+        setLocation(schedule.destination_city || "");
+      } else {
+        setLocation(schedule.location || schedule.delivery_location || "");
+      }
+      setTransportCompanies(normalizeTransportCompanies(schedule.transport_companies).join(", "));
   };
 
   const closeManage = () => setManageDialog({ open: false, schedule: null });
@@ -99,11 +105,32 @@ export default function DeliveriesTodayPanel({ orders = [], onUpdate, brandLogoU
   };
 
   const syncLocationIfChanged = async () => {
-    if (!manageDialog.schedule) return;
-    const original = String(manageDialog.schedule.delivery_location || "").trim();
-    const next = String(location || "").trim();
-    if (!next || next === original) return;
-    await deliverySchedulesApi.updateLocation(manageDialog.schedule.id, { delivery_location: next });
+      if (!manageDialog.schedule) return;
+
+      const nextTransportCompanies = normalizeTransportCompanies(transportCompanies);
+      const nextDeliveryMode = nextTransportCompanies.length > 0 ? "other_city" : "same_city";
+      const next = String(location || "").trim();
+
+      const payload = {
+        delivery_mode: nextDeliveryMode,
+        transport_companies: nextTransportCompanies,
+      };
+
+      if (nextDeliveryMode === "other_city") {
+        payload.destination_city = next || null;
+        payload.location = null;
+        payload.delivery_location = [
+          "Otra ciudad/departamento",
+          next,
+          nextTransportCompanies.length > 0 ? `Transporte: ${nextTransportCompanies.join(", ")}` : null,
+        ].filter(Boolean).join(" - ");
+      } else {
+        payload.location = next || null;
+        payload.destination_city = null;
+        payload.delivery_location = next || null;
+      }
+
+      await deliverySchedulesApi.updateLocation(manageDialog.schedule.id, payload);
   };
 
   return (
@@ -153,6 +180,9 @@ export default function DeliveriesTodayPanel({ orders = [], onUpdate, brandLogoU
                   <Typography variant="caption" color="text.secondary" display="block">
                     Destino: {normalizeLocationLabel(schedule.delivery_location)}
                   </Typography>
+                  <Typography variant="caption" color="text.secondary" display="block">
+                    Transportes: {normalizeTransportCompanies(schedule.transport_companies).join(", ") || "-"}
+                  </Typography>
                   {schedule.notes && (
                     <Typography variant="caption" color="text.secondary" display="block">
                       Notas: {schedule.notes}
@@ -187,6 +217,13 @@ export default function DeliveriesTodayPanel({ orders = [], onUpdate, brandLogoU
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               helperText="Puedes cambiar ciudad, zona o dirección hasta último momento."
+            />
+            <TextField
+              size="small"
+              label="Empresas de transporte"
+              value={transportCompanies}
+              onChange={(e) => setTransportCompanies(e.target.value)}
+              helperText="Separa varias empresas con coma."
             />
             <TextField size="small" label="Notas" value={note} onChange={(e) => setNote(e.target.value)} multiline minRows={2} />
             <TextField

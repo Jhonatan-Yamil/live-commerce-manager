@@ -18,7 +18,6 @@ import LocalShippingRoundedIcon from "@mui/icons-material/LocalShippingRounded";
 import GroupRoundedIcon from "@mui/icons-material/GroupRounded";
 import PointOfSaleRoundedIcon from "@mui/icons-material/PointOfSaleRounded";
 import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
-import SettingsPhoneRoundedIcon from "@mui/icons-material/SettingsPhoneRounded";
 import { useAuth } from "../../context/AuthContext";
 import { APP_PALETTE } from "../../theme/palette";
 
@@ -31,7 +30,6 @@ const navItems = [
   { to: "/clientes", label: "Clientes", icon: GroupRoundedIcon },
   { to: "/productos", label: "Ventas", icon: PointOfSaleRoundedIcon },
   { to: "/caja", label: "Flujo de Caja", icon: AccountBalanceWalletRoundedIcon },
-  { to: "/whatsapp", label: "WhatsApp", icon: SettingsPhoneRoundedIcon },
 ];
 
 function SidebarContent({ onItemClick }) {

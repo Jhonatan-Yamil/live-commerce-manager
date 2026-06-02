@@ -38,7 +38,10 @@ def should_ignore_whatsapp_intake(intake, ocr_fields: dict) -> tuple[bool, str]:
 
     confidence = float(ocr_fields.get("ocr_confidence") or 0)
     amount = ocr_fields.get("extracted_amount")
-    if confidence > 0.4 and amount is not None:
+    if confidence > 0.4:
+        return False, ""
+
+    if amount is not None:
         return False, ""
 
     return True, "Ignorado: no parece comprobante (sin palabras clave, sin PDF y OCR insuficiente)"

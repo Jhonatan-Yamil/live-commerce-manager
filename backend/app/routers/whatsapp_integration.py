@@ -1,7 +1,5 @@
 from __future__ import annotations
-from logging import info
 
-from numpy import info
 from fastapi import APIRouter, Depends, Header, HTTPException, status
 from sqlalchemy.orm import Session
 
@@ -9,17 +7,14 @@ from app.auth.dependencies import get_current_user
 from app.core.config import settings
 from app.database.session import get_db
 from app.models.user import User
-from app.models.voucher_intake import VoucherSourceChannel
 from app.schemas.voucher_intake import VoucherIntakeOut
 from app.schemas.whatsapp_integration import WhatsAppIntegrationStateOut, WhatsAppIntakeToggleIn
-from app.services.intake.file_storage import validate_mime_type
-from app.services.voucher_intake_service import create_intake_from_upload
-from app.services.whatsapp.file_download import build_upload_from_whatsapp_message
 from app.services.whatsapp.message_info import extract_message_file_info
 from app.services.whatsapp_session_service import (
     build_whatsapp_incoming_intake,
     connect_user_whatsapp,
     disconnect_user_whatsapp,
+    get_whatsapp_user_by_instance,
     get_user_whatsapp_status,
     resolve_webhook_user,
     set_user_whatsapp_intake_enabled,
@@ -48,7 +43,11 @@ def _validate_whatsapp_webhook_secret(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Webhook de WhatsApp no autorizado")
 
 
-def _build_webhook_intake(db: Session, user: User, info: dict):
+def _build_webhook_intake(db: Session, user: User, info: dict, payload_instance: str | None = None):
+    if payload_instance and user.whatsapp_instance_name and payload_instance != user.whatsapp_instance_name:
+        print(f"=== Ignorando: instancia {payload_instance} != {user.whatsapp_instance_name} (user={user.id})")
+        return None
+
     message_id = info.get("message_id")
     if message_id:
         existing = voucher_intake_repository.get_by_external_message_id(db, message_id, user_id=user.id)
@@ -56,22 +55,7 @@ def _build_webhook_intake(db: Session, user: User, info: dict):
             return existing
 
     if not user.whatsapp_intake_enabled:
-        upload = build_upload_from_whatsapp_message(info["message_payload"], info)
-        validate_mime_type(upload.content_type)
-        return create_intake_from_upload(
-            db,
-            user,
-            file=upload,
-            source_channel=VoucherSourceChannel.whatsapp,
-            external_chat_id=info.get("chat_id"),
-            external_message_id=info.get("message_id"),
-            sender_phone=info.get("sender_phone"),
-            source_instance_name=info.get("instance_name") or user.whatsapp_instance_name,
-            source_caption=info.get("caption"),
-            processing_status="ignored",
-            processing_error="Comprobantes deshabilitados para este usuario",
-            enqueue_processing=False,
-        )
+        return None
 
     return build_whatsapp_incoming_intake(db, user, info)
 
@@ -85,19 +69,25 @@ def whatsapp_webhook(
 ):
     _validate_whatsapp_webhook_secret(secret, x_whatsapp_webhook_secret, x_evolution_webhook_secret)
 
-    
-        
-    user = resolve_webhook_user(db, payload)
-    
-    if not user:
-        return None
-
     info = extract_message_file_info(payload)
     if not info:
         return None
 
-    info["instance_name"] = info.get("instance_name") or user.whatsapp_instance_name
-    return _build_webhook_intake(db, user, info)
+    user = resolve_webhook_user(db, payload, fallback_instance_name=info.get("instance_name"))
+    if not user:
+        return None
+
+    info_instance_name = info.get("instance_name")
+    if info_instance_name:
+        matched_by_info = get_whatsapp_user_by_instance(db, info_instance_name)
+        if matched_by_info and matched_by_info.id != user.id:
+            user = matched_by_info
+
+    print(f"=== payload instance raw: {payload.get('instance')} | type: {type(payload.get('instance'))}")
+    payload_instance = payload.get("instance") if isinstance(payload.get("instance"), str) else None
+    print(f"=== payload_instance resuelto: {payload_instance}")
+    info["instance_name"] = user.whatsapp_instance_name
+    return _build_webhook_intake(db, user, info, payload_instance=payload_instance)
 
 
 @router.post("/webhook/{secret}/{event_path:path}", response_model=VoucherIntakeOut | None)
@@ -111,17 +101,25 @@ def whatsapp_webhook_event(
 ):
     _validate_whatsapp_webhook_secret(secret, x_whatsapp_webhook_secret, x_evolution_webhook_secret)
 
-    user = resolve_webhook_user(db, payload)
-    if not user:
-        return None
-
     info = extract_message_file_info(payload)
     if not info:
         return None
 
-    info["instance_name"] = info.get("instance_name") or user.whatsapp_instance_name
-    return _build_webhook_intake(db, user, info)
+    user = resolve_webhook_user(db, payload, fallback_instance_name=info.get("instance_name"))
+    if not user:
+        return None
 
+    info_instance_name = info.get("instance_name")
+    if info_instance_name:
+        matched_by_info = get_whatsapp_user_by_instance(db, info_instance_name)
+        if matched_by_info and matched_by_info.id != user.id:
+            user = matched_by_info
+
+    print(f"=== payload instance raw: {payload.get('instance')} | type: {type(payload.get('instance'))}")
+    payload_instance = payload.get("instance") if isinstance(payload.get("instance"), str) else None
+    print(f"=== payload_instance resuelto: {payload_instance}")
+    info["instance_name"] = user.whatsapp_instance_name
+    return _build_webhook_intake(db, user, info, payload_instance=payload_instance)
 
 @router.get("/health")
 def whatsapp_health():
