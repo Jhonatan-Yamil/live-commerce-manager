@@ -33,7 +33,7 @@ export default function LoginPage() {
     <Box sx={{ minHeight: "100vh", display: "flex", alignItems: "center", justifyContent: "center", background: APP_PALETTE.background }}>
       <Paper sx={{ p: 5, borderRadius: 3, width: 380, boxShadow: "0 4px 20px rgba(0,0,0,0.1)" }}>
         <Typography variant="h5" fontWeight={700} color={APP_PALETTE.text.primary} textAlign="center" mb={0.5}>
-          LiveSale Manager
+          OperaFlow
         </Typography>
         <Typography color="text.secondary" textAlign="center" fontSize={14} mb={3}>
           Panel de gestión de ventas

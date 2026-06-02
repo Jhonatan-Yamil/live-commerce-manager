@@ -238,44 +238,49 @@ def build_whatsapp_incoming_intake(db: Session, user: User, info: dict):
     from app.services.intake.file_storage import validate_mime_type
     from app.services.voucher_intake_service import create_intake_from_upload
     from app.services.whatsapp.file_download import build_upload_from_whatsapp_message
+    from app.services.whatsapp_intake_filter import pre_filter_whatsapp_image
 
-    print(f"=== build_whatsapp_incoming_intake START: user={user.id}, instance={user.whatsapp_instance_name}")
-    download_info = dict(info)
-    download_info["instance_name"] = user.whatsapp_instance_name or info.get("instance_name")
-    print(f"=== download_info instance: {download_info['instance_name']}")
+    print(f"=== build_whatsapp_incoming_intake START: user={user.id}")
 
-    try:
-        upload = build_upload_from_whatsapp_message(info["message_payload"], download_info)
-        print(f"=== upload OK: content_type={upload.content_type if upload else None}")
-        validate_mime_type(upload.content_type)
-        print(f"=== mime OK")
-    except Exception as exc:
-        print(f"=== ERROR build_upload user={user.id}: {type(exc).__name__}: {exc}")
-        return None
-
-    print(f"=== from_me: {info.get('from_me')}")
     if info.get("from_me"):
         print(f"=== ignorando mensaje propio")
         return None
 
-    print(f"=== intake_enabled: {user.whatsapp_intake_enabled}")
-    print(f"=== llamando create_intake_from_upload...")
+    download_info = dict(info)
+    download_info["instance_name"] = user.whatsapp_instance_name or info.get("instance_name")
+
+    try:
+        upload = build_upload_from_whatsapp_message(info["message_payload"], download_info)
+        if not upload:
+            return None
+        validate_mime_type(upload.content_type)
+    except Exception as exc:
+        print(f"=== ERROR build_upload user={user.id}: {type(exc).__name__}: {exc}")
+        return None
+
+    # ── Pre-filtro antes de guardar ───────────────────────────────────────
+    caption = info.get("caption")
+    mime_type = upload.content_type
+
+    image_bytes = None
+    try:
+        upload.file.seek(0)
+        image_bytes = upload.file.read()
+        upload.file.seek(0)
+    except Exception:
+        pass
+
+    approved, reason = pre_filter_whatsapp_image(caption, mime_type, image_bytes)
+    print(f"=== pre_filter: approved={approved}, reason={reason}")
+
+    if not approved:
+        print(f"=== descartado silenciosamente antes de guardar: {reason}")
+        return None
+    # ─────────────────────────────────────────────────────────────────────
 
     if not user.whatsapp_intake_enabled:
-        result=create_intake_from_upload(
-            db,
-            user,
-            file=upload,
-            source_channel=VoucherSourceChannel.whatsapp,
-            external_chat_id=info.get("chat_id"),
-            external_message_id=info.get("message_id"),
-            sender_phone=info.get("sender_phone"),
-            source_instance_name=info.get("instance_name") or user.whatsapp_instance_name,
-            source_caption=info.get("caption"),
-            processing_status="ignored",
-            processing_error="Comprobantes deshabilitados para este usuario",
-            enqueue_processing=False,
-        )
+        print(f"=== intake deshabilitado para user={user.id}")
+        return None
 
     result = create_intake_from_upload(
         db,
@@ -286,7 +291,7 @@ def build_whatsapp_incoming_intake(db: Session, user: User, info: dict):
         external_message_id=info.get("message_id"),
         sender_phone=info.get("sender_phone"),
         source_instance_name=info.get("instance_name") or user.whatsapp_instance_name,
-        source_caption=info.get("caption"),
+        source_caption=caption,
     )
-    print(f"=== intake creado: {result}, id={result.id if result else None}")
+    print(f"=== intake creado: id={result.id if result else None}")
     return result

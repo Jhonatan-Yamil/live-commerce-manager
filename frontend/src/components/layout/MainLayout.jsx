@@ -101,7 +101,7 @@ export default function MainLayout() {
           )}
 
           <Typography variant="h6" fontWeight={900} sx={{ flexGrow: 1, fontSize: { xs: 18, md: 20 }, color: APP_PALETTE.text.primary, letterSpacing: 0.15 }}>
-            LiveSale Manager
+            OperaFlow
           </Typography>
 
           <IconButton

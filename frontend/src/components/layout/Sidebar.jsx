@@ -47,10 +47,7 @@ function SidebarContent({ onItemClick }) {
     >
       <Box sx={{ px: 2.5, py: 2.5, borderBottom: `1px solid rgba(255,255,255,0.14)` }}>
         <Typography fontWeight={900} fontSize={19} lineHeight={1.05} sx={{ color: "#ffffff", letterSpacing: 0.2 }}>
-          LiveSale
-        </Typography>
-        <Typography color={APP_PALETTE.surface} fontSize={12} mt={0.75} fontWeight={800} sx={{ letterSpacing: 0.9, textTransform: "uppercase" }}>
-          Manager
+          OperaFlow
         </Typography>
       </Box>
 

@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import { Box, Button, Dialog, DialogContent, MenuItem, TextField } from "@mui/material";
 import PrintIcon from "@mui/icons-material/Print";
 import DownloadIcon from "@mui/icons-material/Download";
@@ -18,6 +18,38 @@ const getPaperRatio = (paperSize, orientation) => {
   const [w, h] = orientation === "portrait" ? mm : [mm[1], mm[0]];
   return `${w} / ${h}`;
 };
+
+function useLogoBase64(url) {
+  const [base64, setBase64] = useState(null);
+
+  useEffect(() => {
+    if (!url) { setBase64(null); return; }
+    let cancelled = false;
+
+    const convert = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(url, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (!res.ok) throw new Error("fetch failed");
+        const blob = await res.blob();
+        const reader = new FileReader();
+        reader.onload = () => {
+          if (!cancelled) setBase64(reader.result); 
+        };
+        reader.readAsDataURL(blob);
+      } catch {
+        if (!cancelled) setBase64(null);
+      }
+    };
+
+    convert();
+    return () => { cancelled = true; };
+  }, [url]);
+
+  return base64;
+}
 
 const buildPrintHtml = ({ clientName, phone, city, brandLogoUrl, paperSize, orientation }) => {
   const sizeDef = PAPER_SIZES[paperSize] || PAPER_SIZES.auto;
@@ -106,6 +138,7 @@ export default function DeliverySlip({ open, onClose, delivery, order, client, b
   const [paperSize, setPaperSize] = useState("auto");
   const [orientation, setOrientation] = useState("landscape");
   const [downloading, setDownloading] = useState(false);
+  const logoBase64 = useLogoBase64(brandLogoUrl);
 
   const safeClientName = client?.full_name || "";
   const safePhone = client?.phone || "";
@@ -115,7 +148,7 @@ export default function DeliverySlip({ open, onClose, delivery, order, client, b
     clientName: safeClientName,
     phone: safePhone,
     city: locationForPrint,
-    brandLogoUrl,
+    brandLogoUrl: logoBase64,
     paperSize,
     orientation,
   });
@@ -163,10 +196,18 @@ export default function DeliverySlip({ open, onClose, delivery, order, client, b
       const psParam = paperSize === "auto" ? "a4" : paperSize;
 
       const response = await fetch(
-        `${backendUrl}/api/logistics/delivery/${delivery.id}/remito.pdf?orientation=${orientation}&paper_size=${psParam}`,
+        `${backendUrl}/api/logistics/delivery/${delivery.id}/remito.pdf`,
         {
-          method: "GET",
-          headers: { Authorization: `Bearer ${token}` },
+          method: "POST",                         
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            orientation,
+            paper_size: psParam,
+            logo_base64: logoBase64 || null,     
+          }),
         }
       );
 
@@ -241,12 +282,11 @@ export default function DeliverySlip({ open, onClose, delivery, order, client, b
             gap: 3,
           }}
         >
-          {brandLogoUrl ? (
+          {logoBase64 ? (
             <Box
               component="img"
-              src={brandLogoUrl}
+              src={logoBase64}
               alt="Logo de la tienda"
-              crossOrigin="anonymous"
               sx={{
                 position: "absolute",
                 top: 18,

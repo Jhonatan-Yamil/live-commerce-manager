@@ -106,6 +106,16 @@ def collect_labeled_amount_candidates(raw_text: str) -> list[tuple[float, float]
         amount = to_amount(bs_inline.group(1))
         if amount is not None:
             candidates.append((amount, 0.95))
+
+    gs_inline = re.search(
+        r"\bgs\.?\s+([0-9]+(?:[\.,][0-9]{1,2})?)\b",
+        raw_text,
+        flags=re.IGNORECASE,
+    )
+    if gs_inline:
+        amount = to_amount(gs_inline.group(1))
+        if amount is not None:
+            candidates.append((amount, 0.95))
     
     qr_pattern = re.search(
         r"(?:qr\s+exitoso|pago\s+qr|transferencia\s+exitosa)[^\n]*\n+([0-9]+(?:[\.,][0-9]{1,2})?)\s*\n",
@@ -145,8 +155,8 @@ def collect_labeled_amount_candidates(raw_text: str) -> list[tuple[float, float]
             candidates.append((amount, 0.9))
 
     currency_patterns = [
-        r"\b(?:bs|b\$|bob|ps|8s|s/)\.?\s*([0-9]+(?:[\.,][0-9]{1,2})?)",
-        r"\b([0-9]+(?:[\.,][0-9]{1,2})?)\s*(?:bs|b\$|bob)\b",
+        r"\b(?:bs|b\$|bob|ps|8s|s/|gs)\.?\s*([0-9]+(?:[\.,][0-9]{1,2})?)",
+        r"\b([0-9]+(?:[\.,][0-9]{1,2})?)\s*(?:bs|b\$|bob|gs)\b",
     ]
     for pattern in currency_patterns:
         for line in lines:
@@ -189,6 +199,28 @@ def collect_labeled_amount_candidates(raw_text: str) -> list[tuple[float, float]
 
     return candidates
 
+def _is_plausible_amount(value: float) -> bool:
+    """Descarta valores que claramente no son montos de pago."""
+    if value <= 0:
+        return False
+    # Descarta números que parecen años (1900-2099)
+    if 1900 <= value <= 2099:
+        return False
+    # Descarta números muy grandes (probablemente teléfonos o códigos)
+    if value > 999_999:
+        return False
+    # Descarta números de exactamente 8+ dígitos enteros sin decimales
+    # (probablemente códigos de transacción, no montos)
+    if value == int(value) and len(str(int(value))) >= 8:
+        return False
+    return True
+
+
+def best_amount_candidate(candidates: list[tuple[float, float]]) -> float | None:
+    filtered = [(amount, score) for amount, score in candidates if _is_plausible_amount(amount)]
+    if not filtered:
+        return None
+    return max(filtered, key=lambda x: (x[1], x[0]))[0]
 
 def best_amount_candidate(candidates: list[tuple[float, float]]) -> float | None:
     if not candidates:
@@ -313,6 +345,16 @@ def parse_reference(raw_text: str) -> str | None:
             return token
     return None
 
+def _clean_name_prefix(name: str) -> str:
+    """Elimina prefijos label que se cuelan en el nombre."""
+    return re.sub(
+        r"^(?:de|del|para|from|nombre|a\s+nombre\s+de)\s+",
+        "",
+        name.strip(),
+        flags=re.IGNORECASE,
+    ).strip()
+
+
 def parse_sender_name(raw_text: str) -> str | None:
     lines = normalized_lines(raw_text)
 
@@ -340,7 +382,7 @@ def parse_sender_name(raw_text: str) -> str | None:
         value = value.strip()
         if not value:
             return False
-        if re.search(r"\d|\*", value):
+        if re.search(r"\d", value):
             return False
         normalized = value.lower()
         if any(re.search(pattern, normalized, flags=re.IGNORECASE) for pattern in operational_noise_patterns):
@@ -441,7 +483,7 @@ def parse_sender_name(raw_text: str) -> str | None:
 
     if scored_candidates:
         best_name, _ = max(scored_candidates, key=lambda item: item[1])
-        return best_name
+        return _clean_name_prefix(best_name)
 
     for idx, line in enumerate(lines):
         if not line_has_label(line, SENDER_LABEL_PATTERNS):
@@ -459,6 +501,9 @@ def parse_sender_name(raw_text: str) -> str | None:
             scored_candidates.append((same_line_name, score))
 
         for step, candidate in enumerate(lines[idx + 1:idx + 25], start=1):
+            if re.search(r"\b\d{6,}\b", candidate) and not re.search(r"[A-Za-zÁÉÍÓÚÑáéíóúñ]{3,}", candidate):
+                continue
+
             name = _extract_name_after_pipe(candidate)
             if name:
                 score = 1.1 - (step * 0.02) - _context_penalty(idx) + _name_quality_bonus(name)
@@ -489,7 +534,7 @@ def parse_sender_name(raw_text: str) -> str | None:
 
     if scored_candidates:
         best_name, _ = max(scored_candidates, key=lambda item: item[1])
-        return best_name
+        return _clean_name_prefix(best_name)
 
     for idx, line in enumerate(lines):
         if not _is_name_candidate(line):
@@ -498,8 +543,7 @@ def parse_sender_name(raw_text: str) -> str | None:
         neighborhood = " ".join(lines[start:idx + 1]).lower()
         if any(re.search(pattern, neighborhood, flags=re.IGNORECASE) for pattern in DESTINATION_HINT_PATTERNS):
             continue
-        return line
-
+        return _clean_name_prefix(line)
     return None
 
 def estimate_confidence(raw_text: str) -> float:

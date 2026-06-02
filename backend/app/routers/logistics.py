@@ -14,6 +14,12 @@ from app.services.pdf_service import generate_remito_pdf
 from app.models.order import Order
 from app.models.delivery_schedule import DeliverySchedule
 from app.routers.utils import require_found
+from pydantic import BaseModel
+
+class RemitoRequest(BaseModel):
+    orientation: str = "landscape"
+    paper_size: str = "a4"
+    logo_base64: str | None = None
 
 router = APIRouter()
 
@@ -59,11 +65,10 @@ def update_logistics(
     return require_found(l, "No encontrado")
 
 
-@router.get("/delivery/{delivery_schedule_id}/remito.pdf")
+@router.post("/delivery/{delivery_schedule_id}/remito.pdf")
 def download_remito_pdf(
     delivery_schedule_id: int,
-    orientation: str = "landscape",
-    paper_size: str = "a4",
+    body: RemitoRequest,                
     db: Session = Depends(get_db),
     current_user=Depends(get_current_user)
 ):
@@ -82,7 +87,13 @@ def download_remito_pdf(
         raise HTTPException(status_code=404, detail="Pedido no encontrado")
 
     try:
-        pdf_bytes = generate_remito_pdf(order, delivery_schedule, orientation, paper_size)
+        pdf_bytes = generate_remito_pdf(
+            order,
+            delivery_schedule,
+            body.orientation,
+            body.paper_size,
+            body.logo_base64,            
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error generando PDF: {str(e)}")
 
