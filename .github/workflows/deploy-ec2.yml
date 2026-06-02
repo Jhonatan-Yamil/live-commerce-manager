@@ -12,7 +12,7 @@ on:
 
 env:
   APP_DIR: /opt/live-commerce-manager
-  DOMAIN: livecommerce.duckdns.org
+  DOMAIN: operaflow.duckdns.org
   DOCKER_COMPOSE_CMD: docker compose
 
 jobs:
@@ -188,32 +188,7 @@ jobs:
           }
           '
 
-      - name: Configure Telegram webhook
-        run: |
-          ssh -o ServerAliveInterval=60 -i ~/.ssh/ec2_key "${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }}" 'set -euo pipefail
-          cd "${{ env.APP_DIR }}"
-          
-          TOKEN=$(grep -E "^TELEGRAM_BOT_TOKEN=" .env.prod | cut -d'"'"'='"'"' -f2- || echo "")
-          SECRET=$(grep -E "^TELEGRAM_WEBHOOK_SECRET=" .env.prod | cut -d'"'"'='"'"' -f2- || echo "")
-          BASE_URL="https://${{ env.DOMAIN }}"
-          
-          if [ -n "$TOKEN" ] && [ -n "$SECRET" ]; then
-            echo "🤖 Configuring Telegram webhook..."
-            WEBHOOK_URL="${BASE_URL}/api/integrations/telegram/webhook/${SECRET}"
-            RESPONSE=$(curl -s -X POST "https://api.telegram.org/bot${TOKEN}/setWebhook" \
-              -d "url=${WEBHOOK_URL}" \
-              -d "drop_pending_updates=false" \
-              -d "secret_token=${SECRET}")
-            
-            if echo "$RESPONSE" | grep -q '"ok":true'; then
-              echo "✅ Telegram webhook configured: $WEBHOOK_URL"
-            else
-              echo "⚠️ Telegram webhook response: $RESPONSE"
-            fi
-          else
-            echo "⚠️ Telegram token or secret not found in .env.prod"
-          fi
-          '
+      
 
       - name: Health check
         run: |
