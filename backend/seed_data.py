@@ -56,7 +56,7 @@ def seed_database(engine):
         users = [
             User(
                 full_name="Carlos Morales",
-                email="admin@livesale.bo",
+                email="admin@operaflow.com",
                 hashed_password=simple_hash_password("admin123"),
                 role=UserRole.admin,
                 is_active=True
@@ -64,7 +64,7 @@ def seed_database(engine):
             ),
             User(
                 full_name="Maria Fernández",
-                email="maria@livesale.bo",
+                email="maria@operaflow.com",
                 hashed_password=simple_hash_password("seller123"),
                 role=UserRole.seller,
                 is_active=True
@@ -72,7 +72,7 @@ def seed_database(engine):
             ),
             User(
                 full_name="Juan Quispe",
-                email="juan@livesale.bo",
+                email="juan@operaflow.com",
                 hashed_password=simple_hash_password("seller123"),
                 role=UserRole.seller,
                 is_active=True
@@ -80,7 +80,7 @@ def seed_database(engine):
             ),
             User(
                 full_name="Luis Ramírez",
-                email="luis@livesale.bo",
+                email="luis@operaflow.com",
                 hashed_password=simple_hash_password("seller123"),
                 role=UserRole.seller,
                 is_active=True
@@ -665,16 +665,16 @@ def seed_database(engine):
         print("  ✓ Diferentes ciudades/departamentos\n")
         print("🔐 CREDENCIALES DE PRUEBA:\n")
         print("  Admin:")
-        print("    Email: admin@livesale.bo")
+        print("    Email: admin@operaflow.com")
         print("    Password: admin123\n")
         print("  Vendedor 1:")
-        print("    Email: maria@livesale.bo")
+        print("    Email: maria@operaflow.com")
         print("    Password: seller123\n")
         print("  Vendedor 2:")
-        print("    Email: juan@livesale.bo")
+        print("    Email: juan@operaflow.com")
         print("    Password: seller123\n")
         print("  Vendedor 3:")
-        print("    Email: luis@livesale.bo")
+        print("    Email: luis@operaflow.com")
         print("    Password: seller123\n")
         print("=" * 70 + "\n")
         
