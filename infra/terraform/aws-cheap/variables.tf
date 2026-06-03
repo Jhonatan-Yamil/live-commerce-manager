@@ -12,8 +12,8 @@ variable "project_name" {
 
 variable "instance_type" {
   type        = string
-  description = "EC2 instance type (free-tier friendly: t3.micro)"
-  default     = "t3.micro"
+  description = "EC2 instance type"
+  default     = "c7i-flex.large"
 }
 
 variable "ssh_cidr" {

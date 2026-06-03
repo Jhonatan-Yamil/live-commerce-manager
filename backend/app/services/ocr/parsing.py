@@ -107,15 +107,15 @@ def collect_labeled_amount_candidates(raw_text: str) -> list[tuple[float, float]
         if amount is not None:
             candidates.append((amount, 0.95))
 
-    gs_inline = re.search(
-        r"\bgs\.?\s+([0-9]+(?:[\.,][0-9]{1,2})?)\b",
+    es_inline = re.search(
+        r"\bes\.?\s+([0-9]+(?:[\.,][0-9]{1,2})?)\b",
         raw_text,
         flags=re.IGNORECASE,
     )
-    if gs_inline:
-        amount = to_amount(gs_inline.group(1))
+    if es_inline:
+        amount = to_amount(es_inline.group(1))
         if amount is not None:
-            candidates.append((amount, 0.95))
+            candidates.append((amount, 0.93))
     
     qr_pattern = re.search(
         r"(?:qr\s+exitoso|pago\s+qr|transferencia\s+exitosa)[^\n]*\n+([0-9]+(?:[\.,][0-9]{1,2})?)\s*\n",
@@ -155,8 +155,8 @@ def collect_labeled_amount_candidates(raw_text: str) -> list[tuple[float, float]
             candidates.append((amount, 0.9))
 
     currency_patterns = [
-        r"\b(?:bs|b\$|bob|ps|8s|s/|gs)\.?\s*([0-9]+(?:[\.,][0-9]{1,2})?)",
-        r"\b([0-9]+(?:[\.,][0-9]{1,2})?)\s*(?:bs|b\$|bob|gs)\b",
+        r"\b(?:bs|b\$|bob|ps|8s|s/|gs|es)\.?\s*([0-9]+(?:[\.,][0-9]{1,2})?)",
+        r"\b([0-9]+(?:[\.,][0-9]{1,2})?)\s*(?:bs|b\$|bob|gs|es)\b",
     ]
     for pattern in currency_patterns:
         for line in lines:
