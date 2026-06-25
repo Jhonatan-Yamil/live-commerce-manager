@@ -19,7 +19,7 @@ export default function LogisticsPage() {
     <Box>
       <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
         <Typography variant="h5" fontWeight={700} color={APP_PALETTE.text.primary}>
-          Logística
+          Entregas
         </Typography>
       </Box>
 

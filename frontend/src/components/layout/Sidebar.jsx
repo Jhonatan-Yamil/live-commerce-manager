@@ -26,7 +26,7 @@ const navItems = [
   { to: "/pedidos", label: "Pedidos", icon: ShoppingBagRoundedIcon },
   { to: "/lotes", label: "Lotes", icon: Inventory2RoundedIcon },
   { to: "/pagos", label: "Pagos", icon: CreditCardRoundedIcon },
-  { to: "/logistica", label: "Logística", icon: LocalShippingRoundedIcon },
+  { to: "/logistica", label: "Entregas", icon: LocalShippingRoundedIcon },
   { to: "/clientes", label: "Clientes", icon: GroupRoundedIcon },
   { to: "/productos", label: "Ventas", icon: PointOfSaleRoundedIcon },
   { to: "/caja", label: "Flujo de Caja", icon: AccountBalanceWalletRoundedIcon },
