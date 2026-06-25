@@ -123,7 +123,7 @@ export default function DashboardPage() {
             {ordersWithoutLogistics.length > 0 && (
               <AlertCard background={APP_PALETTE.surfaces.warningSoft} border={APP_PALETTE.surfaces.border}>
                 <Box>
-                  <Typography fontWeight={600} color={APP_PALETTE.status.warning} fontSize={14}>🚚 {ordersWithoutLogistics.length} pedido(s) sin logística creada</Typography>
+                  <Typography fontWeight={600} color={APP_PALETTE.status.warning} fontSize={14}>🚚 {ordersWithoutLogistics.length} pedido(s) sin entregas programadas</Typography>
                   <Typography color={APP_PALETTE.text.secondary} fontSize={12} mt={0.3}>
                     {ordersWithoutLogistics.slice(0, 3).map((o) => `#${o.id} ${o.client?.full_name}`).join(" · ")}
                     {ordersWithoutLogistics.length > 3 && ` · +${ordersWithoutLogistics.length - 3} más`}
